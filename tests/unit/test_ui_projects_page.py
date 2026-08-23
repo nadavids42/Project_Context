@@ -219,7 +219,11 @@ def test_project_scoped_page_without_selection_is_honest(isolated_config, module
     assert not any("not built" in info.value.lower() for info in at.info)
 
 
-def test_sources_settings_with_selection_shows_not_built_notice(isolated_config):
+def test_sources_settings_with_selection_and_drive_disabled_is_honest(isolated_config):
+    """Drive is a real, built feature since Prompt 10, but stays fully
+    gated behind `feature_drive_enabled` (default False) — this proves
+    the page renders cleanly with the flag off rather than crashing or
+    showing a stale "not built" placeholder."""
     project = _seed_project(isolated_config, client_name="Acme Corp")
 
     at = _render_page("sources_settings")
@@ -228,7 +232,7 @@ def test_sources_settings_with_selection_shows_not_built_notice(isolated_config)
 
     assert not at.exception
     assert any(project.name in c.value for c in at.caption)
-    assert any("not built in this step" in info.value.lower() for info in at.info)
+    assert any("drive integration is disabled" in info.value.lower() for info in at.info)
 
 
 def test_project_overview_shows_objective_and_honest_empty_areas(isolated_config):

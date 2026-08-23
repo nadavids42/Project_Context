@@ -180,6 +180,38 @@ def list_artifacts(conn: sqlite3.Connection, project_id: str) -> list[SourceArti
     return [_row_to_artifact(row) for row in rows]
 
 
+def list_artifacts_for_source(
+    conn: sqlite3.Connection, project_id: str, source_id: str
+) -> list[SourceArtifact]:
+    rows = conn.execute(
+        "SELECT * FROM source_artifacts WHERE project_id = ? AND source_id = ? "
+        "ORDER BY updated_at DESC",
+        (project_id, source_id),
+    ).fetchall()
+    return [_row_to_artifact(row) for row in rows]
+
+
+def update_availability(
+    conn: sqlite3.Connection,
+    project_id: str,
+    artifact_id: str,
+    *,
+    availability: ArtifactAvailability,
+) -> SourceArtifact:
+    """Mark an artifact unavailable (or available again) without ever
+    erasing its already-imported evidence (FR-027: "deleted/trashed
+    items are marked unavailable, not erased")."""
+    now = utc_now_iso()
+    conn.execute(
+        "UPDATE source_artifacts SET availability = ?, updated_at = ? "
+        "WHERE id = ? AND project_id = ?",
+        (availability.value, now, artifact_id, project_id),
+    )
+    artifact = get_artifact(conn, project_id, artifact_id)
+    assert artifact is not None
+    return artifact
+
+
 # --- contents -----------------------------------------------------------
 
 
@@ -226,9 +258,18 @@ def insert_content(
     parse_status: ParseStatus,
     location_map: dict[str, Any] | None,
     original_filename: str | None,
+    version_key: str | None = None,
 ) -> SourceContent:
+    """`version_key` defaults to the next sequential `"v1"`, `"v2"`, ...
+    (manual ingestion's convention). A connector with its own natural
+    version marker (Drive's `modifiedTime`; Prompt 10) may pass one
+    explicitly instead — still unique per `(artifact_id, version_key)`,
+    just not sequential text. Either way this is the one fact a caller
+    can compare against a freshly discovered marker *before* fetching,
+    to decide "changed" without a schema column dedicated to it."""
     content_id = new_id()
-    version_key = next_version_key(conn, artifact_id)
+    if version_key is None:
+        version_key = next_version_key(conn, artifact_id)
     now = utc_now_iso()
     conn.execute(
         """

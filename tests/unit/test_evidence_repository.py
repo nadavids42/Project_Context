@@ -11,12 +11,14 @@ from project_context.db import evidence_repository, sources_repository
 from project_context.db.connection import connect
 from project_context.db.migrations import run_migrations
 from project_context.domain.evidence import (
+    ArtifactAvailability,
     ArtifactType,
     AssignmentMethod,
     EvidenceSourceType,
     ParseStatus,
 )
 from project_context.domain.projects import ProjectCreateInput
+from project_context.domain.sources import SourceKind
 from project_context.services.projects import create_project
 
 
@@ -403,3 +405,56 @@ def test_search_chunks_treats_query_as_literal_phrase_not_fts_operators(conn, pr
     results = evidence_repository.search_chunks(conn, project_id, "cross-project")
 
     assert len(results) == 1
+
+
+# --- connector-sourced content: explicit version_key, availability (Prompt 10) --
+
+
+def test_insert_content_accepts_an_explicit_version_key(conn, project_id):
+    source = sources_repository.ensure_manual_source(conn, project_id)
+    artifact = _insert_artifact(conn, project_id, source.id)
+
+    content = _insert_content(
+        conn, project_id, artifact.id, sha256="d" * 64,
+        version_key="2026-08-01T00:00:00.000Z",
+    )
+
+    assert content.version_key == "2026-08-01T00:00:00.000Z"
+
+
+def test_insert_content_explicit_version_key_still_unique_per_artifact(conn, project_id):
+    import sqlite3
+
+    source = sources_repository.ensure_manual_source(conn, project_id)
+    artifact = _insert_artifact(conn, project_id, source.id)
+    _insert_content(conn, project_id, artifact.id, sha256="e" * 64, version_key="same-marker")
+
+    with pytest.raises(sqlite3.IntegrityError):
+        _insert_content(conn, project_id, artifact.id, sha256="f" * 64, version_key="same-marker")
+
+
+def test_list_artifacts_for_source_filters_to_that_source(conn, project_id):
+    source_a = sources_repository.ensure_manual_source(conn, project_id)
+    source_b = sources_repository.insert_source(
+        conn, project_id, kind=SourceKind.DRIVE, display_name="Drive folder"
+    )
+    _insert_artifact(conn, project_id, source_a.id, external_id="a1")
+    _insert_artifact(conn, project_id, source_b.id, external_id="b1")
+
+    only_b = evidence_repository.list_artifacts_for_source(conn, project_id, source_b.id)
+
+    assert [a.external_id for a in only_b] == ["b1"]
+
+
+def test_update_availability_marks_deleted_external_without_removing_the_row(conn, project_id):
+    source = sources_repository.ensure_manual_source(conn, project_id)
+    artifact = _insert_artifact(conn, project_id, source.id)
+
+    updated = evidence_repository.update_availability(
+        conn, project_id, artifact.id, availability=ArtifactAvailability.DELETED_EXTERNAL
+    )
+
+    assert updated.availability is ArtifactAvailability.DELETED_EXTERNAL
+    refetched = evidence_repository.get_artifact(conn, project_id, artifact.id)
+    assert refetched is not None
+    assert refetched.availability is ArtifactAvailability.DELETED_EXTERNAL

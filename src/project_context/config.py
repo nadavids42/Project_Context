@@ -34,6 +34,7 @@ VALID_LOG_LEVELS = frozenset({"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"})
 DEFAULT_DATA_DIR = Path("data")
 DEFAULT_SQLITE_FILENAME = "project_context.db"
 DEFAULT_EVIDENCE_DIRNAME = "evidence"
+DEFAULT_CREDENTIALS_DIRNAME = "credentials"
 
 #: FR-006 / Section 11.1 ("App-configured max 25 MB/file"). A hard
 #: per-file ceiling enforced by the ingestion service, independent of any
@@ -113,6 +114,26 @@ class AppConfig(BaseSettings):
     feature_calendar_enabled: bool = False
     feature_fathom_enabled: bool = False
 
+    #: credentials_dir defaults to a location under data_dir, exactly
+    #: like sqlite_path/evidence_dir — left as None here so the model
+    #: validator can derive it. Holds only the encrypted-fallback
+    #: secrets file and its separate master key (Section 16) — never
+    #: created unless the OS keyring is unavailable at least once.
+    credentials_dir: Path | None = None
+
+    #: Google OAuth desktop-app client credentials (Section 11.2: "OAuth
+    #: 2.0 desktop client with localhost callback"). Both must be set to
+    #: enable Drive — see the feature flag above and
+    #: `google_oauth_is_configured`. Never given a default; there is no
+    #: safe placeholder client ID/secret. Loaded from environment/`.env`
+    #: like every other setting here, never committed (Section 8:
+    #: "`.env` ... gitignored").
+    google_oauth_client_id: str | None = None
+    google_oauth_client_secret: str | None = None
+    #: 0 lets the OS pick a free localhost port for the OAuth callback
+    #: (Section 11.2: "localhost callback").
+    google_oauth_redirect_port: int = 0
+
     @field_validator("data_dir", mode="before")
     @classmethod
     def _validate_data_dir_str(cls, value: Any) -> Any:
@@ -131,6 +152,13 @@ class AppConfig(BaseSettings):
         if value in ("", None):
             return None
         return _require_non_blank_path_str(value, "evidence_dir")
+
+    @field_validator("credentials_dir", mode="before")
+    @classmethod
+    def _validate_credentials_dir_str(cls, value: Any) -> Any:
+        if value in ("", None):
+            return None
+        return _require_non_blank_path_str(value, "credentials_dir")
 
     @field_validator("log_level", mode="before")
     @classmethod
@@ -195,7 +223,24 @@ class AppConfig(BaseSettings):
         if self.sqlite_path == self.evidence_dir:
             raise ValueError("sqlite_path and evidence_dir must not be the same path")
 
+        if self.credentials_dir is None:
+            self.credentials_dir = self.data_dir / DEFAULT_CREDENTIALS_DIRNAME
+        else:
+            self.credentials_dir = self.credentials_dir.expanduser().resolve()
+        if self.credentials_dir.exists() and not self.credentials_dir.is_dir():
+            raise ValueError(
+                f"credentials_dir {self.credentials_dir} exists and is not a directory"
+            )
+
         return self
+
+    @property
+    def google_oauth_is_configured(self) -> bool:
+        """True only when both the client ID and secret are set — the
+        Sources & Settings page uses this to explain *why* Drive connect
+        is unavailable rather than just hiding the button (Section 11.2:
+        "Request Drive permission only when Drive is enabled")."""
+        return bool(self.google_oauth_client_id) and bool(self.google_oauth_client_secret)
 
     def ensure_local_directories(self) -> None:
         """Create data_dir and evidence_dir if missing.
@@ -203,7 +248,9 @@ class AppConfig(BaseSettings):
         Explicit, opt-in side effect — never called merely by loading or
         importing configuration. Intended for callers (app startup, DB
         init) that actually need these directories to exist.
-        """
+        `credentials_dir` is deliberately not created here — the
+        credential store creates it itself, on first actual use, only if
+        the OS keyring turns out to be unavailable (Section 16)."""
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.evidence_dir.mkdir(parents=True, exist_ok=True)
         self.sqlite_path.parent.mkdir(parents=True, exist_ok=True)

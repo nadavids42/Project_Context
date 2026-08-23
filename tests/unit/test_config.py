@@ -115,3 +115,38 @@ def test_ensure_local_directories_is_explicit_opt_in(tmp_path, monkeypatch):
     assert config.data_dir.is_dir()
     assert config.evidence_dir.is_dir()
     assert config.sqlite_path.parent.is_dir()
+
+
+def test_credentials_dir_defaults_under_data_dir_and_is_not_precreated(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    config = load_config(_env_file=None)
+    assert config.credentials_dir == tmp_path / "data" / "credentials"
+    assert not config.credentials_dir.exists()
+
+    config.ensure_local_directories()
+    assert not config.credentials_dir.exists()  # deliberately not pre-created
+
+
+def test_google_oauth_is_configured_requires_both_id_and_secret(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    assert load_config(_env_file=None).google_oauth_is_configured is False
+
+    monkeypatch.setenv("PROJECT_CONTEXT_GOOGLE_OAUTH_CLIENT_ID", "cid")
+    assert load_config(_env_file=None).google_oauth_is_configured is False
+
+    monkeypatch.setenv("PROJECT_CONTEXT_GOOGLE_OAUTH_CLIENT_SECRET", "csecret")
+    assert load_config(_env_file=None).google_oauth_is_configured is True
+
+
+def test_feature_drive_enabled_defaults_false_so_drive_never_starts_unconfigured(
+    tmp_path, monkeypatch
+):
+    monkeypatch.chdir(tmp_path)
+    config = load_config(_env_file=None)
+    assert config.feature_drive_enabled is False
+    # Importing/loading configuration never fails just because Google
+    # OAuth client credentials are absent (Prompt 10: "Feature flag must
+    # allow the entire Drive integration to remain disabled without
+    # import/startup failure").
+    assert config.google_oauth_client_id is None
+    assert config.google_oauth_client_secret is None

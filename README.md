@@ -9,33 +9,24 @@ every claim is traceable to source evidence.
 
 See [`docs/Project_Context_Product_Plan_v1.md`](docs/Project_Context_Product_Plan_v1.md)
 for the full product and architecture plan. **Implemented so far:**
-configuration, redacted logging, the SQLite schema foundation
-(projects/sources/evidence/sync tables), project lifecycle
-(create/edit/archive/restore, FR-001), and the full navigation skeleton
-— Projects, Project Overview, Activity & Review, Ledger Views, Evidence,
-Briefs, and Sources & Settings. The Evidence page is fully built:
-manual text entry and file upload (TXT, Markdown, DOCX, PDF, VTT),
-content-addressed immutable storage, deterministic parsing and
-chunking, FTS5 search, and an evidence viewer with span highlighting
-(FR-005 through FR-009). The provider-neutral LLM boundary (Section 12)
-is also built: a typed `LLMProvider` protocol, one OpenAI adapter with
-centralized retry and one schema-repair attempt, versioned Pydantic
-structured-extraction schemas (Section 9), and a manually-triggered
-"Extract observations" action on the Evidence page — every candidate
-observation is deterministically validated against its cited source
-chunk before it is shown as accepted (Section 12.4/12.8). The full
-persistent ledger/review data model (Section 9) is also built: people
-and aliases, observations, versioned ledger items, evidence links,
-proposed mutations, reviews, and corrections, each with a repository
-enforcing the schema's invariants (immutable observations, exact-
-fingerprint deduplication, kind/status-constrained transitions,
-same-project evidence linking, project-isolated FTS5) — but nothing
-writes to it yet. Extraction's UI output is still a proposal only: it
-is never persisted and never mutates project state. Every other
-project-scoped page still shows an honest "not built in this step"
-state. Reconciliation (deciding *what* to propose), the review UI, the
-transactional accept/reject flow, briefs, and connectors are not
-implemented yet.
+the full manual-ingestion vertical slice, end to end — create a
+project; ingest manual text or an uploaded file (TXT, Markdown, DOCX,
+PDF, VTT) or a synced Google Drive file; extract atomic, evidence-cited
+observations with a versioned LLM prompt/schema; deterministically
+reconcile them into reviewable proposals (create/update/complete/
+cancel/supersede/conflict); review and accept/edit/reject them into a
+versioned, append-only project ledger; and generate a cited Current
+Project Brief from accepted ledger state only. Every step is
+project-isolated, evidence-linked, and covered by repository/service/
+UI tests. Also implemented: **read-only Google Drive sync** (Prompt
+10) — a local OAuth desktop flow, OS-keyring-backed (with an encrypted-
+file fallback) credential storage, one configured Drive folder per
+project, recursive folder enumeration with change detection, Google
+Docs export, and manual "Sync Project" orchestration feeding the same
+extraction/reconciliation/review path as manual uploads — see
+"[Google Drive setup](#google-drive-setup-optional)" below. Gmail,
+Calendar, and Fathom connectors, the Meeting Preparation Brief, and the
+evaluation harness are not implemented yet.
 
 ## ⚠️ Privacy and data policy
 
@@ -51,8 +42,12 @@ product.
   provider (OpenAI, stateless, `store: false`); nothing is sent
   automatically or in the background. Extraction is disabled until you
   set `OPENAI_API_KEY` in your environment.
-- External connectors (Drive, Gmail, Calendar, Fathom) are designed to be
-  read-only and are disabled by default; none are implemented yet.
+- External connectors are strictly read-only (no code path ever writes
+  to Drive/Gmail/Calendar/Fathom) and disabled by default. Google Drive
+  is implemented (Prompt 10) but requires you to explicitly opt in —
+  see "[Google Drive setup](#google-drive-setup-optional)" below,
+  including its restricted-scope caveat. Gmail, Calendar, and Fathom
+  are not implemented yet.
 - Do not expose the Streamlit port beyond `127.0.0.1`.
 
 ## Requirements
@@ -90,8 +85,83 @@ streamlit run app.py
 
 Opens the Projects page. From there: create a project, open it to see
 Project Overview, and use the sidebar to reach the other project-scoped
-pages (most of which are still "not built in this step"). Application
-configuration/health is on the Sources & Settings page.
+pages. Application configuration/health is on the Sources & Settings
+page.
+
+## Google Drive setup (optional)
+
+Drive sync is fully implemented but **disabled by default**. Enabling
+it is entirely optional — the manual-ingestion path (paste text or
+upload a file) works with no setup at all and is the required fallback
+for every Drive scenario.
+
+> **Scope caveat — read before enabling.** This integration requests
+> `https://www.googleapis.com/auth/drive.readonly`, which Google
+> classifies as a **restricted** scope. That is the right choice for a
+> private, local, single-user prototype you run yourself against your
+> own test-mode OAuth client — it is **not appropriate for a casual
+> public launch**: Google requires restricted-scope app verification,
+> and storing/transmitting restricted-scope data through a third-party
+> server can require an annual third-party security assessment. See
+> Sections 11.2 and 16 of the product plan before promising Drive
+> access to anyone other than yourself.
+
+1. **Create a Google Cloud project** (or reuse one) at
+   [console.cloud.google.com](https://console.cloud.google.com/).
+2. **Enable the Google Drive API** for that project (APIs & Services →
+   Library → "Google Drive API" → Enable).
+3. **Configure the OAuth consent screen** (APIs & Services → OAuth
+   consent screen). Choose **External** and leave the app in **Testing**
+   mode — this keeps it unverified and capped to the test users you
+   explicitly add next, which is the correct, honest state for a
+   private prototype (do not attempt to publish/verify it).
+4. **Add yourself as a test user** on that consent screen. Only test
+   users can complete the OAuth flow while the app is unverified.
+5. **Create an OAuth client ID** (APIs & Services → Credentials →
+   Create Credentials → OAuth client ID) with application type
+   **Desktop app**. Copy the generated Client ID and Client Secret.
+6. **Set the two environment variables** (in your real, gitignored
+   `.env`, not `.env.example`):
+
+   ```bash
+   PROJECT_CONTEXT_FEATURE_DRIVE_ENABLED=true
+   PROJECT_CONTEXT_GOOGLE_OAUTH_CLIENT_ID=your-client-id
+   PROJECT_CONTEXT_GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret
+   ```
+
+7. **Restart the app**, open a project's Sources & Settings page, and
+   click **Connect Google Drive**. Your browser opens Google's consent
+   screen; approving it completes a local desktop OAuth flow
+   (`localhost` callback) and stores the resulting refresh token in
+   your OS keyring (or, only if the keyring is unavailable, an
+   explicit Fernet-encrypted local file with `0600` permissions and its
+   key kept in a separate file — see
+   [`src/project_context/credentials/store.py`](src/project_context/credentials/store.py)).
+   No token is ever written to SQLite or logged.
+8. **Configure exactly one Drive folder** for the project: paste the
+   folder's ID (the segment after `/folders/` in its Drive URL) into
+   the Drive folder ID field, click **Preview** to dry-run what would be
+   matched, then **Save folder**.
+9. Click **Sync Project**. This recursively enumerates the folder,
+   downloads new/changed supported files, exports Google Docs to plain
+   text, and feeds everything through the same parser/extraction/
+   reconciliation pipeline manual uploads use — nothing here invents a
+   different, Drive-specific fact-extraction path. Files trashed or
+   removed from the folder are marked unavailable on the next full
+   sync, never silently deleted from your ledger.
+
+To disconnect at any time, click **Disconnect** — this deletes the
+stored refresh token immediately and disables the source; it does not
+delete evidence already imported (Section 16: external deletion never
+erases previously imported evidence automatically).
+
+**Known limitation, observed against the real Drive API:** `files.export`
+only works for native Google Workspace types, and each type supports a
+fixed set of export MIME types. This connector exports Google Docs to
+plain text; Sheets, Slides, Forms, and Drawings are recognized but
+deliberately skipped rather than guessed at — export them yourself to a
+supported format and upload the result through the manual path if you
+need one of those in a project's evidence.
 
 ## Test
 
@@ -114,14 +184,23 @@ prefixed `PROJECT_CONTEXT_`, with safe local defaults — see
 [`src/project_context/config.py`](src/project_context/config.py) for
 validation rules. Invalid values (unknown log level, malformed path,
 conflicting paths, etc.) fail fast with a clear error rather than
-starting the application in an unknown state. Secrets (Google OAuth
-tokens, Fathom API key) are never read from `.env` — see the product
-plan, Section 16, for the credential-storage design. The one documented
-exception is the OpenAI API key: the OS-keyring/encrypted-secrets
-subsystem Section 16 describes isn't built yet, so extraction reads the
-standard `OPENAI_API_KEY` environment variable directly (see
-[`.env.example`](.env.example)); without it, "Extract observations"
-shows an actionable error instead of failing silently.
+starting the application in an unknown state, and every connector
+feature flag defaults to disabled, so leaving all Google/Fathom
+variables unset is a fully supported, fully functional configuration
+(manual ingestion never depends on any of them).
+
+Per-user secrets (the Drive refresh token, later a Fathom API key) are
+never read from `.env` — see "[Google Drive setup](#google-drive-setup-optional)"
+above and the product plan, Section 16, for the credential-storage
+design (OS keyring first, an explicit encrypted-file fallback second,
+never plaintext). The Google OAuth **client** ID/secret are configuration,
+not a per-user secret, and are read from `.env` like everything else —
+see the setup section above for why. The one remaining documented
+exception is the OpenAI API key: the credential-store subsystem covers
+Drive but extraction still reads the standard `OPENAI_API_KEY`
+environment variable directly (see [`.env.example`](.env.example));
+without it, "Extract observations" and Drive sync's extraction step
+both show an actionable error instead of failing silently.
 
 ## Repository structure
 
@@ -129,24 +208,25 @@ shows an actionable error instead of failing silently.
 project-context/
 ├── app.py                    # Streamlit entry point
 ├── src/project_context/
-│   ├── config.py              # typed configuration loading
+│   ├── config.py              # typed configuration loading (incl. Google OAuth client, feature flags)
 │   ├── observability.py       # redacted structured logging
 │   ├── evidence_store.py      # content-addressed SHA-256 evidence storage
 │   ├── spans.py                # character-span validation (FR-008)
 │   ├── chunking.py             # deterministic paragraph/page/turn-boundary chunking
-│   ├── db/                    # connection, migrations, health, and one repository per table/domain (projects, audit, sources, evidence, people, observations, ledger, evidence links, proposed mutations, reviews, corrections), FTS5
-│   ├── domain/                # projects, audit, sources, evidence, people, observations, ledger (kind/status/transition rules), review (enums, models)
-│   ├── services/               # projects (lifecycle), evidence (manual ingestion), extraction (Section 12), observations + ledger (write orchestration only — no reconciliation/review-transaction caller yet); sync, reconciliation, review, briefs not yet implemented
-│   ├── connectors/             # manual, drive, gmail, calendar, fathom (not yet implemented)
+│   ├── credentials/            # OS-keyring-first, encrypted-file-fallback secret storage + connect/refresh/mask/disconnect service
+│   ├── db/                    # connection, migrations, health, and one repository per table/domain (projects, audit, sources, evidence, people, observations, ledger, evidence links, proposed mutations, reviews, corrections, briefs, sync), FTS5
+│   ├── domain/                # projects, audit, sources, evidence, people, observations, ledger, review, briefs, sync (enums, models)
+│   ├── services/               # projects, evidence, extraction, observations, ledger, reconciliation, review, briefs, sync orchestration, drive_ingestion, google_connect
+│   ├── connectors/             # protocol/errors/http (shared), drive (implemented), google_oauth; gmail/calendar/fathom not yet implemented
 │   ├── parsers/                # txt, md, docx, pdf, vtt + content-first kind detection
-│   ├── llm/                    # LLMProvider protocol, OpenAI adapter, retry, structured-extraction schemas, prompt loading
-│   ├── retrieval/               # SQL/FTS queries (not yet implemented)
-│   └── ui/                     # Streamlit pages, navigation, project lifecycle + evidence forms + extraction action
-├── migrations/                # numbered SQLite migrations (projects/evidence/sync, audit, evidence fields, FTS5, ledger/review schema + its FTS5)
-├── prompts/                   # versioned LLM prompt templates (extraction_v1.md)
+│   ├── llm/                    # LLMProvider protocol, OpenAI adapter, retry, structured-extraction + brief-composition schemas, prompt loading
+│   ├── retrieval/               # deterministic Current Project Brief fact builder
+│   └── ui/                     # Streamlit pages: projects, overview, activity/review, ledger, evidence, briefs, sources & settings
+├── migrations/                # numbered SQLite migrations (see migrations/README.md)
+├── prompts/                   # versioned LLM prompt templates (extraction_v1.md, brief_current_v1.md)
 ├── tests/                     # unit, integration, fixtures, golden projects, prompt regression
 ├── scripts/                   # seed/evaluate/export/purge utilities (not yet implemented)
-└── data/                      # local SQLite DB + evidence store — gitignored, created at runtime
+└── data/                      # local SQLite DB + evidence store + credentials — gitignored, created at runtime
 ```
 
 See Section 8 of the product plan for the full architecture rationale.

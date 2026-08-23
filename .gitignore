@@ -1,0 +1,52 @@
+# --- Secrets ---------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.token
+*.credentials
+token_cache/
+.token_cache/
+.secrets/
+secrets.enc
+keyring_fallback/
+
+# --- Local data (SQLite DB, WAL/SHM, evidence store) ------------------
+data/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+
+# --- Generated output ---------------------------------------------------
+briefs/
+reports/
+*.generated.md
+
+# --- Python -------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# --- Virtual environments ------------------------------------------------
+.venv/
+venv/
+env/
+
+# --- Caches ---------------------------------------------------------------
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# --- Editors / OS -----------------------------------------------------------
+.DS_Store
+.vscode/
+.idea/

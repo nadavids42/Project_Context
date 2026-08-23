@@ -1,0 +1,117 @@
+"""Tests for typed configuration loading: defaults, overrides, and failure."""
+
+from __future__ import annotations
+
+import pytest
+
+from project_context.config import (
+    DEFAULT_OPENAI_MODEL,
+    ConfigurationError,
+    Environment,
+    load_config,
+)
+
+
+def test_defaults_are_valid_and_local(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    config = load_config(_env_file=None)
+
+    assert config.environment is Environment.LOCAL
+    assert config.data_dir == tmp_path / "data"
+    assert config.sqlite_path == tmp_path / "data" / "project_context.db"
+    assert config.evidence_dir == tmp_path / "data" / "evidence"
+    assert config.log_level == "INFO"
+    assert config.openai_model == DEFAULT_OPENAI_MODEL
+    assert config.feature_drive_enabled is False
+    assert config.feature_gmail_enabled is False
+    assert config.feature_calendar_enabled is False
+    assert config.feature_fathom_enabled is False
+    # Loading configuration must not create anything on disk.
+    assert not config.data_dir.exists()
+    assert not config.evidence_dir.exists()
+
+
+def test_environment_variable_overrides_are_applied(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("PROJECT_CONTEXT_ENVIRONMENT", "development")
+    monkeypatch.setenv("PROJECT_CONTEXT_DATA_DIR", str(tmp_path / "custom-data"))
+    monkeypatch.setenv("PROJECT_CONTEXT_LOG_LEVEL", "debug")
+    monkeypatch.setenv("PROJECT_CONTEXT_OPENAI_MODEL", "gpt-5.6-terra-mini")
+    monkeypatch.setenv("PROJECT_CONTEXT_FEATURE_DRIVE_ENABLED", "true")
+
+    config = load_config(_env_file=None)
+
+    assert config.environment is Environment.DEVELOPMENT
+    assert config.data_dir == (tmp_path / "custom-data").resolve()
+    assert config.log_level == "DEBUG"  # normalized to uppercase
+    assert config.openai_model == "gpt-5.6-terra-mini"
+    assert config.feature_drive_enabled is True
+    # Unset flags keep their safe default.
+    assert config.feature_gmail_enabled is False
+    assert config.feature_calendar_enabled is False
+    assert config.feature_fathom_enabled is False
+
+
+def test_explicit_sqlite_and_evidence_paths_are_respected(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    custom_db = tmp_path / "somewhere" / "custom.db"
+    custom_evidence = tmp_path / "elsewhere" / "evidence-store"
+    monkeypatch.setenv("PROJECT_CONTEXT_SQLITE_PATH", str(custom_db))
+    monkeypatch.setenv("PROJECT_CONTEXT_EVIDENCE_DIR", str(custom_evidence))
+
+    config = load_config(_env_file=None)
+
+    assert config.sqlite_path == custom_db.resolve()
+    assert config.evidence_dir == custom_evidence.resolve()
+
+
+@pytest.mark.parametrize(
+    "env_overrides",
+    [
+        {"PROJECT_CONTEXT_LOG_LEVEL": "VERBOSE"},
+        {"PROJECT_CONTEXT_ENVIRONMENT": "prod-typo"},
+        {"PROJECT_CONTEXT_DATA_DIR": "   "},
+        {"PROJECT_CONTEXT_OPENAI_MODEL": ""},
+    ],
+    ids=["bad-log-level", "bad-environment", "blank-data-dir", "blank-model"],
+)
+def test_invalid_configuration_fails_clearly(tmp_path, monkeypatch, env_overrides):
+    monkeypatch.chdir(tmp_path)
+    for key, value in env_overrides.items():
+        monkeypatch.setenv(key, value)
+
+    with pytest.raises(ConfigurationError):
+        load_config(_env_file=None)
+
+
+def test_data_dir_pointing_at_a_file_fails_clearly(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    file_in_the_way = tmp_path / "not-a-directory"
+    file_in_the_way.write_text("not a directory")
+    monkeypatch.setenv("PROJECT_CONTEXT_DATA_DIR", str(file_in_the_way))
+
+    with pytest.raises(ConfigurationError):
+        load_config(_env_file=None)
+
+
+def test_sqlite_path_pointing_at_a_directory_fails_clearly(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    directory_in_the_way = tmp_path / "looks-like-a-db"
+    directory_in_the_way.mkdir()
+    monkeypatch.setenv("PROJECT_CONTEXT_SQLITE_PATH", str(directory_in_the_way))
+
+    with pytest.raises(ConfigurationError):
+        load_config(_env_file=None)
+
+
+def test_ensure_local_directories_is_explicit_opt_in(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    config = load_config(_env_file=None)
+    assert not config.data_dir.exists()
+
+    config.ensure_local_directories()
+
+    assert config.data_dir.is_dir()
+    assert config.evidence_dir.is_dir()
+    assert config.sqlite_path.parent.is_dir()

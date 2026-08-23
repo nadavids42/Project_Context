@@ -104,3 +104,55 @@ def test_transaction_rolls_back_ddl_too(tmp_path):
             conn.execute("SELECT * FROM should_not_exist")
     finally:
         conn.close()
+
+
+# --- reentrancy (Prompt 8: composing services.ledger helpers inside a
+# larger review transaction) -------------------------------------------
+
+
+def test_transaction_is_reentrant_and_commits_together(tmp_path):
+    conn = connect(tmp_path / "app.db")
+    try:
+        conn.execute("CREATE TABLE t (id TEXT)")
+        with transaction(conn):
+            conn.execute("INSERT INTO t (id) VALUES ('outer')")
+            with transaction(conn):
+                conn.execute("INSERT INTO t (id) VALUES ('inner')")
+            # Still inside the outer transaction after the inner
+            # context manager exits — nothing committed yet.
+            assert conn.in_transaction
+
+        rows = {row["id"] for row in conn.execute("SELECT id FROM t").fetchall()}
+        assert rows == {"outer", "inner"}
+    finally:
+        conn.close()
+
+
+def test_transaction_nested_failure_rolls_back_the_whole_outer_block(tmp_path):
+    conn = connect(tmp_path / "app.db")
+    try:
+        conn.execute("CREATE TABLE t (id TEXT)")
+
+        with pytest.raises(RuntimeError), transaction(conn):
+            conn.execute("INSERT INTO t (id) VALUES ('outer')")
+            with transaction(conn):
+                conn.execute("INSERT INTO t (id) VALUES ('inner')")
+                raise RuntimeError("synthetic failure inside the nested block")
+
+        assert conn.execute("SELECT id FROM t").fetchall() == []
+        assert conn.in_transaction is False
+    finally:
+        conn.close()
+
+
+def test_transaction_nested_call_does_not_issue_a_second_begin(tmp_path):
+    """A naive nested `BEGIN IMMEDIATE` raises sqlite3.OperationalError
+    ("cannot start a transaction within a transaction"); reentrancy must
+    prevent that outright, not merely tolerate it."""
+    conn = connect(tmp_path / "app.db")
+    try:
+        conn.execute("CREATE TABLE t (id TEXT)")
+        with transaction(conn), transaction(conn):
+            conn.execute("INSERT INTO t (id) VALUES ('1')")
+    finally:
+        conn.close()

@@ -59,12 +59,31 @@ def transaction(conn: sqlite3.Connection) -> Iterator[sqlite3.Connection]:
     `connect()` opens the connection in autocommit mode, this also wraps
     DDL statements (`CREATE TABLE`, etc.), which is what makes the
     migration runner able to roll back a partially-applied migration.
+
+    Reentrant: if a transaction is already active on this connection
+    (`conn.in_transaction`, a real-time SQLite property — accurate even
+    in autocommit mode, since it reflects whether an explicit `BEGIN` is
+    outstanding), this call joins it instead of issuing a nested `BEGIN`
+    (which SQLite rejects outright). Only the outermost `transaction()`
+    call commits or rolls back; an exception from an inner call still
+    propagates all the way out, so the outermost call rolls back
+    everything written by every nested call, atomically. This is what
+    lets a higher-level service (Prompt 8's review transaction) compose
+    several already-transactional helpers — e.g.
+    `project_context.services.ledger.create_ledger_item` and
+    `append_ledger_version`, each already wrapped in its own
+    `transaction()` — inside one larger atomic unit of work, without
+    duplicating their internals.
     """
-    conn.execute("BEGIN IMMEDIATE")
+    already_in_transaction = conn.in_transaction
+    if not already_in_transaction:
+        conn.execute("BEGIN IMMEDIATE")
     try:
         yield conn
     except BaseException:
-        conn.rollback()
+        if not already_in_transaction:
+            conn.rollback()
         raise
     else:
-        conn.commit()
+        if not already_in_transaction:
+            conn.commit()

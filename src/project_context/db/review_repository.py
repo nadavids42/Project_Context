@@ -1,9 +1,10 @@
-"""Review repository: direct SQL access to `reviews` — record-keeping
-only (Prompt 6: "do not implement the full review transaction until
-Prompt 8"). `insert_review` writes one row; it does not touch
-`proposed_mutations`, `ledger_items`, or `ledger_versions`. The
-transactional "apply this review as a ledger transition, in one
-database transaction" service is Prompt 8's job.
+"""Review repository: direct SQL access to `reviews`.
+
+`insert_review` writes one row; it does not itself touch
+`proposed_mutations`, `ledger_items`, or `ledger_versions` — composing
+those into one atomic transaction is `project_context.services.review`'s
+job (Prompt 8), which relies on `db.connection.transaction`'s reentrancy
+to combine this with `services.ledger`'s own transactional helpers.
 """
 
 from __future__ import annotations
@@ -45,11 +46,18 @@ def insert_review(
     note: str | None = None,
     actor: str = "local-user",
     duration_ms: int | None = None,
+    review_id: str | None = None,
 ) -> Review:
     """Insert one review row. Raises `sqlite3.IntegrityError` if a
     review already exists for `proposal_id` (`uq_reviews_proposal`) — a
-    review is a final decision act, not a queue."""
-    review_id = new_id()
+    review is a final decision act, not a queue.
+
+    `review_id`, if given, is used as-is instead of generating a fresh
+    one — `project_context.services.review` pre-generates it so the same
+    id can be referenced by `ledger_versions.review_id`/
+    `corrections.review_id` rows written earlier in the same
+    transaction, before this row itself exists to reference back."""
+    review_id = review_id or new_id()
     now = utc_now_iso()
     conn.execute(
         """
@@ -82,6 +90,16 @@ def get_review_for_proposal(
 ) -> Review | None:
     row = conn.execute(
         "SELECT * FROM reviews WHERE project_id = ? AND proposal_id = ?", (project_id, proposal_id)
+    ).fetchone()
+    return _row_to_review(row) if row is not None else None
+
+
+def get_review(conn: sqlite3.Connection, project_id: str, review_id: str) -> Review | None:
+    """Look up one review by its own id — the history/evidence drawer's
+    way of resolving `ledger_versions.review_id` back to the human
+    decision that produced a version (Prompt 8)."""
+    row = conn.execute(
+        "SELECT * FROM reviews WHERE project_id = ? AND id = ?", (project_id, review_id)
     ).fetchone()
     return _row_to_review(row) if row is not None else None
 

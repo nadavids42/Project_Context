@@ -1,9 +1,14 @@
 """Small pieces of UI shown consistently across pages: the privacy
-banner and the "which project am I looking at" identity bar required by
+banner, the "which project am I looking at" identity bar required by
 Section 6 ("Everything else is scoped to one project and visibly
-displays the project name")."""
+displays the project name"), and the evidence-span highlighter shared by
+the Evidence page and the Activity & Review page (Section 6's review
+card anatomy: "Exact quote/span...accessible without leaving the review
+card")."""
 
 from __future__ import annotations
+
+import html
 
 import streamlit as st
 
@@ -44,3 +49,18 @@ def render_project_identity_bar(project: Project | None) -> None:
         return
     client_suffix = f" · {project.client_name}" if project.client_name else ""
     st.caption(f"PROJECT — {project.name}{client_suffix} · {status_label(project.status.value)}")
+
+
+def render_highlighted_text(text: str, char_start: int, char_end: int) -> None:
+    """Render `text` with `[char_start, char_end)` visually highlighted —
+    the one way this app shows an exact evidence span (FR-008; Section
+    6's review card "Evidence" region and the Evidence page's viewer)."""
+    before = html.escape(text[:char_start])
+    middle = html.escape(text[char_start:char_end])
+    after = html.escape(text[char_end:])
+    markup = (
+        "<div style='white-space: pre-wrap; font-family: monospace;'>"
+        f"{before}<mark>{middle}</mark>{after}"
+        "</div>"
+    )
+    st.markdown(markup, unsafe_allow_html=True)

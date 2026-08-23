@@ -17,3 +17,6 @@ Numbered SQL migrations, applied in order by
 | `0002_project_audit.sql` | `audit_entries` (minimal project lifecycle audit trail) |
 | `0003_evidence_manual_fields.sql` | `source_artifacts.source_type`, `source_contents.original_filename` |
 | `0004_source_chunks_fts.sql` | `source_chunks_fts` (FTS5) and sync triggers |
+| `0005_ledger_and_review.sql` | `people`, `person_aliases`, `project_people`, `observations`, `ledger_items`, `ledger_versions`, `evidence_links`, `proposed_mutations`, `reviews`, `corrections` |
+| `0006_ledger_fts.sql` | `ledger_items_fts`, `observations_fts` (FTS5) and sync triggers |
+| `0007_ledger_supersession_links.sql` | `ledger_items.superseded_by_item_id`, `ledger_items.supersedes_item_id` |

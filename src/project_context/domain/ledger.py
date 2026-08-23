@@ -277,7 +277,16 @@ class LedgerItem(BaseModel):
     """The current-projection row, as stored. See Section 9, table
     `ledger_items`. `current_version_id` is `None` only for the instant
     between the two inserts a creation transaction performs — see
-    migrations/0005_ledger_and_review.sql."""
+    migrations/0005_ledger_and_review.sql.
+
+    `superseded_by_item_id`/`supersedes_item_id` are additive (Prompt 8;
+    see migrations/0007_ledger_supersession_links.sql) — the item-level,
+    bidirectional supersession link Section 10.10 requires ("Set
+    superseded_by and reciprocal relation"), set together by
+    `project_context.services.review`'s supersede transaction. At most
+    one of the two is ever non-null on a given item: the OLD item gets
+    `superseded_by_item_id`, the NEW item gets `supersedes_item_id`.
+    """
 
     id: str
     project_id: str
@@ -291,6 +300,8 @@ class LedgerItem(BaseModel):
     current_version_id: str | None
     confidence_band: ConfidenceBand | None
     user_corrected: bool
+    superseded_by_item_id: str | None = None
+    supersedes_item_id: str | None = None
     created_at: str
     updated_at: str
 

@@ -497,6 +497,36 @@ def test_ledger_item_accepts_status_valid_for_kind(conn):
     _insert_ledger_item(conn, project_id, kind="risk", status="resolved")  # must not raise
 
 
+# --- migration 0007: item-level supersession links --------------------------
+
+
+def test_ledger_item_superseded_by_item_id_requires_a_real_item(conn):
+    project_id = _insert_project(conn)
+    with pytest.raises(sqlite3.IntegrityError):
+        _insert_ledger_item(conn, project_id, superseded_by_item_id="nonexistent-item")
+
+
+def test_ledger_item_supersedes_item_id_requires_a_real_item(conn):
+    project_id = _insert_project(conn)
+    with pytest.raises(sqlite3.IntegrityError):
+        _insert_ledger_item(conn, project_id, supersedes_item_id="nonexistent-item")
+
+
+def test_ledger_item_supersession_links_accept_a_real_item_pair(conn):
+    project_id = _insert_project(conn)
+    old_id = _insert_ledger_item(conn, project_id, kind="decision", status="active")
+    new_id_ = _insert_ledger_item(
+        conn, project_id, kind="decision", status="active", supersedes_item_id=old_id
+    )
+    conn.execute(
+        "UPDATE ledger_items SET superseded_by_item_id = ? WHERE id = ?", (new_id_, old_id)
+    )
+    row = conn.execute(
+        "SELECT superseded_by_item_id FROM ledger_items WHERE id = ?", (old_id,)
+    ).fetchone()
+    assert row["superseded_by_item_id"] == new_id_
+
+
 def test_observation_rejects_unknown_kind(conn, content_fixture):
     project_id, content_id, chunk_id = content_fixture
     with pytest.raises(sqlite3.IntegrityError):

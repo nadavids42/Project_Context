@@ -1,11 +1,7 @@
 """Domain model for proposed mutations, human reviews, and corrections
-(Section 9, tables `proposed_mutations`, `reviews`, `corrections`).
-
-No reconciliation engine or review transaction exists yet — these models
-and their repositories (`project_context.db.proposed_mutation_repository`,
-`.review_repository`, `.correction_repository`) support pending/reviewed
-queue *state* only (Prompt 6). The transactional "apply an accepted
-review as a ledger transition" flow is Prompt 8's job.
+(Section 9, tables `proposed_mutations`, `reviews`, `corrections`), plus
+`ProposalEdit` (Prompt 8) — the validated shape of a human's edit-and-
+accept input, applied by `project_context.services.review`.
 """
 
 from __future__ import annotations
@@ -13,7 +9,9 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, field_validator
+
+from project_context.domain.ledger import LedgerItemKind, LedgerItemStatus
 
 
 class ProposedMutationAction(StrEnum):
@@ -156,3 +154,49 @@ class Correction(BaseModel):
     prompt_version: str | None
     actor: str
     created_at: str
+
+
+class ProposalEdit(BaseModel):
+    """Validated user overrides for edit-and-accept (Prompt 8; FR-020;
+    Section 6's "Add edit-and-accept fields for wording, kind, owner, due
+    date, status, and evidence selection, with server-side validation").
+
+    Every field left `None` means "no override" — `project_context.
+    services.review` falls back to the proposal's own `proposed_patch`
+    value, then to the current ledger item's existing value. There is
+    deliberately no way to *clear* owner/due_date back to null through
+    this shape (a known, documented UX limitation — see the Prompt 8
+    report) since `None` already means "unchanged" here.
+
+    `action`/`target_ledger_item_id` let a human redirect a proposal
+    entirely — accepting a different action than reconciliation proposed
+    (e.g. treating an UPDATE as a COMPLETE) or a different candidate item
+    (resolving an ambiguous/CONFLICT match) — while `status` is the
+    primary lever for *which* transition happens: it is resolved to a
+    transition type first (Section 10's status vocabulary), with
+    `action` only consulted when `status` is not given.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    action: ProposedMutationAction | None = None
+    target_ledger_item_id: str | None = None
+    kind: LedgerItemKind | None = None
+    canonical_title: str | None = None
+    canonical_description: str | None = None
+    owner_person_id: str | None = None
+    due_date: str | None = None
+    status: LedgerItemStatus | None = None
+    #: Which of the observation's own evidence links to carry forward.
+    #: `None` means "all of them." An empty tuple is rejected by
+    #: `services.review` (an accepted change must cite at least one
+    #: piece of evidence) rather than by this shape, since "at least one"
+    #: is a review-transaction rule, not a wire-shape constraint.
+    evidence_link_ids: tuple[str, ...] | None = None
+
+    @field_validator("canonical_title")
+    @classmethod
+    def _title_not_blank(cls, value: str | None) -> str | None:
+        if value is not None and not value.strip():
+            raise ValueError("canonical_title, if given, must not be blank")
+        return value

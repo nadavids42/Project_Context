@@ -8,7 +8,6 @@ evidence`; this module only collects form input and renders results.
 
 from __future__ import annotations
 
-import html
 import sqlite3
 from datetime import date, datetime, time
 
@@ -33,6 +32,7 @@ from project_context.services.extraction import (
     RejectionReason,
 )
 from project_context.spans import InvalidSpanError, validate_span
+from project_context.ui.chrome import render_highlighted_text
 from project_context.ui.db import project_context_connection
 from project_context.ui.project_scope import require_selected_project
 
@@ -351,7 +351,7 @@ def _render_viewer(conn: sqlite3.Connection, project_id: str) -> None:
             st.error(str(exc))
             st.text(text)
         else:
-            _render_highlighted_text(text, int(char_start), int(char_end))
+            render_highlighted_text(text, int(char_start), int(char_end))
     else:
         st.text(text)
 
@@ -453,7 +453,7 @@ def _render_extraction_result(
                 for span in observation.evidence:
                     chunk = chunks_by_id.get(span.chunk_id)
                     if chunk is not None:
-                        _render_highlighted_text(chunk.text, span.char_start, span.char_end)
+                        render_highlighted_text(chunk.text, span.char_start, span.char_end)
                     else:
                         st.code(span.quote)
 
@@ -462,15 +462,3 @@ def _render_extraction_result(
         for rejection in run_result.rejected:
             label = _REJECTION_REASON_LABELS.get(rejection.reason, rejection.reason.value)
             st.warning(f"{label}: {rejection.detail}")
-
-
-def _render_highlighted_text(text: str, char_start: int, char_end: int) -> None:
-    before = html.escape(text[:char_start])
-    middle = html.escape(text[char_start:char_end])
-    after = html.escape(text[char_end:])
-    markup = (
-        "<div style='white-space: pre-wrap; font-family: monospace;'>"
-        f"{before}<mark>{middle}</mark>{after}"
-        "</div>"
-    )
-    st.markdown(markup, unsafe_allow_html=True)

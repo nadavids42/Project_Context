@@ -47,6 +47,8 @@ def _row_to_item(row: sqlite3.Row) -> LedgerItem:
         current_version_id=row["current_version_id"],
         confidence_band=ConfidenceBand(row["confidence_band"]) if row["confidence_band"] else None,
         user_corrected=bool(row["user_corrected"]),
+        superseded_by_item_id=row["superseded_by_item_id"],
+        supersedes_item_id=row["supersedes_item_id"],
         created_at=row["created_at"],
         updated_at=row["updated_at"],
     )
@@ -223,6 +225,37 @@ def update_projection(
     return get_item(conn, project_id, item_id)
 
 
+def set_supersession_links(
+    conn: sqlite3.Connection,
+    project_id: str,
+    item_id: str,
+    *,
+    superseded_by_item_id: str | None = None,
+    supersedes_item_id: str | None = None,
+) -> LedgerItem | None:
+    """Set one or both item-level supersession pointers (Prompt 8;
+    Section 10.10: "Set superseded_by and reciprocal relation" — see
+    migrations/0007_ledger_supersession_links.sql). `COALESCE` so a call
+    setting only one direction never clobbers the other back to NULL —
+    the review transaction calls this once per item (old item gets
+    `superseded_by_item_id`, new item gets `supersedes_item_id`), never
+    both in the same call.
+
+    Deliberately does not touch `status`/`current_version_id`/
+    `updated_at` — this always runs alongside, not instead of, the
+    version-append that performs the actual status transition."""
+    conn.execute(
+        """
+        UPDATE ledger_items
+        SET superseded_by_item_id = COALESCE(?, superseded_by_item_id),
+            supersedes_item_id = COALESCE(?, supersedes_item_id)
+        WHERE id = ? AND project_id = ?
+        """,
+        (superseded_by_item_id, supersedes_item_id, item_id, project_id),
+    )
+    return get_item(conn, project_id, item_id)
+
+
 # --- ledger_versions ----------------------------------------------------
 
 
@@ -313,6 +346,30 @@ def close_version(
         "UPDATE ledger_versions SET valid_to = ?, superseded_by_version_id = ? "
         "WHERE id = ? AND project_id = ?",
         (now, superseded_by_version_id, version_id, project_id),
+    )
+    return get_version(conn, project_id, version_id)
+
+
+def link_superseding_version(
+    conn: sqlite3.Connection, project_id: str, version_id: str, *, superseded_by_version_id: str
+) -> LedgerVersion | None:
+    """Point one version at the version (of a *different* item) that
+    superseded it, without touching `valid_to` (Prompt 8; Section 10.10).
+
+    Deliberately distinct from `close_version`: that function closes a
+    version because a *later version of the same item* replaced it as
+    current — this one links a superseded item's own final version to
+    its successor item's first version. The predecessor item's version
+    chain never gets a "next version of itself," so its final version
+    stays open-ended (`valid_to IS NULL`) even after this call —
+    `current_version_id` continues to identify it as that item's one
+    live snapshot; `superseded_by_version_id` is purely a forward
+    pointer for history navigation, not a signal that this version has
+    been superseded *within its own item's timeline*.
+    """
+    conn.execute(
+        "UPDATE ledger_versions SET superseded_by_version_id = ? WHERE id = ? AND project_id = ?",
+        (superseded_by_version_id, version_id, project_id),
     )
     return get_version(conn, project_id, version_id)
 

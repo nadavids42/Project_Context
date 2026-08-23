@@ -209,9 +209,7 @@ def test_archive_confirmation_dialog_names_the_project(isolated_config):
 # --- Project-scoped pages: honest empty state and visible identity --------
 
 
-@pytest.mark.parametrize(
-    "module_name", ["activity", "ledger", "evidence", "briefs", "sources_settings"]
-)
+@pytest.mark.parametrize("module_name", ["activity", "ledger", "briefs", "sources_settings"])
 def test_not_built_page_without_selection_shows_honest_empty_state(isolated_config, module_name):
     at = _render_page(module_name)
     at.run()
@@ -221,7 +219,7 @@ def test_not_built_page_without_selection_shows_honest_empty_state(isolated_conf
     assert not any("not built" in info.value.lower() for info in at.info)
 
 
-@pytest.mark.parametrize("module_name", ["activity", "ledger", "evidence", "briefs"])
+@pytest.mark.parametrize("module_name", ["activity", "ledger", "briefs"])
 def test_not_built_page_with_selection_shows_project_identity_and_not_built_notice(
     isolated_config, module_name
 ):

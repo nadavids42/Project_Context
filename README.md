@@ -10,13 +10,17 @@ every claim is traceable to source evidence.
 See [`docs/Project_Context_Product_Plan_v1.md`](docs/Project_Context_Product_Plan_v1.md)
 for the full product and architecture plan. **Implemented so far:**
 configuration, redacted logging, the SQLite schema foundation
-(projects/sources/evidence/sync tables), and project lifecycle
-(create/edit/archive/restore, FR-001) with the full navigation skeleton
+(projects/sources/evidence/sync tables), project lifecycle
+(create/edit/archive/restore, FR-001), and the full navigation skeleton
 — Projects, Project Overview, Activity & Review, Ledger Views, Evidence,
-Briefs, and Sources & Settings. Every page besides Projects and Project
-Overview shows an honest "not built in this step" state. Evidence
-ingestion, parsers, the ledger, reconciliation, briefs, and connectors
-are not implemented yet.
+Briefs, and Sources & Settings. The Evidence page is fully built:
+manual text entry and file upload (TXT, Markdown, DOCX, PDF, VTT),
+content-addressed immutable storage, deterministic parsing and
+chunking, FTS5 search, and an evidence viewer with span highlighting
+(FR-005 through FR-009) — all without any LLM call. Every other
+project-scoped page still shows an honest "not built in this step"
+state. LLM extraction, the ledger, reconciliation, briefs, and
+connectors are not implemented yet.
 
 ## ⚠️ Privacy and data policy
 
@@ -104,15 +108,18 @@ project-context/
 ├── src/project_context/
 │   ├── config.py              # typed configuration loading
 │   ├── observability.py       # redacted structured logging
-│   ├── db/                    # connection, migrations, health, projects/audit repositories
-│   ├── domain/                # projects, audit (enums, models); ledger/transition rules not yet implemented
-│   ├── services/               # projects (lifecycle); sync, extraction, reconciliation, review, briefs not yet implemented
+│   ├── evidence_store.py      # content-addressed SHA-256 evidence storage
+│   ├── spans.py                # character-span validation (FR-008)
+│   ├── chunking.py             # deterministic paragraph/page/turn-boundary chunking
+│   ├── db/                    # connection, migrations, health, projects/audit/sources/evidence repositories, FTS5
+│   ├── domain/                # projects, audit, sources, evidence (enums, models); ledger/transition rules not yet implemented
+│   ├── services/               # projects (lifecycle), evidence (manual ingestion); sync, extraction, reconciliation, review, briefs not yet implemented
 │   ├── connectors/             # manual, drive, gmail, calendar, fathom (not yet implemented)
-│   ├── parsers/                # txt, md, docx, pdf, vtt (not yet implemented)
+│   ├── parsers/                # txt, md, docx, pdf, vtt + content-first kind detection
 │   ├── llm/                    # provider protocol, OpenAI adapter, prompts (not yet implemented)
 │   ├── retrieval/               # SQL/FTS queries (not yet implemented)
-│   └── ui/                     # Streamlit pages, navigation, project lifecycle forms
-├── migrations/                # numbered SQLite migrations (projects/evidence/sync + audit)
+│   └── ui/                     # Streamlit pages, navigation, project lifecycle + evidence forms
+├── migrations/                # numbered SQLite migrations (projects/evidence/sync, audit, evidence fields, FTS5)
 ├── prompts/                   # versioned LLM prompt templates (not yet implemented)
 ├── tests/                     # unit, integration, fixtures, golden projects, prompt regression
 ├── scripts/                   # seed/evaluate/export/purge utilities (not yet implemented)

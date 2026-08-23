@@ -9,6 +9,9 @@ dependencies = [
     "pydantic>=2.7,<3",
     "pydantic-settings>=2.4,<3",
     "python-ulid>=2,<5",
+    "python-docx>=1.1,<2",
+    "pypdf>=5.0,<7",
+    "webvtt-py>=0.5,<1",
 ]
 
 [project.optional-dependencies]
@@ -28,6 +31,9 @@ packages = ["src/project_context"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+# Makes tests/fixtures/ importable as `fixtures.*` from any test module,
+# without an `__init__.py` chain from the repo root.
+pythonpath = ["tests"]
 
 [tool.ruff]
 line-length = 100

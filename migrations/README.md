@@ -15,3 +15,5 @@ Numbered SQL migrations, applied in order by
 |---|---|
 | `0001_evidence_foundation.sql` | `projects`, `sources`, `source_artifacts`, `source_contents`, `source_chunks`, `sync_runs`, `sync_items` |
 | `0002_project_audit.sql` | `audit_entries` (minimal project lifecycle audit trail) |
+| `0003_evidence_manual_fields.sql` | `source_artifacts.source_type`, `source_contents.original_filename` |
+| `0004_source_chunks_fts.sql` | `source_chunks_fts` (FTS5) and sync triggers |

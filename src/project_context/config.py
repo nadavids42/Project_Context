@@ -35,6 +35,20 @@ DEFAULT_DATA_DIR = Path("data")
 DEFAULT_SQLITE_FILENAME = "project_context.db"
 DEFAULT_EVIDENCE_DIRNAME = "evidence"
 
+#: FR-006 / Section 11.1 ("App-configured max 25 MB/file"). A hard
+#: per-file ceiling enforced by the ingestion service, independent of any
+#: Streamlit server-level upload limit.
+DEFAULT_MAX_UPLOAD_BYTES = 25 * 1024 * 1024
+
+#: Chunk target size in *characters*, not tokens — Section 8 asks for a
+#: "configurable character/token target without adding a model tokenizer
+#: dependency unless already justified"; no extraction step exists yet to
+#: justify one, so chunking is sized in characters with a rough
+#: characters-per-token estimate (see chunking.py) for the stored
+#: `token_estimate` column.
+DEFAULT_CHUNK_TARGET_CHARS = 4000
+DEFAULT_CHUNK_OVERLAP_RATIO = 0.10
+
 
 class Environment(StrEnum):
     """Named deployment environments. The prototype targets LOCAL only."""
@@ -90,6 +104,10 @@ class AppConfig(BaseSettings):
 
     openai_model: str = DEFAULT_OPENAI_MODEL
 
+    max_upload_bytes: int = DEFAULT_MAX_UPLOAD_BYTES
+    chunk_target_chars: int = DEFAULT_CHUNK_TARGET_CHARS
+    chunk_overlap_ratio: float = DEFAULT_CHUNK_OVERLAP_RATIO
+
     feature_drive_enabled: bool = False
     feature_gmail_enabled: bool = False
     feature_calendar_enabled: bool = False
@@ -131,6 +149,27 @@ class AppConfig(BaseSettings):
     def _validate_openai_model(cls, value: Any) -> Any:
         if isinstance(value, str) and not value.strip():
             raise ValueError("openai_model must not be empty")
+        return value
+
+    @field_validator("max_upload_bytes")
+    @classmethod
+    def _validate_max_upload_bytes(cls, value: int) -> int:
+        if value <= 0:
+            raise ValueError("max_upload_bytes must be positive")
+        return value
+
+    @field_validator("chunk_target_chars")
+    @classmethod
+    def _validate_chunk_target_chars(cls, value: int) -> int:
+        if value < 200:
+            raise ValueError("chunk_target_chars must be at least 200")
+        return value
+
+    @field_validator("chunk_overlap_ratio")
+    @classmethod
+    def _validate_chunk_overlap_ratio(cls, value: float) -> float:
+        if not (0.0 <= value < 0.5):
+            raise ValueError("chunk_overlap_ratio must be in [0.0, 0.5)")
         return value
 
     @model_validator(mode="after")

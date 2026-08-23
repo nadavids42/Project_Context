@@ -20,19 +20,12 @@ repository to use for "exact-source fingerprint deduplication."
 from __future__ import annotations
 
 import hashlib
-import unicodedata
 from collections.abc import Sequence
 from enum import StrEnum
 
 from pydantic import BaseModel
 
-from project_context.spans import normalize_whitespace
-
-#: A conservative, safe-to-strip punctuation set for fingerprinting only
-#: (Section 10.1: "conservative punctuation removal"). Never applied to
-#: anything a human sees — this exists purely so two propositions that
-#: differ only in trailing punctuation still fingerprint identically.
-_FINGERPRINT_PUNCTUATION_TABLE = str.maketrans("", "", ".,;:!?\"'`‘’“”()[]{}")
+from project_context.domain.text_normalization import normalize_form
 
 
 class ObservationStatus(StrEnum):
@@ -70,17 +63,6 @@ class Observation(BaseModel):
     created_at: str
 
 
-def _normalize_for_fingerprint(text: str) -> str:
-    """Unicode NFKC, lowercase, conservative punctuation removal, then
-    conservative whitespace collapse (Section 10.1's normalization rule,
-    reused here for exact fingerprinting only — no fuzzy/lexical matching
-    is implemented)."""
-    nfkc = unicodedata.normalize("NFKC", text)
-    lowered = nfkc.lower()
-    without_punctuation = lowered.translate(_FINGERPRINT_PUNCTUATION_TABLE)
-    return normalize_whitespace(without_punctuation)
-
-
 def compute_fingerprint(
     *,
     content_id: str,
@@ -93,7 +75,7 @@ def compute_fingerprint(
     cited evidence spans (chunk_id, char_start, char_end). Two
     observations with an identical fingerprint are the same proposition
     from the same content, cited the same way — not merely similar."""
-    normalized_statement = _normalize_for_fingerprint(statement)
+    normalized_statement = normalize_form(statement)
     spans_key = ",".join(
         f"{chunk_id}:{start}:{end}" for chunk_id, start, end in sorted(evidence_spans)
     )

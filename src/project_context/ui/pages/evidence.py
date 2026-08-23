@@ -23,13 +23,21 @@ from project_context.domain.evidence import (
     EvidenceSourceType,
     ManualFileUploadInput,
     ManualTextInput,
+    ParseStatus,
 )
 from project_context.services import evidence as evidence_service
+from project_context.services import extraction as extraction_service
+from project_context.services.extraction import (
+    ExtractionRunResult,
+    ExtractionStatus,
+    RejectionReason,
+)
 from project_context.spans import InvalidSpanError, validate_span
 from project_context.ui.db import project_context_connection
 from project_context.ui.project_scope import require_selected_project
 
 _SELECTED_ARTIFACT_KEY = "evidence_selected_artifact_id"
+_EXTRACTION_RESULTS_KEY = "evidence_extraction_results"
 _SUPPORTED_FILE_EXTENSIONS = ["txt", "md", "markdown", "docx", "pdf", "vtt"]
 
 _SOURCE_TYPE_LABELS = {
@@ -57,6 +65,22 @@ _AVAILABILITY_LABELS = {
     "inaccessible": "Inaccessible",
     "unassigned": "Unassigned",
     "rejected": "Rejected",
+}
+
+_EXTRACTION_STATUS_LABELS = {
+    ExtractionStatus.COMPLETED: "Completed",
+    ExtractionStatus.NO_MATERIAL_CONTENT: "No parsed content to extract from",
+    ExtractionStatus.FAILED_REVIEWABLE: "Failed — needs review",
+}
+
+_REJECTION_REASON_LABELS = {
+    RejectionReason.UNKNOWN_CHUNK_ID: "Unknown chunk ID",
+    RejectionReason.SPAN_OUT_OF_BOUNDS: "Span out of bounds",
+    RejectionReason.EMPTY_QUOTE: "Empty quote",
+    RejectionReason.QUOTE_MISMATCH: "Quote does not match source",
+    RejectionReason.UNSUPPORTED_OWNER: "Owner not supported by evidence",
+    RejectionReason.MALFORMED_DATE: "Implausible date",
+    RejectionReason.PROVIDER_REFUSAL: "Model declined to respond",
 }
 
 
@@ -330,6 +354,114 @@ def _render_viewer(conn: sqlite3.Connection, project_id: str) -> None:
             _render_highlighted_text(text, int(char_start), int(char_end))
     else:
         st.text(text)
+
+    _render_extraction_section(conn, project_id, detail)
+
+
+def _render_extraction_section(
+    conn: sqlite3.Connection, project_id: str, detail: evidence_service.EvidenceDetail
+) -> None:
+    """FR-010/Section 12: a manually-triggered 'Extract observations'
+    action over the currently-viewed content version's chunks. Results
+    are proposals only — nothing here writes to the project (Section
+    12.1: "Decide state transition — No in first prototype")."""
+    st.divider()
+    st.subheader("Extract observations")
+
+    can_extract = (
+        detail.content is not None
+        and detail.content.parse_status == ParseStatus.PARSED
+        and bool(detail.chunks)
+    )
+    if not can_extract:
+        st.caption("Extraction requires parsed evidence with at least one chunk.")
+        return
+
+    content_id = detail.content.id
+    results: dict[str, ExtractionRunResult] = st.session_state.setdefault(
+        _EXTRACTION_RESULTS_KEY, {}
+    )
+
+    if st.button("Extract observations", key=f"extract-{content_id}"):
+        provider = extraction_service.build_default_provider()
+        if provider is None:
+            st.error(
+                "No LLM provider is configured. Set the OPENAI_API_KEY environment "
+                "variable to enable extraction."
+            )
+        else:
+            config = load_config()
+            with st.spinner("Extracting observations…"):
+                results[content_id] = extraction_service.extract_content(
+                    conn,
+                    project_id,
+                    content_id,
+                    provider=provider,
+                    model=config.openai_model,
+                )
+
+    run_result = results.get(content_id)
+    if run_result is not None:
+        _render_extraction_result(run_result, detail)
+
+
+def _render_extraction_result(
+    run_result: ExtractionRunResult, detail: evidence_service.EvidenceDetail
+) -> None:
+    status_label = _EXTRACTION_STATUS_LABELS.get(run_result.status, run_result.status.value)
+    if run_result.status is ExtractionStatus.COMPLETED:
+        st.success(f"Extraction {status_label.lower()}.")
+    elif run_result.status is ExtractionStatus.NO_MATERIAL_CONTENT:
+        st.info(status_label)
+    else:
+        detail_suffix = f": {run_result.safe_error}" if run_result.safe_error else ""
+        st.error(f"Extraction {status_label.lower()}{detail_suffix}")
+
+    metric_cols = st.columns(4)
+    metric_cols[0].metric(
+        "Chunks processed", f"{run_result.chunks_processed}/{run_result.chunks_total}"
+    )
+    metric_cols[1].metric("Valid observations", len(run_result.accepted))
+    metric_cols[2].metric("Rejected", len(run_result.rejected))
+    metric_cols[3].metric("Est. cost", f"${run_result.total_estimated_cost_usd:.4f}")
+    st.caption(
+        f"Model: {run_result.model} · Prompt: {run_result.prompt_version} · "
+        f"Schema: {run_result.schema_version} · "
+        f"Tokens: {run_result.total_input_tokens} in / {run_result.total_output_tokens} out · "
+        f"Latency: {run_result.total_latency_ms} ms"
+    )
+
+    chunks_by_id = {chunk.id: chunk for chunk in detail.chunks}
+
+    if run_result.accepted:
+        st.markdown("**Valid observations** — proposals only, not yet applied to the project")
+        for observation in run_result.accepted:
+            with st.expander(f"{observation.kind.value} — {observation.subject}"):
+                st.write(observation.statement)
+                if observation.date_value is not None:
+                    date_text = observation.date_value.isoformat()
+                elif observation.date_text:
+                    date_text = observation.date_text
+                else:
+                    date_text = "Not stated"
+                st.caption(
+                    f"Owner: {observation.owner_name or 'Not stated'} · "
+                    f"Date: {date_text} · "
+                    f"Explicitness: {observation.explicitness}"
+                )
+                st.markdown("_Source evidence:_")
+                for span in observation.evidence:
+                    chunk = chunks_by_id.get(span.chunk_id)
+                    if chunk is not None:
+                        _render_highlighted_text(chunk.text, span.char_start, span.char_end)
+                    else:
+                        st.code(span.quote)
+
+    if run_result.rejected:
+        st.markdown("**Rejected candidates**")
+        for rejection in run_result.rejected:
+            label = _REJECTION_REASON_LABELS.get(rejection.reason, rejection.reason.value)
+            st.warning(f"{label}: {rejection.detail}")
 
 
 def _render_highlighted_text(text: str, char_start: int, char_end: int) -> None:

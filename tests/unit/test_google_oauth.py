@@ -21,6 +21,12 @@ def test_drive_readonly_scope_is_exactly_the_restricted_readonly_scope():
     assert "write" not in google_oauth.DRIVE_READONLY_SCOPE
 
 
+def test_gmail_readonly_scope_is_exactly_the_restricted_readonly_scope():
+    assert google_oauth.GMAIL_READONLY_SCOPE == "https://www.googleapis.com/auth/gmail.readonly"
+    for forbidden in ("modify", "compose", "send", "settings", "write"):
+        assert forbidden not in google_oauth.GMAIL_READONLY_SCOPE
+
+
 def test_build_client_config_has_the_installed_app_shape():
     config = google_oauth.build_client_config(client_id="cid-123", client_secret="csecret-456")
     installed = config["installed"]
@@ -96,3 +102,35 @@ def test_exchange_refresh_token_propagates_transient_errors_unchanged(monkeypatc
         google_oauth.exchange_refresh_token(
             "refresh-token", client_id="cid", client_secret="csecret"
         )
+
+
+def test_exchange_refresh_token_defaults_to_drive_scope(monkeypatch):
+    seen_scopes = {}
+
+    def fake_refresh(self, request):
+        seen_scopes["scopes"] = self.scopes
+        self.token = "fresh-access-token"
+
+    monkeypatch.setattr(Credentials, "refresh", fake_refresh)
+
+    google_oauth.exchange_refresh_token(
+        "stored-refresh-token", client_id="cid", client_secret="csecret"
+    )
+    assert seen_scopes["scopes"] == [google_oauth.DRIVE_READONLY_SCOPE]
+
+
+def test_exchange_refresh_token_accepts_an_explicit_gmail_scope(monkeypatch):
+    seen_scopes = {}
+
+    def fake_refresh(self, request):
+        seen_scopes["scopes"] = self.scopes
+        self.token = "fresh-access-token"
+
+    monkeypatch.setattr(Credentials, "refresh", fake_refresh)
+
+    token = google_oauth.exchange_refresh_token(
+        "stored-refresh-token", client_id="cid", client_secret="csecret",
+        scopes=[google_oauth.GMAIL_READONLY_SCOPE],
+    )
+    assert token == "fresh-access-token"
+    assert seen_scopes["scopes"] == [google_oauth.GMAIL_READONLY_SCOPE]

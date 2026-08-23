@@ -27,7 +27,11 @@ from project_context.db.health import check_database_health
 from project_context.domain.sources import Source, SourceHealthStatus, SourceKind
 from project_context.services import extraction as extraction_service
 from project_context.services import sync as sync_service
-from project_context.services.google_connect import GoogleConnectError, connect_google_drive
+from project_context.services.google_connect import (
+    GoogleConnectError,
+    connect_gmail,
+    connect_google_drive,
+)
 from project_context.ui.db import project_context_connection
 from project_context.ui.project_scope import require_selected_project
 
@@ -37,6 +41,7 @@ MIGRATIONS_DIR = _REPO_ROOT / "migrations"
 
 _FLASH_KEY = "sources_settings_flash"
 _LAST_SYNC_COUNTS_KEY = "sources_settings_last_sync_counts"
+_GMAIL_LAST_SYNC_COUNTS_KEY = "sources_settings_gmail_last_sync_counts"
 
 _HEALTH_RENDER = {
     SourceHealthStatus.UNCONFIGURED: ("info", "Not configured"),
@@ -68,6 +73,8 @@ def render() -> None:
         if project is not None:
             _render_flash()
             _render_drive_section(conn, project.id)
+            st.divider()
+            _render_gmail_section(conn, project.id)
 
     st.divider()
     st.subheader("Application health")
@@ -283,10 +290,13 @@ def _render_sync_result(run) -> None:
 
 
 def _render_sync_history(conn, project_id: str, source_id: str) -> None:
-    """`sync_runs` is project-scoped, not source-scoped (Section 9) —
-    with only one connector kind implemented so far, every run shown
-    here is a Drive run, but a future second connector kind would need
-    this to filter by `sync_items.source_id` instead."""
+    """`sync_runs` is project-scoped, not source-scoped (Section 9), so
+    with two connector kinds now implemented (Drive, Gmail), a project
+    with both connected sees each other's runs listed here too — a
+    known display limitation carried forward from Prompt 10, not fixed
+    in Prompt 11 either. Filtering to just this `source_id` would need
+    a join through `sync_items.source_id` instead of `sync_runs`
+    alone."""
     with st.expander("Sync history"):
         runs = sync_repository.list_sync_runs_for_project(conn, project_id, limit=10)
         if not runs:
@@ -297,6 +307,216 @@ def _render_sync_history(conn, project_id: str, source_id: str) -> None:
                 f"**{run.status.value}** · {run.started_at} · "
                 f"discovered {run.discovered_count} · failed {run.failed_count}"
             )
+
+
+# ---------------------------------------------------------------------------
+# Gmail (Prompt 11).
+# ---------------------------------------------------------------------------
+
+
+def _render_gmail_section(conn, project_id: str) -> None:
+    st.subheader("Gmail")
+    config = load_config()
+
+    if not config.feature_gmail_enabled:
+        st.info(
+            "Gmail integration is disabled. Set `PROJECT_CONTEXT_FEATURE_GMAIL_ENABLED=true` "
+            "to enable it (Google OAuth client credentials are also required below).",
+            icon="🚧",
+        )
+        return
+    if not config.google_oauth_is_configured:
+        st.warning(
+            "Gmail is enabled but no Google OAuth client is configured. Set "
+            "`PROJECT_CONTEXT_GOOGLE_OAUTH_CLIENT_ID` and "
+            "`PROJECT_CONTEXT_GOOGLE_OAUTH_CLIENT_SECRET` from a Google Cloud **Desktop app** "
+            "OAuth client, then restart."
+        )
+        return
+
+    st.caption(
+        "Requests `gmail.readonly` only — a Google-classified **restricted** scope, and a "
+        "**major commercialization constraint**: it is appropriate for a private, local, "
+        "single-user prototype and is **not suitable for a casual public launch** without "
+        "Google's restricted-scope verification and a security review (see Sections 11.3 and "
+        "16 of the product plan). This connector never requests modify, compose, send, "
+        "settings, or full-mailbox write permissions, and the app never offers general "
+        "mailbox search — only the label/query boundary configured below."
+    )
+
+    source = sources_repository.get_source_by_kind(conn, project_id, SourceKind.GMAIL)
+    credential_service = _credential_service(config)
+
+    if source is None or source.credential_ref is None:
+        _render_gmail_connect_form(conn, project_id, source, credential_service, config)
+        return
+
+    _render_connected_gmail(conn, project_id, source, credential_service, config)
+
+
+def _render_gmail_connect_form(
+    conn, project_id: str, source: Source | None, credential_service: CredentialService,
+    config: AppConfig,
+) -> None:
+    st.write("Not connected.")
+    if st.button("Connect Gmail", key="connect-gmail"):
+        try:
+            if source is None:
+                source = sources_repository.insert_source(
+                    conn, project_id, kind=SourceKind.GMAIL, display_name="Gmail label/query"
+                )
+            with st.spinner("Waiting for authorization in your browser…"):
+                connect_gmail(
+                    conn, project_id, source.id, credential_service=credential_service,
+                    client_id=config.google_oauth_client_id,
+                    client_secret=config.google_oauth_client_secret,
+                    redirect_port=config.google_oauth_redirect_port,
+                )
+        except GoogleConnectError as exc:
+            st.error(str(exc))
+            return
+        _set_flash("success", "Connected to Gmail.")
+        st.rerun()
+
+
+def _render_connected_gmail(
+    conn, project_id: str, source: Source, credential_service: CredentialService,
+    config: AppConfig,
+) -> None:
+    kind, label = _HEALTH_RENDER.get(source.health_status, ("info", source.health_status.value))
+    getattr(st, kind)(f"**{label}**  ·  secret: `{MASKED_SECRET_DISPLAY}`")
+
+    freshness_col, error_col = st.columns(2)
+    with freshness_col:
+        st.metric("Last successful sync", source.last_success_at or "Never")
+    with error_col:
+        st.metric("Last safe error", source.last_error_code or "None")
+
+    boundary = json.loads(source.boundary_json) if source.boundary_json else {}
+    with st.form("gmail-boundary-form"):
+        gmail_label = st.text_input(
+            "Gmail label", value=boundary.get("label", ""),
+            help="An existing Gmail label name, matched with the label: search operator.",
+        )
+        gmail_query = st.text_input(
+            "Gmail search query", value=boundary.get("query", ""),
+            help="Gmail search syntax, e.g. from:client@example.com subject:\"Project Alpha\". "
+            "Combined with the label above if both are set.",
+        )
+        preview_col, save_col = st.columns(2)
+        preview_clicked = preview_col.form_submit_button("Preview")
+        save_clicked = save_col.form_submit_button("Save boundary")
+
+    gmail_label = gmail_label.strip()
+    gmail_query = gmail_query.strip()
+
+    if preview_clicked:
+        _render_gmail_preview(
+            conn, project_id, source, credential_service, config, gmail_label, gmail_query
+        )
+    if save_clicked:
+        if not gmail_label and not gmail_query:
+            st.error("Enter a label, a query, or both.")
+        else:
+            sources_repository.update_boundary(
+                conn, project_id, source.id,
+                boundary_json=json.dumps({"label": gmail_label, "query": gmail_query}),
+            )
+            _set_flash("success", "Gmail boundary saved.")
+            st.rerun()
+
+    enabled_col, disconnect_col = st.columns(2)
+    with enabled_col:
+        if source.enabled:
+            if st.button("Disable", key="disable-gmail"):
+                sources_repository.set_enabled(conn, project_id, source.id, enabled=False)
+                _set_flash("success", "Gmail source disabled.")
+                st.rerun()
+        else:
+            if st.button("Enable", key="enable-gmail"):
+                sources_repository.set_enabled(conn, project_id, source.id, enabled=True)
+                _set_flash("success", "Gmail source enabled.")
+                st.rerun()
+    with disconnect_col:
+        if st.button("Disconnect", key="disconnect-gmail"):
+            credential_service.disconnect(conn, project_id, source.id)
+            _set_flash("success", "Disconnected. Credential material was deleted.")
+            st.rerun()
+
+    st.divider()
+    _render_gmail_sync_section(conn, project_id, source, credential_service, config)
+
+
+def _render_gmail_preview(
+    conn, project_id: str, source: Source, credential_service: CredentialService,
+    config: AppConfig, gmail_label: str, gmail_query: str,
+) -> None:
+    if not gmail_label and not gmail_query:
+        st.error("Enter a label, a query, or both first.")
+        return
+    access_token = sync_service.mint_gmail_access_token(
+        conn, project_id, source.id, credential_service=credential_service,
+        google_client_id=config.google_oauth_client_id,
+        google_client_secret=config.google_oauth_client_secret,
+    )
+    if access_token is None:
+        st.error("Reauthorization required — disconnect and connect again.")
+        return
+    from project_context.connectors.gmail import GmailConnector
+    from project_context.connectors.http import RequestsHttpTransport
+
+    connector = GmailConnector(
+        access_token=access_token, label=gmail_label or None, query=gmail_query or None,
+        http_transport=RequestsHttpTransport(),
+    )
+    try:
+        results = connector.preview({"label": gmail_label, "query": gmail_query}, limit=20)
+    except ConnectorError as exc:
+        st.error(f"Preview failed: {exc.safe_message}")
+        return
+    if not results:
+        st.info("No matching messages found for this label/query.")
+        return
+    st.markdown(f"**{len(results)} matching message(s)** (showing up to 20):")
+    for item in results:
+        sender = item.author or "(unknown sender)"
+        occurred = item.occurred_at or "unknown date"
+        st.write(f"- **{item.title}** · from {sender} · {occurred}")
+    st.caption(
+        "Why matched: every message above matches the exact label/query boundary shown "
+        "above — nothing outside it is ever listed."
+    )
+
+
+def _render_gmail_sync_section(
+    conn, project_id: str, source: Source, credential_service: CredentialService,
+    config: AppConfig,
+) -> None:
+    st.subheader("Sync Project")
+    if not source.enabled:
+        st.caption("Enable this source to sync.")
+        return
+    if st.button("Sync Project", key="sync-gmail-project"):
+        provider = extraction_service.build_default_provider()
+        with st.spinner("Syncing…"):
+            run = sync_service.sync_gmail_project(
+                conn, project_id, source.id, credential_service=credential_service,
+                google_client_id=config.google_oauth_client_id,
+                google_client_secret=config.google_oauth_client_secret,
+                evidence_dir=config.evidence_dir,
+                chunk_target_chars=config.chunk_target_chars,
+                chunk_overlap_ratio=config.chunk_overlap_ratio,
+                extraction_provider=provider,
+                extraction_model=config.openai_model,
+            )
+        st.session_state[_GMAIL_LAST_SYNC_COUNTS_KEY] = run
+        st.rerun()
+
+    last_run = st.session_state.get(_GMAIL_LAST_SYNC_COUNTS_KEY)
+    if last_run is not None:
+        _render_sync_result(last_run)
+
+    _render_sync_history(conn, project_id, source.id)
 
 
 # ---------------------------------------------------------------------------

@@ -40,6 +40,22 @@ DRIVE_READONLY_SCOPE = "https://www.googleapis.com/auth/drive.readonly"
 #: Drive write scopes"; FR-004: "No connector writes to an external
 #: service"). `DRIVE_READONLY_SCOPE` is the only Drive scope this
 #: application is ever allowed to request.
+
+#: Section 11.3: "https://www.googleapis.com/auth/gmail.readonly to
+#: read bodies; this is a restricted scope." THIS IS ALSO A
+#: GOOGLE-CLASSIFIED *RESTRICTED* SCOPE — the same commercialization
+#: caveat as `DRIVE_READONLY_SCOPE` above applies verbatim (Section 16,
+#: "Google verification reality"). Requested only on incremental
+#: consent, only when the user explicitly enables Gmail for one project
+#: (Prompt 11: "Request incremental Google consent only when the user
+#: enables Gmail").
+GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
+
+#: Never add gmail.modify, gmail.compose, gmail.send, or any Gmail
+#: settings/write scope here (Prompt 11: "Never request modify,
+#: compose, send, settings, or full-mailbox write permissions").
+#: `GMAIL_READONLY_SCOPE` is the only Gmail scope this application is
+#: ever allowed to request.
 GOOGLE_TOKEN_URI = "https://oauth2.googleapis.com/token"
 GOOGLE_AUTH_URI = "https://accounts.google.com/o/oauth2/auth"
 
@@ -75,20 +91,32 @@ def run_local_server_flow(
     return flow.run_local_server(port=port, access_type="offline", prompt="consent")
 
 
-def exchange_refresh_token(refresh_token: str, *, client_id: str, client_secret: str) -> str:
+def exchange_refresh_token(
+    refresh_token: str,
+    *,
+    client_id: str,
+    client_secret: str,
+    scopes: list[str] | None = None,
+) -> str:
     """Redeem a stored refresh token for a fresh, short-lived access
-    token. Raises `TokenRefreshError` (mapped from Google's
-    `invalid_grant`/`RefreshError`) when the refresh token itself is
-    invalid or revoked — any other failure (network, 5xx) propagates
-    unchanged so the caller retries rather than mistaking it for
-    revocation."""
+    token. `scopes` defaults to `[DRIVE_READONLY_SCOPE]` for backward
+    compatibility with the Drive-only callers this function predates; a
+    Gmail caller passes `[GMAIL_READONLY_SCOPE]` instead. The value is
+    informational on a refresh-token grant (Google returns whatever
+    scope was actually granted at consent time regardless of what is
+    requested here), but keeping it accurate avoids a misleading local
+    `Credentials` object. Raises `TokenRefreshError` (mapped from
+    Google's `invalid_grant`/`RefreshError`) when the refresh token
+    itself is invalid or revoked — any other failure (network, 5xx)
+    propagates unchanged so the caller retries rather than mistaking it
+    for revocation."""
     credentials = Credentials(
         token=None,
         refresh_token=refresh_token,
         token_uri=GOOGLE_TOKEN_URI,
         client_id=client_id,
         client_secret=client_secret,
-        scopes=[DRIVE_READONLY_SCOPE],
+        scopes=scopes or [DRIVE_READONLY_SCOPE],
     )
     try:
         credentials.refresh(GoogleAuthRequest())

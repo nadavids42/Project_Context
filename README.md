@@ -24,9 +24,17 @@ file fallback) credential storage, one configured Drive folder per
 project, recursive folder enumeration with change detection, Google
 Docs export, and manual "Sync Project" orchestration feeding the same
 extraction/reconciliation/review path as manual uploads — see
-"[Google Drive setup](#google-drive-setup-optional)" below. Gmail,
-Calendar, and Fathom connectors, the Meeting Preparation Brief, and the
-evaluation harness are not implemented yet.
+"[Google Drive setup](#google-drive-setup-optional)" below; and
+**read-only Gmail sync** (Prompt 11) — one configured Gmail label
+and/or search query per project, list-then-get message sync with a
+48-hour-overlap watermark and external-message-ID dedup, normalized
+plain-text/HTML-fallback body extraction with attachments excluded and
+quoted-history/signatures trimmed only from what gets sent to
+extraction (the complete message is always kept as evidence), feeding
+the same extraction/reconciliation/review path — see
+"[Gmail setup](#gmail-setup-optional)" below, including its restricted-
+scope caveat. Calendar and Fathom connectors, the Meeting Preparation
+Brief, and the evaluation harness are not implemented yet.
 
 ## ⚠️ Privacy and data policy
 
@@ -44,10 +52,10 @@ product.
   set `OPENAI_API_KEY` in your environment.
 - External connectors are strictly read-only (no code path ever writes
   to Drive/Gmail/Calendar/Fathom) and disabled by default. Google Drive
-  is implemented (Prompt 10) but requires you to explicitly opt in —
-  see "[Google Drive setup](#google-drive-setup-optional)" below,
-  including its restricted-scope caveat. Gmail, Calendar, and Fathom
-  are not implemented yet.
+  (Prompt 10) and Gmail (Prompt 11) are implemented but require you to
+  explicitly opt in — see "[Google Drive setup](#google-drive-setup-optional)"
+  and "[Gmail setup](#gmail-setup-optional)" below, both including a
+  restricted-scope caveat. Calendar and Fathom are not implemented yet.
 - Do not expose the Streamlit port beyond `127.0.0.1`.
 
 ## Requirements
@@ -163,6 +171,86 @@ deliberately skipped rather than guessed at — export them yourself to a
 supported format and upload the result through the manual path if you
 need one of those in a project's evidence.
 
+## Gmail setup (optional)
+
+Gmail sync is fully implemented but **disabled by default**, and is
+the **first connector to cut** if you are short on time or on Google
+verification budget — the manual-ingestion path remains the required
+fallback for every Gmail scenario.
+
+> **Scope caveat — read before enabling.** This integration requests
+> `https://www.googleapis.com/auth/gmail.readonly`, which Google
+> classifies as a **restricted** scope. That is the right choice for a
+> private, local, single-user prototype you run yourself against your
+> own test-mode OAuth client — it is **not appropriate for a casual
+> public launch** and is, per the product plan, "the single largest
+> commercialization obstacle" this application has: Google requires
+> restricted-scope app verification, and storing/transmitting
+> restricted-scope data through a third-party server can require an
+> annual third-party security assessment. This connector never requests
+> modify, compose, send, settings, or full-mailbox write permissions,
+> and the application never exposes general mailbox search — only the
+> one label/query boundary you configure per project. See Sections 11.3
+> and 16 of the product plan before promising Gmail access to anyone
+> other than yourself.
+
+1. Reuse the same Google Cloud project and OAuth consent screen as
+   Drive (see steps 1–4 above), or set one up following those steps if
+   you have not already.
+2. **Enable the Gmail API** for that project (APIs & Services →
+   Library → "Gmail API" → Enable).
+3. **Set the feature flag** (in your real, gitignored `.env`):
+
+   ```bash
+   PROJECT_CONTEXT_FEATURE_GMAIL_ENABLED=true
+   ```
+
+   The same `PROJECT_CONTEXT_GOOGLE_OAUTH_CLIENT_ID`/`_CLIENT_SECRET`
+   used for Drive apply here too — Gmail requests its own scope through
+   its own consent flow (a separate "Connect Gmail" click and its own
+   stored refresh token; see
+   [`src/project_context/services/google_connect.py`](src/project_context/services/google_connect.py)
+   for why this prototype keeps Drive's and Gmail's credentials
+   separate rather than pooling one token across both).
+4. **Restart the app**, open a project's Sources & Settings page, and
+   click **Connect Gmail**. Approving Google's consent screen stores
+   the resulting refresh token exactly like Drive's (OS keyring first,
+   encrypted-file fallback second — never SQLite, never logged).
+5. **Configure a label, a query, or both** for the project: a Gmail
+   label name (matched with the `label:` search operator) and/or a
+   Gmail search query (e.g. `from:client@example.com subject:"Project
+   Alpha"`) — click **Preview** to dry-run recent matching message
+   metadata and see why each one matches, then **Save boundary**.
+6. Click **Sync Project**. This lists matching message IDs
+   (`users.messages.list`), fetches each one's full content
+   (`users.messages.get`), and normalizes headers, participants,
+   sent/received time, subject, thread/message IDs, and a plain-text
+   body (falling back to a safe HTML-to-text conversion only when no
+   plain-text part exists) into the same parser/extraction/
+   reconciliation/review pipeline manual uploads and Drive use.
+   Attachments are excluded entirely in this version.
+
+**Incremental sync, evidence, and quoted history.** Each sync uses a
+stored last-success watermark with a 48-hour overlap folded into the
+query (Gmail's `after:` operator only supports day granularity) and
+dedupes by Gmail message ID — a repeated sync with no new mail creates
+no new content, observations, or proposals. Every imported message's
+**complete** normalized body (including any quoted reply history) is
+stored as that message's immutable evidence, exactly as fetched.
+Separately, quoted-history and signature blocks are conservatively
+trimmed from what gets *chunked for extraction only* — so replying
+back and forth on a long thread does not re-extract the same older
+commitments on every new message — while the full original text always
+remains visible, unmodified, in the evidence viewer.
+
+To disconnect at any time, click **Disconnect** — this deletes the
+stored refresh token immediately and disables the source; it does not
+delete evidence already imported.
+
+**Not implemented, deliberately excluded from this version:** the
+Gmail History API, push notifications/background sync, attachments,
+and anything that reads/writes Gmail labels.
+
 ## Test
 
 ```bash
@@ -215,9 +303,9 @@ project-context/
 │   ├── chunking.py             # deterministic paragraph/page/turn-boundary chunking
 │   ├── credentials/            # OS-keyring-first, encrypted-file-fallback secret storage + connect/refresh/mask/disconnect service
 │   ├── db/                    # connection, migrations, health, and one repository per table/domain (projects, audit, sources, evidence, people, observations, ledger, evidence links, proposed mutations, reviews, corrections, briefs, sync), FTS5
-│   ├── domain/                # projects, audit, sources, evidence, people, observations, ledger, review, briefs, sync (enums, models)
-│   ├── services/               # projects, evidence, extraction, observations, ledger, reconciliation, review, briefs, sync orchestration, drive_ingestion, google_connect
-│   ├── connectors/             # protocol/errors/http (shared), drive (implemented), google_oauth; gmail/calendar/fathom not yet implemented
+│   ├── domain/                # projects, audit, sources, evidence, people, observations, ledger, review, briefs, sync, email_normalization (enums, models)
+│   ├── services/               # projects, evidence, extraction, observations, ledger, reconciliation, review, briefs, sync orchestration, drive_ingestion, gmail_ingestion, google_connect
+│   ├── connectors/             # protocol/errors/http (shared), drive, gmail (both implemented), google_oauth; calendar/fathom not yet implemented
 │   ├── parsers/                # txt, md, docx, pdf, vtt + content-first kind detection
 │   ├── llm/                    # LLMProvider protocol, OpenAI adapter, retry, structured-extraction + brief-composition schemas, prompt loading
 │   ├── retrieval/               # deterministic Current Project Brief fact builder

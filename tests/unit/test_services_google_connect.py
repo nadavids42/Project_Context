@@ -13,7 +13,11 @@ from project_context.db.connection import connect
 from project_context.db.migrations import run_migrations
 from project_context.domain.projects import ProjectCreateInput
 from project_context.domain.sources import SourceHealthStatus, SourceKind
-from project_context.services.google_connect import GoogleConnectError, connect_google_drive
+from project_context.services.google_connect import (
+    GoogleConnectError,
+    connect_gmail,
+    connect_google_drive,
+)
 from project_context.services.projects import create_project
 
 
@@ -36,6 +40,13 @@ def project_id(conn):
 def source_id(conn, project_id):
     return sources_repository.insert_source(
         conn, project_id, kind=SourceKind.DRIVE, display_name="Drive folder"
+    ).id
+
+
+@pytest.fixture
+def gmail_source_id(conn, project_id):
+    return sources_repository.insert_source(
+        conn, project_id, kind=SourceKind.GMAIL, display_name="Gmail label/query"
     ).id
 
 
@@ -99,3 +110,80 @@ def test_connect_google_drive_raises_when_no_refresh_token_is_returned(
             conn, project_id, source_id, credential_service=credential_service,
             client_id="cid", client_secret="csecret", flow_runner=fake_flow_runner,
         )
+
+
+def test_connect_gmail_stores_the_refresh_token(
+    conn, project_id, gmail_source_id, credential_service
+):
+    calls = {}
+
+    def fake_flow_runner(client_config, scopes, *, port=0):
+        calls["scopes"] = scopes
+        return _FakeCredentials(refresh_token="rt-gmail-123")
+
+    source = connect_gmail(
+        conn, project_id, gmail_source_id, credential_service=credential_service,
+        client_id="cid", client_secret="csecret", flow_runner=fake_flow_runner,
+    )
+
+    assert source.health_status is SourceHealthStatus.READY
+    assert credential_service.get_secret(conn, project_id, gmail_source_id) == "rt-gmail-123"
+    assert calls["scopes"] == ["https://www.googleapis.com/auth/gmail.readonly"]
+
+
+def test_connect_gmail_never_requests_a_write_or_send_scope(
+    conn, project_id, gmail_source_id, credential_service
+):
+    seen_scopes = []
+
+    def fake_flow_runner(client_config, scopes, *, port=0):
+        seen_scopes.extend(scopes)
+        return _FakeCredentials(refresh_token="rt")
+
+    connect_gmail(
+        conn, project_id, gmail_source_id, credential_service=credential_service,
+        client_id="cid", client_secret="csecret", flow_runner=fake_flow_runner,
+    )
+    for scope in seen_scopes:
+        for forbidden in ("modify", "compose", "send", "settings", "write"):
+            assert forbidden not in scope
+
+
+def test_connect_gmail_raises_when_no_refresh_token_is_returned(
+    conn, project_id, gmail_source_id, credential_service
+):
+    def fake_flow_runner(client_config, scopes, *, port=0):
+        return _FakeCredentials(refresh_token=None)
+
+    with pytest.raises(GoogleConnectError):
+        connect_gmail(
+            conn, project_id, gmail_source_id, credential_service=credential_service,
+            client_id="cid", client_secret="csecret", flow_runner=fake_flow_runner,
+        )
+
+
+def test_connect_gmail_and_connect_drive_keep_independent_credentials(
+    conn, project_id, source_id, gmail_source_id, credential_service
+):
+    """Section 11.3: "same Google OAuth connection; incremental
+    authorization only when user enables Gmail." This prototype keeps
+    each connector source's credential independent (see
+    `project_context.services.google_connect`'s module docstring) —
+    connecting Gmail must never touch Drive's stored token."""
+    def drive_flow(client_config, scopes, *, port=0):
+        return _FakeCredentials(refresh_token="drive-token")
+
+    def gmail_flow(client_config, scopes, *, port=0):
+        return _FakeCredentials(refresh_token="gmail-token")
+
+    connect_google_drive(
+        conn, project_id, source_id, credential_service=credential_service,
+        client_id="cid", client_secret="csecret", flow_runner=drive_flow,
+    )
+    connect_gmail(
+        conn, project_id, gmail_source_id, credential_service=credential_service,
+        client_id="cid", client_secret="csecret", flow_runner=gmail_flow,
+    )
+
+    assert credential_service.get_secret(conn, project_id, source_id) == "drive-token"
+    assert credential_service.get_secret(conn, project_id, gmail_source_id) == "gmail-token"

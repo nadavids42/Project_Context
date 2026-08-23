@@ -20,20 +20,24 @@ from __future__ import annotations
 import json
 import sqlite3
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from project_context.config import DEFAULT_OPENAI_MODEL
+from project_context.connectors import google_oauth
 from project_context.connectors.drive import DriveConnector
 from project_context.connectors.errors import ConnectorError
+from project_context.connectors.gmail import GmailConnector
 from project_context.connectors.google_oauth import exchange_refresh_token
 from project_context.connectors.http import RequestsHttpTransport
 from project_context.connectors.protocol import ArtifactMetadata, Connector, ConnectorHealthStatus
 from project_context.credentials.service import CredentialService
 from project_context.db import evidence_repository, sources_repository, sync_repository
 from project_context.db.connection import transaction
-from project_context.domain.evidence import ArtifactAvailability
-from project_context.domain.sources import Source, SourceHealthStatus
+from project_context.domain.evidence import ArtifactAvailability, SourceArtifact
+from project_context.domain.sources import Source, SourceHealthStatus, SourceKind
 from project_context.domain.sync import (
     SyncErrorClass,
     SyncItemStage,
@@ -43,17 +47,24 @@ from project_context.domain.sync import (
 )
 from project_context.llm.provider import LLMProvider, LLMProviderError
 from project_context.observability import get_logger
-from project_context.services import drive_ingestion
+from project_context.services import drive_ingestion, gmail_ingestion
 from project_context.services import observations as observations_service
 from project_context.services import reconciliation as reconciliation_service
 from project_context.services.extraction import ExtractionStatus, extract_content
 
 logger = get_logger(__name__)
 
-#: A hard safety bound on pages-per-call, independent of Drive's own
-#: pagination — protects against a pathological/cyclic folder tree
-#: rather than a realistic limit for any real project folder.
+#: A hard safety bound on pages-per-call, independent of any one
+#: connector's own pagination — protects against a pathological/cyclic
+#: folder tree or an unexpectedly long message list rather than a
+#: realistic limit for any real project.
 _MAX_PAGES_PER_SYNC = 2000
+
+#: Section 11.3 / Prompt 11: "Use a stored last-success watermark with a
+#: 48-hour overlap." Gmail's own `after:` search operator only accepts
+#: day granularity, so the overlap is applied before truncating to a
+#: date — see `_gmail_since_date`.
+_GMAIL_OVERLAP = timedelta(hours=48)
 
 
 class SourceNotConfiguredError(ValueError):
@@ -168,8 +179,140 @@ def sync_drive_project(
 
 
 # ---------------------------------------------------------------------------
+# Gmail-specific entry point (Section 11.3; Prompt 11).
+# ---------------------------------------------------------------------------
+
+
+def mint_gmail_access_token(
+    conn: sqlite3.Connection,
+    project_id: str,
+    source_id: str,
+    *,
+    credential_service: CredentialService,
+    google_client_id: str,
+    google_client_secret: str,
+) -> str | None:
+    """Same shape as `mint_drive_access_token`, requesting
+    `GMAIL_READONLY_SCOPE` instead — see that function's docstring for
+    the shared refresh/locking behavior."""
+    access_token_holder: dict[str, str] = {}
+
+    def _refresh_and_capture(current_refresh_token: str) -> str:
+        access_token_holder["access_token"] = exchange_refresh_token(
+            current_refresh_token, client_id=google_client_id, client_secret=google_client_secret,
+            scopes=[google_oauth.GMAIL_READONLY_SCOPE],
+        )
+        return current_refresh_token
+
+    updated_source = credential_service.refresh(
+        conn, project_id, source_id, refresh_fn=_refresh_and_capture
+    )
+    if updated_source.health_status is SourceHealthStatus.REAUTH_REQUIRED:
+        return None
+    return access_token_holder.get("access_token")
+
+
+def _gmail_since_date(last_success_at: str | None) -> str | None:
+    """The configured query's `after:` watermark: `last_success_at`
+    minus a 48-hour overlap, truncated to a day (Gmail's own `after:`
+    search granularity — Section 11.3). `None` (no lower bound) on a
+    first sync, or if the stored timestamp is unexpectedly unparseable
+    — a missing watermark means "scan everything the boundary matches,"
+    never a sync failure."""
+    if not last_success_at:
+        return None
+    try:
+        parsed = datetime.fromisoformat(last_success_at.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    watermark = parsed.astimezone(UTC) - _GMAIL_OVERLAP
+    return watermark.strftime("%Y/%m/%d")
+
+
+def sync_gmail_project(
+    conn: sqlite3.Connection,
+    project_id: str,
+    source_id: str,
+    *,
+    credential_service: CredentialService,
+    google_client_id: str,
+    google_client_secret: str,
+    evidence_dir: Path,
+    chunk_target_chars: int,
+    chunk_overlap_ratio: float,
+    extraction_provider: LLMProvider | None = None,
+    extraction_model: str = DEFAULT_OPENAI_MODEL,
+) -> SyncRun:
+    """Mint a fresh Gmail access token from the stored refresh token,
+    build a `GmailConnector` bounded to the configured label/query plus
+    a 48-hour-overlap watermark derived from this source's own last
+    successful sync, and run the generic `sync_source` orchestration
+    with the Gmail-specific storage functions (Section 11.3; FR-028).
+    If the refresh token is invalid/revoked, the source moves to
+    `reauth_required` and a `failed` sync run is recorded — no other
+    source, including a project's Drive source, is affected (Section 8:
+    "Independent source-item failures must not roll back successful
+    items"; Prompt 11: "Connector failure must produce partial sync
+    status without affecting Drive/manual sources")."""
+    source = sources_repository.get_source(conn, project_id, source_id)
+    if source is None:
+        raise SourceNotConfiguredError(f"source {source_id!r} not found in project {project_id!r}")
+
+    access_token = mint_gmail_access_token(
+        conn, project_id, source_id, credential_service=credential_service,
+        google_client_id=google_client_id, google_client_secret=google_client_secret,
+    )
+    if access_token is None:
+        run = sync_repository.insert_sync_run(conn, project_id)
+        return sync_repository.finalize_sync_run(
+            conn, project_id, run.id, status=SyncRunStatus.FAILED,
+            discovered_count=0, unchanged_count=0, parsed_count=0, failed_count=1,
+            proposed_count=0, needs_assignment_count=0,
+        )
+
+    boundary = _load_boundary(source) or {}
+    connector = GmailConnector(
+        access_token=access_token,
+        label=boundary.get("label"),
+        query=boundary.get("query"),
+        since_date=_gmail_since_date(source.last_success_at),
+        http_transport=RequestsHttpTransport(),
+    )
+    return sync_source(
+        conn, project_id, source_id, connector=connector, evidence_dir=evidence_dir,
+        chunk_target_chars=chunk_target_chars, chunk_overlap_ratio=chunk_overlap_ratio,
+        extraction_provider=extraction_provider, extraction_model=extraction_model,
+        get_or_create_artifact_fn=gmail_ingestion.get_or_create_gmail_artifact,
+        store_artifact_fn=gmail_ingestion.store_gmail_artifact,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Generic orchestration.
 # ---------------------------------------------------------------------------
+
+
+#: The two connector-specific storage steps `_process_one_artifact`
+#: needs — everything else in `sync_source` is already generic over the
+#: `Connector` protocol. Defaults to the Drive functions so every
+#: existing Drive call site (including every already-written test) is
+#: unaffected; `sync_gmail_project` passes the Gmail equivalents.
+GetOrCreateArtifactFn = Callable[[sqlite3.Connection, str, str, ArtifactMetadata], SourceArtifact]
+StoreArtifactFn = Callable[..., drive_ingestion.DriveStoreResult]
+
+
+def _boundary_is_configured(kind: SourceKind, boundary: dict | None) -> bool:
+    """Each connector kind has its own shape of "a boundary is actually
+    set" — Drive needs a non-empty `folder_id`; Gmail needs a non-empty
+    `label` and/or `query` (Prompt 11: "accepts one Gmail label, one
+    constrained query, or a documented combination")."""
+    if not boundary:
+        return False
+    if kind is SourceKind.DRIVE:
+        return bool(boundary.get("folder_id"))
+    if kind is SourceKind.GMAIL:
+        return bool(boundary.get("label")) or bool(boundary.get("query"))
+    return True
 
 
 def _load_boundary(source: Source) -> dict | None:
@@ -196,6 +339,8 @@ def sync_source(
     chunk_overlap_ratio: float,
     extraction_provider: LLMProvider | None = None,
     extraction_model: str = DEFAULT_OPENAI_MODEL,
+    get_or_create_artifact_fn: GetOrCreateArtifactFn = drive_ingestion.get_or_create_drive_artifact,
+    store_artifact_fn: StoreArtifactFn = drive_ingestion.store_raw_artifact,
 ) -> SyncRun:
     source = sources_repository.get_source(conn, project_id, source_id)
     if source is None:
@@ -203,7 +348,7 @@ def sync_source(
     if not source.enabled:
         raise SourceNotConfiguredError(f"source {source_id!r} is disabled")
     boundary = _load_boundary(source)
-    if not boundary or not boundary.get("folder_id"):
+    if not _boundary_is_configured(source.kind, boundary):
         raise SourceNotConfiguredError(f"source {source_id!r} has no configured boundary")
 
     health = connector.validate_config()
@@ -248,6 +393,8 @@ def sync_source(
                 evidence_dir=evidence_dir, chunk_target_chars=chunk_target_chars,
                 chunk_overlap_ratio=chunk_overlap_ratio,
                 extraction_provider=extraction_provider, extraction_model=extraction_model,
+                get_or_create_artifact_fn=get_or_create_artifact_fn,
+                store_artifact_fn=store_artifact_fn,
             )
 
         checkpoint = page.next_checkpoint
@@ -355,16 +502,20 @@ def _process_one_artifact(
     chunk_overlap_ratio: float,
     extraction_provider: LLMProvider | None,
     extraction_model: str,
+    get_or_create_artifact_fn: GetOrCreateArtifactFn = drive_ingestion.get_or_create_drive_artifact,
+    store_artifact_fn: StoreArtifactFn = drive_ingestion.store_raw_artifact,
 ) -> None:
     start = time.monotonic()
     artifact_id: str | None = None
     try:
         with transaction(conn):
-            artifact = drive_ingestion.get_or_create_drive_artifact(
-                conn, project_id, source_id, metadata
-            )
+            artifact = get_or_create_artifact_fn(conn, project_id, source_id, metadata)
         artifact_id = artifact.id
 
+        # `is_unchanged` compares the artifact's current content
+        # version_key against this discovery's version_marker — it has
+        # no connector-specific behavior, so it is shared unmodified by
+        # both Drive and Gmail.
         if drive_ingestion.is_unchanged(conn, project_id, artifact, metadata):
             counts.unchanged += 1
             _record_item(
@@ -376,7 +527,7 @@ def _process_one_artifact(
         raw = connector.fetch(metadata)
 
         with transaction(conn):
-            result = drive_ingestion.store_raw_artifact(
+            result = store_artifact_fn(
                 conn, project_id, artifact, raw, evidence_dir=evidence_dir,
                 chunk_target_chars=chunk_target_chars, chunk_overlap_ratio=chunk_overlap_ratio,
             )

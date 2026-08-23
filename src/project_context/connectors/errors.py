@@ -68,6 +68,19 @@ class ConnectorConfigError(ConnectorError):
     without a boundary"). Raised before any HTTP call and, in normal
     orchestration, before any `sync_run`/`sync_items` row is even
     created — `SyncErrorClass.SCHEMA` is used only if a caller chooses
-    to record one anyway."""
+    to record one anyway. Also raised for a provider-rejected malformed
+    query (Gmail's 400 response to an invalid `q` — Section 11.3:
+    "Malformed query shown to user")."""
 
     error_class = SyncErrorClass.SCHEMA
+
+
+class ConnectorParseError(ConnectorError):
+    """One artifact's content could not be decoded (Section 11.3:
+    "multipart decode failures isolated" — e.g. a Gmail message whose
+    MIME parts don't decode as declared). Raised per-item, from
+    `Connector.fetch()`, so the sync loop records exactly one failed
+    `sync_items` row rather than aborting the run. `safe_message` never
+    contains the undecodable bytes/text itself (Section 16)."""
+
+    error_class = SyncErrorClass.PARSE

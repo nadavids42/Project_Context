@@ -8,6 +8,7 @@ dependencies = [
     "streamlit>=1.38,<2",
     "pydantic>=2.7,<3",
     "pydantic-settings>=2.4,<3",
+    "python-ulid>=2,<5",
 ]
 
 [project.optional-dependencies]

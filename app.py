@@ -11,10 +11,17 @@ Run with: streamlit run app.py
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import streamlit as st
 
 from project_context.config import ConfigurationError, load_config
+from project_context.db.connection import connect
+from project_context.db.health import check_database_health
+from project_context.db.migrations import MigrationError, run_migrations
 from project_context.observability import configure_logging, get_logger
+
+MIGRATIONS_DIR = Path(__file__).resolve().parent / "migrations"
 
 st.set_page_config(page_title="Project Context", page_icon="🗂️", layout="wide")
 
@@ -69,6 +76,40 @@ else:
         "Fathom": config.feature_fathom_enabled,
     }
     st.table({"Connector": list(flags.keys()), "Enabled": list(flags.values())})
+
+    st.markdown("**Database**")
+    config.ensure_local_directories()
+    db_error: str | None = None
+    try:
+        db_conn = connect(config.sqlite_path)
+        try:
+            run_migrations(db_conn, MIGRATIONS_DIR)
+        finally:
+            db_conn.close()
+    except MigrationError as exc:
+        db_error = str(exc)
+        logger.error("migration_failed", extra={"error": db_error})
+
+    if db_error is not None:
+        st.error(f"Database migrations failed:\n\n{db_error}")
+    else:
+        health = check_database_health(config.sqlite_path, MIGRATIONS_DIR)
+        if health.error is not None:
+            st.error(f"Database health check failed:\n\n{health.error}")
+        else:
+            db_status_col, db_details_col = st.columns([1, 2])
+            with db_status_col:
+                if health.ok:
+                    st.success("Database ready")
+                else:
+                    st.warning("Database has pending migrations")
+                st.metric("Foreign keys enabled", "Yes" if health.foreign_keys_enabled else "No")
+            with db_details_col:
+                st.markdown(
+                    f"- **Journal mode:** `{health.journal_mode}`\n"
+                    f"- **Applied migrations:** `{health.applied_migration_count}`\n"
+                    f"- **Pending migrations:** `{health.pending_migration_count}`\n"
+                )
 
 st.divider()
 st.info(

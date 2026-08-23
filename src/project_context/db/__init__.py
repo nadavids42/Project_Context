@@ -1,5 +1,7 @@
-"""SQLite connection, migrations, repositories, and FTS5 access.
+"""SQLite connection, migrations, and health check.
 
-Not yet implemented. See docs/Project_Context_Product_Plan_v1.md Section 8
-(technical architecture) and Section 9 (data model).
+Implemented so far: `connection` (pragmas, row mapping, explicit
+transactions), `migrations` (numbered SQL migration runner), and `health`
+(status for the Streamlit panel). Repositories and FTS5 access are not
+yet implemented — see docs/Project_Context_Product_Plan_v1.md Section 8.
 """

@@ -19,8 +19,13 @@ def test_import_all_submodules_without_side_effects(tmp_path, monkeypatch):
     submodules = [
         "project_context.config",
         "project_context.observability",
+        "project_context.ids",
+        "project_context.timeutil",
         "project_context.domain",
         "project_context.db",
+        "project_context.db.connection",
+        "project_context.db.migrations",
+        "project_context.db.health",
         "project_context.services",
         "project_context.connectors",
         "project_context.parsers",

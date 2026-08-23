@@ -8,10 +8,15 @@ milestones, risks, blockers, open questions, and stakeholders — where
 every claim is traceable to source evidence.
 
 See [`docs/Project_Context_Product_Plan_v1.md`](docs/Project_Context_Product_Plan_v1.md)
-for the full product and architecture plan. **This repository is at the
-bootstrap stage**: configuration, redacted logging, and the application
-shell only. No project data, database schema, ledger, connectors, or LLM
-calls are implemented yet.
+for the full product and architecture plan. **Implemented so far:**
+configuration, redacted logging, the SQLite schema foundation
+(projects/sources/evidence/sync tables), and project lifecycle
+(create/edit/archive/restore, FR-001) with the full navigation skeleton
+— Projects, Project Overview, Activity & Review, Ledger Views, Evidence,
+Briefs, and Sources & Settings. Every page besides Projects and Project
+Overview shows an honest "not built in this step" state. Evidence
+ingestion, parsers, the ledger, reconciliation, briefs, and connectors
+are not implemented yet.
 
 ## ⚠️ Privacy and data policy
 
@@ -61,8 +66,10 @@ cp .env.example .env
 streamlit run app.py
 ```
 
-Opens the local application shell with a privacy notice and a
-configuration/health panel. No project functionality exists yet.
+Opens the Projects page. From there: create a project, open it to see
+Project Overview, and use the sidebar to reach the other project-scoped
+pages (most of which are still "not built in this step"). Application
+configuration/health is on the Sources & Settings page.
 
 ## Test
 
@@ -97,15 +104,15 @@ project-context/
 ├── src/project_context/
 │   ├── config.py              # typed configuration loading
 │   ├── observability.py       # redacted structured logging
-│   ├── db/                    # connection, migrations, repositories, FTS (not yet implemented)
-│   ├── domain/                # enums, models, transition rules (not yet implemented)
-│   ├── services/               # sync, extraction, reconciliation, review, briefs (not yet implemented)
+│   ├── db/                    # connection, migrations, health, projects/audit repositories
+│   ├── domain/                # projects, audit (enums, models); ledger/transition rules not yet implemented
+│   ├── services/               # projects (lifecycle); sync, extraction, reconciliation, review, briefs not yet implemented
 │   ├── connectors/             # manual, drive, gmail, calendar, fathom (not yet implemented)
 │   ├── parsers/                # txt, md, docx, pdf, vtt (not yet implemented)
 │   ├── llm/                    # provider protocol, OpenAI adapter, prompts (not yet implemented)
 │   ├── retrieval/               # SQL/FTS queries (not yet implemented)
-│   └── ui/                     # Streamlit pages/components (not yet implemented)
-├── migrations/                # numbered SQLite migrations (not yet implemented)
+│   └── ui/                     # Streamlit pages, navigation, project lifecycle forms
+├── migrations/                # numbered SQLite migrations (projects/evidence/sync + audit)
 ├── prompts/                   # versioned LLM prompt templates (not yet implemented)
 ├── tests/                     # unit, integration, fixtures, golden projects, prompt regression
 ├── scripts/                   # seed/evaluate/export/purge utilities (not yet implemented)

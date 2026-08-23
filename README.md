@@ -23,11 +23,19 @@ centralized retry and one schema-repair attempt, versioned Pydantic
 structured-extraction schemas (Section 9), and a manually-triggered
 "Extract observations" action on the Evidence page — every candidate
 observation is deterministically validated against its cited source
-chunk before it is shown as accepted (Section 12.4/12.8). Extraction
-output is a proposal only: it is never persisted and never mutates
-project state. Every other project-scoped page still shows an honest
-"not built in this step" state. The ledger, reconciliation, review,
-briefs, and connectors are not implemented yet.
+chunk before it is shown as accepted (Section 12.4/12.8). The full
+persistent ledger/review data model (Section 9) is also built: people
+and aliases, observations, versioned ledger items, evidence links,
+proposed mutations, reviews, and corrections, each with a repository
+enforcing the schema's invariants (immutable observations, exact-
+fingerprint deduplication, kind/status-constrained transitions,
+same-project evidence linking, project-isolated FTS5) — but nothing
+writes to it yet. Extraction's UI output is still a proposal only: it
+is never persisted and never mutates project state. Every other
+project-scoped page still shows an honest "not built in this step"
+state. Reconciliation (deciding *what* to propose), the review UI, the
+transactional accept/reject flow, briefs, and connectors are not
+implemented yet.
 
 ## ⚠️ Privacy and data policy
 
@@ -126,15 +134,15 @@ project-context/
 │   ├── evidence_store.py      # content-addressed SHA-256 evidence storage
 │   ├── spans.py                # character-span validation (FR-008)
 │   ├── chunking.py             # deterministic paragraph/page/turn-boundary chunking
-│   ├── db/                    # connection, migrations, health, projects/audit/sources/evidence repositories, FTS5
-│   ├── domain/                # projects, audit, sources, evidence (enums, models); ledger/transition rules not yet implemented
-│   ├── services/               # projects (lifecycle), evidence (manual ingestion), extraction (Section 12); sync, reconciliation, review, briefs not yet implemented
+│   ├── db/                    # connection, migrations, health, and one repository per table/domain (projects, audit, sources, evidence, people, observations, ledger, evidence links, proposed mutations, reviews, corrections), FTS5
+│   ├── domain/                # projects, audit, sources, evidence, people, observations, ledger (kind/status/transition rules), review (enums, models)
+│   ├── services/               # projects (lifecycle), evidence (manual ingestion), extraction (Section 12), observations + ledger (write orchestration only — no reconciliation/review-transaction caller yet); sync, reconciliation, review, briefs not yet implemented
 │   ├── connectors/             # manual, drive, gmail, calendar, fathom (not yet implemented)
 │   ├── parsers/                # txt, md, docx, pdf, vtt + content-first kind detection
 │   ├── llm/                    # LLMProvider protocol, OpenAI adapter, retry, structured-extraction schemas, prompt loading
 │   ├── retrieval/               # SQL/FTS queries (not yet implemented)
 │   └── ui/                     # Streamlit pages, navigation, project lifecycle + evidence forms + extraction action
-├── migrations/                # numbered SQLite migrations (projects/evidence/sync, audit, evidence fields, FTS5)
+├── migrations/                # numbered SQLite migrations (projects/evidence/sync, audit, evidence fields, FTS5, ledger/review schema + its FTS5)
 ├── prompts/                   # versioned LLM prompt templates (extraction_v1.md)
 ├── tests/                     # unit, integration, fixtures, golden projects, prompt regression
 ├── scripts/                   # seed/evaluate/export/purge utilities (not yet implemented)

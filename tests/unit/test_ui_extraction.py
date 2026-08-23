@@ -212,9 +212,11 @@ def test_extraction_without_configured_provider_shows_actionable_error(
 
 def test_extraction_does_not_mutate_ledger_state(isolated_config, project_id, monkeypatch):
     """Section 12: 'Do not allow observations to update project state
-    yet' — there is no ledger table this could write to at all in this
-    step; this test documents that guarantee at the UI-integration layer
-    by asserting the run only ever returns an in-memory result."""
+    yet'. The `observations`/`ledger_items` tables exist as of Prompt 6,
+    but this UI action still never writes to them — extraction remains
+    wired to return an in-memory result only, not to persist it. This
+    test documents that guarantee at the UI-integration layer by
+    asserting both tables stay empty after a run."""
     at = _at_for_project(project_id)
     text = "Priya will send the report by Friday."
     _add_text_and_open_viewer(at, title="Kickoff notes", text=text)
@@ -244,13 +246,9 @@ def test_extraction_does_not_mutate_ledger_state(isolated_config, project_id, mo
     assert not at.exception
     conn = connect(isolated_config.sqlite_path)
     try:
-        tables = {
-            row["name"]
-            for row in conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table'"
-            ).fetchall()
-        }
+        observation_count = conn.execute("SELECT COUNT(*) AS n FROM observations").fetchone()["n"]
+        ledger_item_count = conn.execute("SELECT COUNT(*) AS n FROM ledger_items").fetchone()["n"]
     finally:
         conn.close()
-    assert "observations" not in tables
-    assert "ledger_items" not in tables
+    assert observation_count == 0
+    assert ledger_item_count == 0

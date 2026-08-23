@@ -9,11 +9,13 @@ supported by the exact chunk text sent to the model (Section 12.4: "A
 structurally valid response is still subjected to evidence validation").
 
 Nothing in this module writes to any table. ``extract_content`` returns
-an in-memory ``ExtractionRunResult`` for the UI to display; there is no
-``observations`` table yet (that is reconciliation/ledger scope — Section
-9's ``observations``/``proposed_mutations`` tables, not built in this
-step) and no path from an accepted observation to a ledger mutation
-(Section 12.1: "Decide state transition — No in first prototype").
+an in-memory ``ExtractionRunResult`` for the UI to display. The
+``observations``/``proposed_mutations`` tables and their repositories
+now exist (``project_context.db.observation_repository`` and friends),
+but wiring accepted candidates into them is reconciliation/review-flow
+scope, not extraction scope — there is still no path from an accepted
+observation to a ledger mutation here (Section 12.1: "Decide state
+transition — No in first prototype").
 
 Rejected observations are kept — not discarded — with a safe reason
 (Section 12: "gives safe validation reasons"), so the UI can show a
@@ -24,7 +26,6 @@ an un-validated model claim.
 from __future__ import annotations
 
 import os
-import re
 import sqlite3
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -50,6 +51,7 @@ from project_context.llm.provider import (
 from project_context.llm.schemas import SCHEMA_VERSION, ExtractedObservation, ExtractionBatch
 from project_context.observability import get_logger
 from project_context.services.projects import get_project
+from project_context.spans import normalize_whitespace
 
 logger = get_logger(__name__)
 
@@ -59,8 +61,6 @@ logger = get_logger(__name__)
 #: bound, so it cannot game it. See RejectionReason.MALFORMED_DATE.
 _MIN_PLAUSIBLE_YEAR = 2000
 _MAX_PLAUSIBLE_YEAR = 2100
-
-_WHITESPACE_RE = re.compile(r"\s+")
 
 
 class RejectionReason(StrEnum):
@@ -117,14 +117,6 @@ class ExtractionRunResult:
     safe_error: str | None = None
 
 
-def _normalize_whitespace(text: str) -> str:
-    """Conservative whitespace normalization (Section 8: "quoted text
-    normalized for whitespace matches the span"): collapse any run of
-    whitespace to a single space and strip the ends. Does not touch
-    punctuation or case — a quote that differs in wording still fails."""
-    return _WHITESPACE_RE.sub(" ", text).strip()
-
-
 def validate_observation(
     observation: ExtractedObservation,
     *,
@@ -173,7 +165,7 @@ def validate_observation(
                 subject=observation.subject,
             )
         actual = chunk_text[span.char_start : span.char_end]
-        if _normalize_whitespace(actual) != _normalize_whitespace(span.quote):
+        if normalize_whitespace(actual) != normalize_whitespace(span.quote):
             return RejectedObservation(
                 chunk_id=span.chunk_id,
                 reason=RejectionReason.QUOTE_MISMATCH,
@@ -184,8 +176,8 @@ def validate_observation(
 
     if observation.owner_name:
         combined_quotes = " ".join(span.quote for span in observation.evidence)
-        owner_needle = _normalize_whitespace(observation.owner_name).lower()
-        haystack = _normalize_whitespace(combined_quotes).lower()
+        owner_needle = normalize_whitespace(observation.owner_name).lower()
+        haystack = normalize_whitespace(combined_quotes).lower()
         if owner_needle not in haystack:
             return RejectedObservation(
                 chunk_id=observation.evidence[0].chunk_id,

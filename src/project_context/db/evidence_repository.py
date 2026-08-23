@@ -277,6 +277,13 @@ def list_contents_for_artifact(
 # --- chunks ---------------------------------------------------------------
 
 
+def get_chunk(conn: sqlite3.Connection, project_id: str, chunk_id: str) -> SourceChunk | None:
+    row = conn.execute(
+        "SELECT * FROM source_chunks WHERE id = ? AND project_id = ?", (chunk_id, project_id)
+    ).fetchone()
+    return _row_to_chunk(row) if row is not None else None
+
+
 def insert_chunks(
     conn: sqlite3.Connection, project_id: str, content_id: str, chunk_specs: list[ChunkSpec]
 ) -> list[SourceChunk]:

@@ -1,14 +1,30 @@
-"""Character-span validation, shared by the evidence viewer now and by
-evidence-link validation later (FR-008: "Start/end offsets resolve to
-non-empty source text").
+"""Character-span validation, shared by the evidence viewer, extraction
+evidence validation, and evidence-link validation (FR-008: "Start/end
+offsets resolve to non-empty source text").
 
 Deliberately independent of any one table — it validates a span against
 a piece of text it is handed, nothing more. `source_contents.
-normalized_text`, a chunk's text, or a future evidence-link target can
-all use the same rule.
+normalized_text`, a chunk's text, or an evidence-link target can all use
+the same rule.
 """
 
 from __future__ import annotations
+
+import re
+
+#: Conservative whitespace normalization (Section 8: "quoted text
+#: normalized for whitespace matches the span"): collapse any run of
+#: whitespace to a single space and strip the ends. Does not touch
+#: punctuation or case — a quote that differs in wording still fails to
+#: match. Shared by project_context.services.extraction (evidence-span
+#: validation against a chunk) and project_context.db.evidence_link_repository
+#: (evidence-link quote validation against a chunk/content) so both use
+#: exactly one normalization rule.
+_WHITESPACE_RE = re.compile(r"\s+")
+
+
+def normalize_whitespace(text: str) -> str:
+    return _WHITESPACE_RE.sub(" ", text).strip()
 
 
 class InvalidSpanError(ValueError):

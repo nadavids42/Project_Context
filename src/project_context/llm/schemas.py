@@ -132,3 +132,72 @@ class ExtractionBatch(BaseModel):
         if self.source_contains_no_material_updates == bool(self.observations):
             raise ValueError("empty flag and observations disagree")
         return self
+
+
+# ---------------------------------------------------------------------------
+# Stage C — brief composition (Section 12.3; ADR-011; Prompt 9).
+#
+# Adapted from Section 9's representative ``BriefClaim``/``BriefSection``
+# schemas in one deliberate way: the model cites ``fact_ids`` — the
+# opaque ``project_context.domain.briefs.BriefFact.fact_id`` values it
+# was given — rather than raw ``ledger_version_ids``/``evidence_link_ids``
+# directly. The model never handles a real ledger/evidence ID at all; the
+# deterministic validator (``project_context.services.briefs``) expands
+# each cited ``fact_id`` back into its ledger item/version/evidence links
+# server-side. This is a narrower, safer surface with nothing lost — see
+# migrations/0008_briefs.sql's header for the same reasoning applied to
+# the stored schema.
+# ---------------------------------------------------------------------------
+
+BRIEF_SCHEMA_VERSION = "brief_composition_v1"
+
+_MAX_CLAIMS_PER_SECTION = 30
+_MAX_SECTIONS_PER_BRIEF = 10
+_MAX_FACT_IDS_PER_CLAIM = 10
+
+
+class BriefClaimOutput(BaseModel):
+    """One claim the model composed from the supplied facts (Stage C).
+
+    ``fact_ids`` must be non-empty for ``fact``/``inference`` claims
+    (Prompt 9: "Any inference must cite the facts supporting it") — a
+    ``suggestion`` is not an assertion about project state and so is not
+    required to cite one, though it still may.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    text: str = Field(min_length=1, max_length=1200)
+    claim_type: str = Field(pattern="^(fact|inference|suggestion)$")
+    fact_ids: list[str] = Field(max_length=_MAX_FACT_IDS_PER_CLAIM)
+
+    @model_validator(mode="after")
+    def fact_and_inference_cite_something(self) -> BriefClaimOutput:
+        if self.claim_type in ("fact", "inference") and not self.fact_ids:
+            raise ValueError(f"a {self.claim_type!r} claim must cite at least one fact_id")
+        return self
+
+
+class BriefSectionOutput(BaseModel):
+    """One section's composed claims. ``section`` must echo one of the
+    section keys the request supplied (Section 9's fixed eight sections
+    for a Current Project Brief) — validated by the deterministic
+    renderer, not by this schema, since the schema has no way to know
+    which keys were offered in a given call."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    section: str = Field(min_length=1, max_length=100)
+    claims: list[BriefClaimOutput] = Field(max_length=_MAX_CLAIMS_PER_SECTION)
+
+
+class BriefComposition(BaseModel):
+    """The full structured response for one brief-composition call
+    (Stage C, Section 12.3). The model only ever sees and returns
+    sections that had at least one fact — an empty section's placeholder
+    text is written deterministically, never requested from the model
+    (see ``project_context.services.briefs``)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    sections: list[BriefSectionOutput] = Field(max_length=_MAX_SECTIONS_PER_BRIEF)

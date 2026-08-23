@@ -29,12 +29,15 @@ import streamlit as st
 
 from project_context.db import (
     evidence_repository,
+    observation_repository,
     people_repository,
     proposed_mutation_repository,
     review_repository,
 )
 from project_context.domain.ledger import LedgerItem, LedgerItemKind, LedgerItemStatus
+from project_context.domain.observations import ObservationStatus
 from project_context.domain.review import ProposalEdit, ProposedMutationAction
+from project_context.services import reconciliation as reconciliation_service
 from project_context.services import review as review_service
 from project_context.services.review import EvidenceCitation, ReviewCard
 from project_context.ui.chrome import render_highlighted_text
@@ -92,7 +95,33 @@ def render() -> None:
 # ---------------------------------------------------------------------------
 
 
+def _render_reconcile_section(conn: sqlite3.Connection, project_id: str) -> None:
+    """FR-011/Section 10: turn every saved-but-not-yet-reconciled
+    observation (Evidence page's "Extract observations" step) into a
+    reviewable proposal. `reconcile_pending_observations` is idempotent —
+    an observation that already has a proposal from an earlier run is
+    left untouched — so this button is safe to press repeatedly."""
+    pending_observations = observation_repository.list_observations_for_project(
+        conn, project_id, status=ObservationStatus.VALID
+    )
+    if not pending_observations:
+        return
+    st.info(
+        f"{len(pending_observations)} observation(s) saved from extraction are "
+        "awaiting reconciliation into review proposals.",
+        icon="🔄",
+    )
+    if st.button("Reconcile pending observations", key="reconcile-pending"):
+        with st.spinner("Reconciling…"):
+            reconciliation_service.reconcile_pending_observations(conn, project_id)
+        _set_flash("success", "Reconciliation complete.")
+        st.rerun()
+    st.divider()
+
+
 def _render_activity_tab(conn: sqlite3.Connection, project_id: str) -> None:
+    _render_reconcile_section(conn, project_id)
+
     pending = proposed_mutation_repository.list_pending_for_project(conn, project_id)
     if not pending:
         st.info("No pending proposals.", icon="🧭")

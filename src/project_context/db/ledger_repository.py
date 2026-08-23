@@ -387,6 +387,23 @@ def list_versions_for_item(
     return [_row_to_version(row) for row in rows]
 
 
+def list_recent_versions_for_project(
+    conn: sqlite3.Connection, project_id: str, *, limit: int = 15
+) -> list[LedgerVersion]:
+    """The most recently effective versions across *every* item in one
+    project, newest first — the "Recent Changes" Current Project Brief
+    section's source query (Section 5.8; `project_context.retrieval.briefs`).
+    Every `ledger_versions` row already carries its own `project_id`
+    (Section 9's modeling rule: "every project-owned table has a direct
+    project_id"), so this never needs to join through `ledger_items` to
+    stay project-scoped."""
+    rows = conn.execute(
+        "SELECT * FROM ledger_versions WHERE project_id = ? ORDER BY valid_from DESC LIMIT ?",
+        (project_id, limit),
+    ).fetchall()
+    return [_row_to_version(row) for row in rows]
+
+
 # --- full-text search -------------------------------------------------------
 
 

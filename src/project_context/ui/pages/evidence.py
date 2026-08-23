@@ -26,6 +26,7 @@ from project_context.domain.evidence import (
 )
 from project_context.services import evidence as evidence_service
 from project_context.services import extraction as extraction_service
+from project_context.services import observations as observations_service
 from project_context.services.extraction import (
     ExtractionRunResult,
     ExtractionStatus,
@@ -105,6 +106,7 @@ def _render_flash() -> None:
 def render() -> None:
     st.title("Evidence")
     config = load_config()
+    _apply_deep_link()
     with project_context_connection() as conn:
         project = require_selected_project(conn)
         if project is None:
@@ -122,6 +124,34 @@ def render() -> None:
         _render_evidence_list(conn, project.id)
         st.divider()
         _render_viewer(conn, project.id)
+
+
+def _apply_deep_link() -> None:
+    """Honor a `?artifact_id=...&char_start=...&char_end=...` deep link
+    (e.g. a citation from a generated brief — `project_context.services.
+    briefs`) by pre-selecting that artifact and span, the same way
+    clicking "View" in the evidence list does. Read once per rerun;
+    `_render_viewer` reads the char_start/char_end query params directly
+    as its span widgets' initial values."""
+    artifact_id = st.query_params.get("artifact_id")
+    if artifact_id:
+        st.session_state[_SELECTED_ARTIFACT_KEY] = artifact_id
+
+
+def _deep_link_span(artifact_id: str, *, text_length: int) -> tuple[int, int]:
+    """`(char_start, char_end)` from the query string, only when it names
+    *this* artifact — clamped to the actual text length so a stale or
+    tampered link never produces an out-of-range widget default."""
+    if st.query_params.get("artifact_id") != artifact_id:
+        return 0, 0
+    try:
+        start = int(st.query_params.get("char_start", 0))
+        end = int(st.query_params.get("char_end", 0))
+    except (TypeError, ValueError):
+        return 0, 0
+    start = max(0, min(start, text_length))
+    end = max(0, min(end, text_length))
+    return start, end
 
 
 def _render_manual_text_form(conn: sqlite3.Connection, project_id: str, config: AppConfig) -> None:
@@ -334,13 +364,18 @@ def _render_viewer(conn: sqlite3.Connection, project_id: str) -> None:
         return
 
     text = detail.content.normalized_text
+    default_start, default_end = _deep_link_span(artifact_id, text_length=len(text))
     st.markdown("**Highlight a character span** (optional)")
     span_cols = st.columns(2)
     char_start = span_cols[0].number_input(
-        "Start", min_value=0, max_value=len(text), value=0, key=f"span-start-{artifact_id}"
+        "Start",
+        min_value=0,
+        max_value=len(text),
+        value=default_start,
+        key=f"span-start-{artifact_id}",
     )
     char_end = span_cols[1].number_input(
-        "End", min_value=0, max_value=len(text), value=0, key=f"span-end-{artifact_id}"
+        "End", min_value=0, max_value=len(text), value=default_end, key=f"span-end-{artifact_id}"
     )
 
     st.markdown("**Normalized text**")
@@ -362,9 +397,14 @@ def _render_extraction_section(
     conn: sqlite3.Connection, project_id: str, detail: evidence_service.EvidenceDetail
 ) -> None:
     """FR-010/Section 12: a manually-triggered 'Extract observations'
-    action over the currently-viewed content version's chunks. Results
-    are proposals only — nothing here writes to the project (Section
-    12.1: "Decide state transition — No in first prototype")."""
+    action over the currently-viewed content version's chunks. Every
+    accepted observation is persisted immediately (idempotently, by
+    exact fingerprint — `observations_service.persist_observation`) so
+    it becomes visible to reconciliation; nothing here decides a state
+    transition or touches the ledger (Section 12.1: "Decide state
+    transition — No in first prototype"). Turning a persisted
+    observation into a reviewable proposal is a separate, explicit step
+    on the Activity & Review page."""
     st.divider()
     st.subheader("Extract observations")
 
@@ -392,13 +432,32 @@ def _render_extraction_section(
         else:
             config = load_config()
             with st.spinner("Extracting observations…"):
-                results[content_id] = extraction_service.extract_content(
+                run_result = extraction_service.extract_content(
                     conn,
                     project_id,
                     content_id,
                     provider=provider,
                     model=config.openai_model,
                 )
+                saved_count = 0
+                for observation in run_result.accepted:
+                    observations_service.persist_observation(
+                        conn,
+                        project_id,
+                        content_id=content_id,
+                        chunk_id=observation.evidence[0].chunk_id,
+                        extracted=observation,
+                        model_id=run_result.model,
+                        prompt_version=run_result.prompt_version,
+                        schema_version=run_result.schema_version,
+                    )
+                    saved_count += 1
+                results[content_id] = run_result
+                if saved_count:
+                    st.caption(
+                        f"Saved {saved_count} observation(s). Reconcile them into proposals "
+                        "from Activity & Review."
+                    )
 
     run_result = results.get(content_id)
     if run_result is not None:

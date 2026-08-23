@@ -210,13 +210,15 @@ def test_extraction_without_configured_provider_shows_actionable_error(
     assert any("OPENAI_API_KEY" in e.value for e in at.error)
 
 
-def test_extraction_does_not_mutate_ledger_state(isolated_config, project_id, monkeypatch):
+def test_extraction_persists_observations_but_never_mutates_ledger_state(
+    isolated_config, project_id, monkeypatch
+):
     """Section 12: 'Do not allow observations to update project state
-    yet'. The `observations`/`ledger_items` tables exist as of Prompt 6,
-    but this UI action still never writes to them — extraction remains
-    wired to return an in-memory result only, not to persist it. This
-    test documents that guarantee at the UI-integration layer by
-    asserting both tables stay empty after a run."""
+    yet'. Since Prompt 9, every accepted observation is persisted
+    immediately (idempotently) so reconciliation can see it — but
+    persisting an observation is not deciding a ledger transition:
+    `ledger_items` must still stay empty after this action, only
+    reconciliation-then-review can ever write there."""
     at = _at_for_project(project_id)
     text = "Priya will send the report by Friday."
     _add_text_and_open_viewer(at, title="Kickoff notes", text=text)
@@ -250,5 +252,5 @@ def test_extraction_does_not_mutate_ledger_state(isolated_config, project_id, mo
         ledger_item_count = conn.execute("SELECT COUNT(*) AS n FROM ledger_items").fetchone()["n"]
     finally:
         conn.close()
-    assert observation_count == 0
+    assert observation_count == 1
     assert ledger_item_count == 0

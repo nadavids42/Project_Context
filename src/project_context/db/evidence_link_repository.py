@@ -18,9 +18,10 @@ service").
    same rules `project_context.services.extraction` uses for evidence
    spans).
 
-`target_type='brief_claim'` is accepted by the schema (migration 0005)
-for forward compatibility but rejected here with a clear error, since no
-`brief_claims` table exists yet to validate against.
+`target_type='brief_claim'` targets `brief_claims` (migrations/0008_briefs.sql)
+— a claim's cited evidence for Section 9's `BriefClaim.evidence_link_ids`
+(see that migration's header for why this is the relational form instead
+of a JSON list column).
 """
 
 from __future__ import annotations
@@ -43,6 +44,7 @@ _TARGET_TABLES = {
     EvidenceLinkTargetType.OBSERVATION: "observations",
     EvidenceLinkTargetType.LEDGER_ITEM: "ledger_items",
     EvidenceLinkTargetType.LEDGER_VERSION: "ledger_versions",
+    EvidenceLinkTargetType.BRIEF_CLAIM: "brief_claims",
 }
 
 
@@ -90,12 +92,6 @@ def insert_link(
     chunk_id: str | None = None,
     location: dict[str, Any] | None = None,
 ) -> EvidenceLink:
-    if target_type is EvidenceLinkTargetType.BRIEF_CLAIM:
-        raise EvidenceLinkError(
-            "target_type='brief_claim' is not yet supported: no brief_claims table exists "
-            "to validate the target against"
-        )
-
     target_project_id = _target_project_id(conn, target_type, target_id)
     if target_project_id is None:
         raise EvidenceLinkError(f"{target_type.value} {target_id!r} does not exist")
@@ -163,3 +159,14 @@ def list_for_target(
         (project_id, target_type.value, target_id),
     ).fetchall()
     return [_row_to_link(row) for row in rows]
+
+
+def get_link(conn: sqlite3.Connection, project_id: str, link_id: str) -> EvidenceLink | None:
+    """Look up one evidence link by its own id — used to re-cite an
+    existing link's exact span against a new target (e.g. a brief claim
+    citing the same evidence a ledger item already carries;
+    `project_context.services.briefs`)."""
+    row = conn.execute(
+        "SELECT * FROM evidence_links WHERE id = ? AND project_id = ?", (link_id, project_id)
+    ).fetchone()
+    return _row_to_link(row) if row is not None else None

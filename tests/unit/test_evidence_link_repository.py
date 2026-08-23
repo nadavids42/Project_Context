@@ -1,7 +1,8 @@
 """Tests for the evidence-link repository: target existence, same-project
-enforcement, span/quote validation, and the not-yet-supported
-`brief_claim` target type (Prompt 6: "Evidence-link repository with
-project and span validation")."""
+enforcement, span/quote validation, and the `brief_claim` target type
+(Prompt 6: "Evidence-link repository with project and span validation";
+Prompt 9: `brief_claim` targets are now backed by a real `brief_claims`
+table, migrations/0008_briefs.sql)."""
 
 from __future__ import annotations
 
@@ -11,6 +12,7 @@ import pytest
 
 from project_context.chunking import ChunkSpec
 from project_context.db import (
+    brief_repository,
     evidence_link_repository,
     evidence_repository,
     observation_repository,
@@ -18,6 +20,7 @@ from project_context.db import (
 )
 from project_context.db.connection import connect
 from project_context.db.migrations import run_migrations
+from project_context.domain.briefs import BriefType, ClaimType, ClaimValidationStatus
 from project_context.domain.evidence import ArtifactType, ParseStatus
 from project_context.domain.evidence_links import EvidenceLinkSupportRole, EvidenceLinkTargetType
 from project_context.domain.ledger import LedgerItemKind
@@ -226,7 +229,7 @@ def test_insert_link_rejects_content_from_a_different_project(conn):
         )
 
 
-def test_insert_link_rejects_brief_claim_target_type(conn):
+def test_insert_link_rejects_a_brief_claim_target_that_does_not_exist(conn):
     project_id = _make_project(conn)
     content, chunk = _content_and_chunk(conn, project_id)
 
@@ -243,6 +246,34 @@ def test_insert_link_rejects_brief_claim_target_type(conn):
             quote=chunk.text[:5],
             support_role=EvidenceLinkSupportRole.SUPPORTS,
         )
+
+
+def test_insert_link_accepts_a_real_brief_claim_target(conn):
+    project_id = _make_project(conn)
+    content, chunk = _content_and_chunk(conn, project_id)
+    brief = brief_repository.insert_brief(
+        conn, project_id, brief_type=BriefType.CURRENT_PROJECT,
+        cutoff_at="2026-08-23T00:00:00Z", input_snapshot={},
+    )
+    claim = brief_repository.insert_claim(
+        conn, project_id, brief_id=brief.id, section="recent_changes", ordinal=0,
+        claim_text="Something happened.", claim_type=ClaimType.FACT,
+        cited_fact_ids=("fact-1",), validation_status=ClaimValidationStatus.VALID,
+    )
+
+    link = evidence_link_repository.insert_link(
+        conn,
+        project_id,
+        target_type=EvidenceLinkTargetType.BRIEF_CLAIM,
+        target_id=claim.id,
+        content_id=content.id,
+        chunk_id=chunk.id,
+        char_start=0,
+        char_end=5,
+        quote=chunk.text[:5],
+        support_role=EvidenceLinkSupportRole.SUPPORTS,
+    )
+    assert link.target_id == claim.id
 
 
 # --- span / quote validation ---------------------------------------------

@@ -404,6 +404,24 @@ def list_recent_versions_for_project(
     return [_row_to_version(row) for row in rows]
 
 
+def list_versions_since(
+    conn: sqlite3.Connection, project_id: str, since_at: str, *, limit: int = 200
+) -> list[LedgerVersion]:
+    """Every version accepted at or after `since_at`, newest first — the
+    Meeting Preparation Brief's "changes since previous meeting/cutoff"
+    section (Section 5.9; `project_context.retrieval.meeting_prep`), a
+    cutoff-bounded sibling of `list_recent_versions_for_project`'s
+    fixed-count window. Uses the same `(project_id, valid_from)` index
+    (migrations/0005) `list_recent_versions_for_project` already
+    relies on."""
+    rows = conn.execute(
+        "SELECT * FROM ledger_versions WHERE project_id = ? AND valid_from >= ? "
+        "ORDER BY valid_from DESC LIMIT ?",
+        (project_id, since_at, limit),
+    ).fetchall()
+    return [_row_to_version(row) for row in rows]
+
+
 # --- full-text search -------------------------------------------------------
 
 

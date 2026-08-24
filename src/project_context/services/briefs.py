@@ -25,7 +25,9 @@ never collide) is `invalid_reference`; a resolved fact with no evidence
 links at all is `unsupported`; both are stored for audit but omitted
 from the rendered Markdown and replaced by a deterministic, guaranteed-
 correct per-fact fallback claim, so a model mistake never causes real
-accepted state to silently vanish from the brief.
+accepted state to silently vanish from the brief. This validation core
+lives in `project_context.services.brief_shared`, shared with
+`project_context.services.meeting_prep` (Prompt 14).
 """
 
 from __future__ import annotations
@@ -34,13 +36,11 @@ import sqlite3
 from dataclasses import dataclass
 
 from project_context.config import DEFAULT_OPENAI_MODEL
-from project_context.db import brief_repository, evidence_link_repository, evidence_repository
+from project_context.db import brief_repository
 from project_context.db.connection import transaction
 from project_context.domain.briefs import (
     CURRENT_BRIEF_SECTIONS,
     BriefClaimRecord,
-    BriefFact,
-    BriefFactType,
     BriefStatus,
     BriefType,
     ClaimType,
@@ -48,7 +48,6 @@ from project_context.domain.briefs import (
     CurrentProjectBriefFacts,
     GeneratedBrief,
 )
-from project_context.domain.evidence_links import EvidenceLinkSupportRole, EvidenceLinkTargetType
 from project_context.ids import new_id
 from project_context.llm.prompts import (
     BRIEF_PROMPT_VERSION,
@@ -64,6 +63,14 @@ from project_context.llm.provider import (
 from project_context.llm.schemas import BRIEF_SCHEMA_VERSION, BriefClaimOutput, BriefComposition
 from project_context.observability import get_logger
 from project_context.retrieval.briefs import build_current_project_brief_facts
+from project_context.services.brief_shared import (
+    PlannedClaim,
+    citation_markdown,
+    classify_claim,
+    deterministic_claim_text,
+    link_claim_evidence,
+    plan_model_claim,
+)
 from project_context.services.projects import get_project
 
 logger = get_logger(__name__)
@@ -93,86 +100,24 @@ _EMPTY_SECTION_TEXT = {
 
 
 @dataclass(frozen=True)
-class _PlannedClaim:
-    section: str
-    text: str
-    claim_type: ClaimType
-    cited_fact_ids: tuple[str, ...]
-    validation_status: ClaimValidationStatus
-    ledger_item_id: str | None = None
-    ledger_version_id: str | None = None
-
-
-@dataclass(frozen=True)
 class BriefGenerationResult:
     brief: GeneratedBrief
     claims: tuple[BriefClaimRecord, ...]
     facts: CurrentProjectBriefFacts
 
 
-def _classify_claim(
-    *,
-    section: str,
-    claim_type: ClaimType,
-    requested_fact_ids: tuple[str, ...],
-    fact_lookup: dict[str, BriefFact],
-) -> tuple[ClaimValidationStatus, tuple[str, ...]]:
-    """Resolve `requested_fact_ids` against the known fact payload for
-    this claim's own section, and classify the result (Prompt 9: "Resolve
-    every referenced fact... within the same project. Reject unknown or
-    cross-project IDs.")."""
-    resolved = tuple(
-        fact_id
-        for fact_id in requested_fact_ids
-        if (fact := fact_lookup.get(fact_id)) is not None and fact.section == section
-    )
-    needs_citation = claim_type in (ClaimType.FACT, ClaimType.INFERENCE)
-    if not needs_citation:
-        return ClaimValidationStatus.VALID, resolved
-    if not resolved:
-        return ClaimValidationStatus.INVALID_REFERENCE, resolved
-    if section in _SELF_EVIDENCING_SECTIONS:
-        return ClaimValidationStatus.VALID, resolved
-    has_evidence = any(fact_lookup[fact_id].evidence_link_ids for fact_id in resolved)
-    if not has_evidence:
-        return ClaimValidationStatus.UNSUPPORTED, resolved
-    return ClaimValidationStatus.VALID, resolved
-
-
-def _deterministic_claim_text(fact: BriefFact) -> str:
-    """A guaranteed-correct, non-model sentence for one fact — used for
-    `objective_and_scope`/`current_stage` always, and as the safety-net
-    fallback for any other section where the model produced nothing
-    valid (module docstring)."""
-    if fact.fact_type is BriefFactType.TRANSITION:
-        text = f"{fact.title} — {fact.transition_type} (now {fact.status})"
-        if fact.previous_summary:
-            text += f"; {fact.previous_summary}"
-        if fact.owner_name:
-            text += f"; owner {fact.owner_name}"
-        return text + "."
-    parts = [fact.title]
-    if fact.status:
-        parts.append(f"status: {fact.status}")
-    if fact.owner_name:
-        parts.append(f"owner: {fact.owner_name}")
-    if fact.due_date:
-        parts.append(f"due: {fact.due_date}")
-    return " — ".join(parts) + "."
-
-
 def _plan_deterministic_sections(
     facts: CurrentProjectBriefFacts,
-) -> list[_PlannedClaim]:
+) -> list[PlannedClaim]:
     section_by_key = {section.section: section for section in facts.sections}
-    planned: list[_PlannedClaim] = []
+    planned: list[PlannedClaim] = []
 
     scope_fact = section_by_key["objective_and_scope"].facts[0]
     text = f"Objective: {scope_fact.title}."
     if scope_fact.detail:
         text += f" Scope: {scope_fact.detail}"
     planned.append(
-        _PlannedClaim(
+        PlannedClaim(
             section="objective_and_scope",
             text=text,
             claim_type=ClaimType.FACT,
@@ -185,7 +130,7 @@ def _plan_deterministic_sections(
     if stage_facts:
         stage_fact = stage_facts[0]
         planned.append(
-            _PlannedClaim(
+            PlannedClaim(
                 section="current_stage",
                 text=f"Current stage: {stage_fact.title}.",
                 claim_type=ClaimType.FACT,
@@ -195,7 +140,7 @@ def _plan_deterministic_sections(
         )
     else:
         planned.append(
-            _PlannedClaim(
+            PlannedClaim(
                 section="current_stage",
                 text="Current stage: Not stated.",
                 claim_type=ClaimType.FACT,
@@ -206,37 +151,9 @@ def _plan_deterministic_sections(
     return planned
 
 
-def _plan_model_claim(
-    *, section: str, claim_out: BriefClaimOutput, fact_lookup: dict[str, BriefFact]
-) -> _PlannedClaim:
-    claim_type = ClaimType(claim_out.claim_type)
-    status, resolved = _classify_claim(
-        section=section,
-        claim_type=claim_type,
-        requested_fact_ids=tuple(claim_out.fact_ids),
-        fact_lookup=fact_lookup,
-    )
-    primary = fact_lookup.get(resolved[0]) if resolved else None
-    # Store whatever was actually cited: the resolved set when there is
-    # one (or the claim didn't need citation at all), otherwise the raw
-    # (unresolvable) request, so an invalid_reference claim's audit trail
-    # still shows exactly what the model tried to cite.
-    is_valid_or_resolved = status is ClaimValidationStatus.VALID or resolved
-    cited = resolved if is_valid_or_resolved else tuple(claim_out.fact_ids)
-    return _PlannedClaim(
-        section=section,
-        text=claim_out.text,
-        claim_type=claim_type,
-        cited_fact_ids=cited,
-        validation_status=status,
-        ledger_item_id=primary.ledger_item_id if primary else None,
-        ledger_version_id=primary.ledger_version_id if primary else None,
-    )
-
-
 def _plan_model_eligible_sections(
     facts: CurrentProjectBriefFacts, composition: BriefComposition | None
-) -> list[_PlannedClaim]:
+) -> list[PlannedClaim]:
     section_by_key = {section.section: section for section in facts.sections}
     fact_lookup = facts.fact_by_id()
 
@@ -247,12 +164,12 @@ def _plan_model_eligible_sections(
             continue
         returned_by_key.setdefault(section_out.section, []).extend(section_out.claims)
 
-    planned: list[_PlannedClaim] = []
+    planned: list[PlannedClaim] = []
     for key in _MODEL_ELIGIBLE_SECTIONS:
         section = section_by_key[key]
         if not section.facts:
             planned.append(
-                _PlannedClaim(
+                PlannedClaim(
                     section=key,
                     text=_EMPTY_SECTION_TEXT[key],
                     claim_type=ClaimType.FACT,
@@ -263,7 +180,10 @@ def _plan_model_eligible_sections(
             continue
 
         section_claims = [
-            _plan_model_claim(section=key, claim_out=claim_out, fact_lookup=fact_lookup)
+            plan_model_claim(
+                section=key, claim_out=claim_out, fact_lookup=fact_lookup,
+                self_evidencing_sections=_SELF_EVIDENCING_SECTIONS,
+            )
             for claim_out in returned_by_key.get(key, [])
         ]
         planned.extend(section_claims)
@@ -272,16 +192,17 @@ def _plan_model_eligible_sections(
             # section that does have accepted facts — never let that
             # silently drop real state from the brief.
             for fact in section.facts:
-                status, resolved = _classify_claim(
+                status, resolved = classify_claim(
                     section=key,
                     claim_type=ClaimType.FACT,
                     requested_fact_ids=(fact.fact_id,),
                     fact_lookup=fact_lookup,
+                    self_evidencing_sections=_SELF_EVIDENCING_SECTIONS,
                 )
                 planned.append(
-                    _PlannedClaim(
+                    PlannedClaim(
                         section=key,
-                        text=_deterministic_claim_text(fact),
+                        text=deterministic_claim_text(fact),
                         claim_type=ClaimType.FACT,
                         cited_fact_ids=resolved,
                         validation_status=status,
@@ -290,64 +211,6 @@ def _plan_model_eligible_sections(
                     )
                 )
     return planned
-
-
-def _link_claim_evidence(
-    conn: sqlite3.Connection, project_id: str, claim_id: str, fact_ids: tuple[str, ...], fact_lookup
-) -> None:
-    seen: set[str] = set()
-    for fact_id in fact_ids:
-        fact = fact_lookup.get(fact_id)
-        if fact is None:
-            continue
-        for link_id in fact.evidence_link_ids:
-            if link_id in seen:
-                continue
-            seen.add(link_id)
-            source_link = evidence_link_repository.get_link(conn, project_id, link_id)
-            if source_link is None:
-                continue
-            evidence_link_repository.insert_link(
-                conn,
-                project_id,
-                target_type=EvidenceLinkTargetType.BRIEF_CLAIM,
-                target_id=claim_id,
-                content_id=source_link.content_id,
-                chunk_id=source_link.chunk_id,
-                char_start=source_link.char_start,
-                char_end=source_link.char_end,
-                quote=source_link.quote,
-                support_role=EvidenceLinkSupportRole.SUPPORTS,
-                location=source_link.location,
-            )
-
-
-def _citation_markdown(conn: sqlite3.Connection, project_id: str, claim_id: str) -> str:
-    links = evidence_link_repository.list_for_target(
-        conn, project_id, EvidenceLinkTargetType.BRIEF_CLAIM, claim_id
-    )
-    if not links:
-        return ""
-    markers = []
-    for index, link in enumerate(links, start=1):
-        content = evidence_repository.get_content(conn, project_id, link.content_id)
-        artifact = (
-            evidence_repository.get_artifact(conn, project_id, content.artifact_id)
-            if content is not None
-            else None
-        )
-        if artifact is None:
-            markers.append(f"[{index}]")
-            continue
-        view_url = (
-            f"evidence?artifact_id={artifact.id}"
-            f"&char_start={link.char_start}&char_end={link.char_end}"
-        )
-        marker = f"[{index}]({view_url})"
-        if artifact.external_url:
-            marker += f" [source]({artifact.external_url})"
-        markers.append(marker)
-    return " " + " ".join(markers)
 
 
 def _render_markdown(
@@ -371,7 +234,7 @@ def _render_markdown(
                 prefix = "**Inference:** "
             elif claim.claim_type is ClaimType.SUGGESTION:
                 prefix = "**Suggestion:** "
-            citation = _citation_markdown(conn, project_id, claim.id)
+            citation = citation_markdown(conn, project_id, claim.id)
             lines.append(f"- {prefix}{claim.claim_text}{citation}")
         lines.append("")
     return "\n".join(lines).rstrip() + "\n"
@@ -480,7 +343,7 @@ def generate_current_project_brief(
             )
             claim_records.append(claim)
             if planned_claim.validation_status is ClaimValidationStatus.VALID:
-                _link_claim_evidence(
+                link_claim_evidence(
                     conn, project_id, claim.id, planned_claim.cited_fact_ids, fact_lookup
                 )
 

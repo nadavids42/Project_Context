@@ -57,8 +57,22 @@ never calls a Zoom API; it reads whatever an existing Zoom-to-Drive
 recording workflow has already deposited in a configured Drive folder
 through the same Drive connector everything else uses, with advisory-
 only (never assignment-driving) filename hints — see
-"[Zoom-to-Drive compatibility](#zoom-to-drive-compatibility)" below.
-The Meeting Preparation Brief and the evaluation harness are not
+"[Zoom-to-Drive compatibility](#zoom-to-drive-compatibility)" below;
+and the **Meeting Preparation Brief** (Prompt 14) — the second and
+final generated output, on the Briefs page alongside the Current
+Project Brief. Select an imported Calendar/Fathom meeting or enter one
+manually (Calendar stays fully optional); the previous relevant meeting
+and its cutoff are determined from accepted meeting evidence and shown
+before generation, with an explicit override; participants are
+resolved by exact email, then a known alias, then left explicitly
+unresolved — never guessed. The deterministic fact set (purpose,
+accepted changes since the cutoff, outstanding commitments grouped by
+owner/unassigned, decisions required, risks/blockers, unanswered
+questions) can be previewed and individually included/excluded before
+one Stage C composition call adds a `Suggested Discussion Topics`
+section — labeled suggestions only, never asserted as fact — through
+the same claim-validation, evidence-citation, and Markdown-export path
+the Current Project Brief uses. The evaluation harness is not
 implemented yet.
 
 ## ⚠️ Privacy and data policy
@@ -539,15 +553,15 @@ project-context/
 │   ├── chunking.py             # deterministic paragraph/page/turn-boundary chunking
 │   ├── credentials/            # OS-keyring-first, encrypted-file-fallback secret storage + connect/refresh/mask/disconnect service
 │   ├── db/                    # connection, migrations, health, and one repository per table/domain (projects, audit, sources, evidence, people, observations, ledger, evidence links, proposed mutations, reviews, corrections, briefs, sync), FTS5
-│   ├── domain/                # projects, audit, sources, evidence, people, observations, ledger, review, briefs, sync, email_normalization, calendar_matching, fathom_matching, zoom_hints (enums, models)
-│   ├── services/               # projects, evidence, extraction, observations, ledger, reconciliation, review, briefs, sync orchestration, drive_ingestion, gmail_ingestion, calendar_ingestion, fathom_ingestion, google_connect
+│   ├── domain/                # projects, audit, sources, evidence, people, observations, ledger, review, briefs, meeting_prep, sync, email_normalization, calendar_matching, fathom_matching, zoom_hints (enums, models)
+│   ├── services/               # projects, evidence, extraction, observations, ledger, reconciliation, review, briefs, brief_shared, meeting_prep, sync orchestration, drive_ingestion, gmail_ingestion, calendar_ingestion, fathom_ingestion, google_connect
 │   ├── connectors/             # protocol/errors/http (shared), drive, gmail, calendar, fathom (all implemented), google_oauth
 │   ├── parsers/                # txt, md, docx, pdf, vtt + content-first kind detection
 │   ├── llm/                    # LLMProvider protocol, OpenAI adapter, retry, structured-extraction + brief-composition schemas, prompt loading
-│   ├── retrieval/               # deterministic Current Project Brief fact builder
-│   └── ui/                     # Streamlit pages: projects, overview, activity/review, ledger, evidence, briefs, sources & settings
+│   ├── retrieval/               # deterministic Current Project Brief and Meeting Preparation Brief fact builders (brief_facts.py shared per-fact helpers)
+│   └── ui/                     # Streamlit pages: projects, overview, activity/review, ledger, evidence, briefs (Current Project + Meeting Preparation), sources & settings
 ├── migrations/                # numbered SQLite migrations (see migrations/README.md)
-├── prompts/                   # versioned LLM prompt templates (extraction_v1.md, brief_current_v1.md)
+├── prompts/                   # versioned LLM prompt templates (extraction_v1.md, brief_current_v1.md, brief_meeting_prep_v1.md)
 ├── tests/                     # unit, integration, fixtures, golden projects, prompt regression
 ├── scripts/                   # seed/evaluate/export/purge utilities (not yet implemented)
 └── data/                      # local SQLite DB + evidence store + credentials — gitignored, created at runtime

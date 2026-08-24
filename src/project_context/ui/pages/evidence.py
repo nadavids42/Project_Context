@@ -24,6 +24,7 @@ from project_context.domain.evidence import (
     ManualTextInput,
     ParseStatus,
 )
+from project_context.domain.zoom_hints import describe_filename_hint
 from project_context.services import evidence as evidence_service
 from project_context.services import extraction as extraction_service
 from project_context.services import observations as observations_service
@@ -349,6 +350,13 @@ def _render_viewer(conn: sqlite3.Connection, project_id: str) -> None:
             st.markdown(f"**MIME type:** {detail.content.mime_type or 'Not stated'}")
             if detail.content.original_filename:
                 st.markdown(f"**Original filename:** {detail.content.original_filename}")
+                # Section 11.6 / Prompt 13: an advisory-only hint — it
+                # never changes which project this evidence belongs to
+                # (that was already decided by the configured Drive
+                # folder before this file ever reached this page).
+                filename_hint = describe_filename_hint(detail.content.original_filename)
+                if filename_hint:
+                    st.caption(f"🔎 {filename_hint}")
             status = detail.content.parse_status
             status_text = _PARSE_STATUS_LABELS.get(status.value, status.value)
             if status in FAILED_PARSE_STATUSES:

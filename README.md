@@ -43,8 +43,23 @@ an event's own description text ever entering extraction — metadata
 (title, attendees, timing) alone can never produce a decision,
 commitment, or risk — see
 "[Calendar setup](#calendar-setup-optional)" below, including its
-sensitive-scope caveat. Fathom, the Meeting Preparation Brief, and the
-evaluation harness are not implemented yet.
+sensitive-scope caveat; **user-triggered Fathom API-key polling**
+(Prompt 13) — `GET /meetings` with cursor pagination, a last-created
+watermark with a 48-hour overlap, meeting transcripts as primary
+extraction evidence with Fathom's own summary/action items stored as
+secondary, citable evidence that is never itself sent to extraction,
+and deterministic project-assignment rules (manual recording ID >
+recorded-by/team > client domain > participant > meeting-URL/bounded-
+time-window, the last of which always lands in Unassigned Evidence for
+manual review) — see "[Fathom setup](#fathom-setup-optional)" below;
+and **Zoom-to-Drive compatibility** (Prompt 13) — this application
+never calls a Zoom API; it reads whatever an existing Zoom-to-Drive
+recording workflow has already deposited in a configured Drive folder
+through the same Drive connector everything else uses, with advisory-
+only (never assignment-driving) filename hints — see
+"[Zoom-to-Drive compatibility](#zoom-to-drive-compatibility)" below.
+The Meeting Preparation Brief and the evaluation harness are not
+implemented yet.
 
 ## ⚠️ Privacy and data policy
 
@@ -61,14 +76,15 @@ product.
   automatically or in the background. Extraction is disabled until you
   set `OPENAI_API_KEY` in your environment.
 - External connectors are strictly read-only (no code path ever writes
-  to Drive/Gmail/Calendar/Fathom) and disabled by default. Google Drive
-  (Prompt 10), Gmail (Prompt 11), and Calendar (Prompt 12) are
+  to Drive/Gmail/Calendar/Fathom, and this application never calls a
+  Zoom API at all) and disabled by default. Google Drive (Prompt 10),
+  Gmail (Prompt 11), Calendar (Prompt 12), and Fathom (Prompt 13) are
   implemented but require you to explicitly opt in — see
   "[Google Drive setup](#google-drive-setup-optional)",
-  "[Gmail setup](#gmail-setup-optional)", and
-  "[Calendar setup](#calendar-setup-optional)" below, each including
-  its own restricted/sensitive-scope caveat. Fathom is not implemented
-  yet.
+  "[Gmail setup](#gmail-setup-optional)",
+  "[Calendar setup](#calendar-setup-optional)", and
+  "[Fathom setup](#fathom-setup-optional)" below, each including its
+  own scope/authentication caveat.
 - Do not expose the Streamlit port beyond `127.0.0.1`.
 
 ## Requirements
@@ -344,6 +360,132 @@ delete evidence already imported.
 creation/modification, attendee invites, free/busy scheduling,
 webhooks, background sync, and incremental sync tokens (`nextSyncToken`).
 
+## Fathom setup (optional)
+
+Fathom API-key polling is fully implemented but **disabled by
+default**. Unlike Drive/Gmail/Calendar, it needs no Google OAuth client
+at all — it uses one user-generated Fathom API key per install, sent as
+`X-Api-Key` through the exact same credential service every other
+connector uses (Section 16: "user-generated API key ... through the
+existing credential service"). The manual-ingestion path remains the
+required fallback if you skip this.
+
+> **Scope caveat — read before enabling.** This is the private,
+> API-key-authenticated shape of Fathom's API — the one Fathom itself
+> recommends for personal/internal automation. It is **not** Fathom
+> OAuth, has **no webhook**, and never downloads recording media; it
+> only calls `GET /meetings` with `include_transcript=true` (a
+> documented Fathom "heavy request"). See Section 11.5 of the product
+> plan before enabling this for anyone other than yourself.
+
+1. Generate an API key at fathom.video → Settings → API keys.
+2. **Set the feature flag** (in your real, gitignored `.env`):
+
+   ```bash
+   PROJECT_CONTEXT_FEATURE_FATHOM_ENABLED=true
+   ```
+3. **Restart the app**, open a project's Sources & Settings page, paste
+   the key into **Fathom API key**, and click **Connect Fathom**. The
+   key is stored exactly like a Drive/Gmail/Calendar refresh token —
+   OS keyring, or an encrypted local file with its key kept separately
+   — and is never echoed back after saving.
+4. **Configure at least one deterministic assignment rule**, evaluated
+   in this fixed priority order:
+   1. Explicitly included recording IDs (highest priority).
+   2. Recorded-by/team emails — any meeting recorded by one of these
+      belongs to this project.
+   3. Client email domain — matches a calendar invitee or transcript
+      speaker at this domain.
+   4. Explicit participant emails.
+   5. A configured recurring meeting URL, or a bounded time window
+      (lowest priority).
+
+   Unlike every tier above it, **tier 5 is never auto-assigned** — a
+   meeting-URL or time-window match alone carries no participant/domain
+   corroboration, so it always lands in **Unassigned Evidence** for
+   manual confirmation instead (Section 11.5: "Ambiguity goes to
+   unassigned/manual review"). Click **Preview** to dry-run recent
+   matched *and* a sample of unmatched meetings with their exact match
+   reasons — a preview flags a would-be-unassigned match explicitly —
+   then **Save rules**.
+5. Click **Sync Project**. This is always **user-triggered**, never a
+   background poll: it lists meetings created since your last
+   successful sync minus a 48-hour overlap, deduplicates by Fathom's
+   own stable `recording_id`, and feeds matched meetings through the
+   same parser/extraction/reconciliation/review pipeline every other
+   source uses.
+
+**Meeting transcripts are the primary evidence sent to extraction.**
+Fathom's own generated summary and action items are stored and fully
+visible/citable in the evidence viewer, but are never themselves sent
+to extraction — so a Fathom-produced action item can never become an
+automatically accepted ledger commitment on its own; a person has to
+read it and create/confirm the ledger item themselves. A meeting whose
+transcript has not finished Fathom's own post-processing yet still
+imports its metadata as evidence immediately; the next sync's overlap
+rescan picks up the transcript once it becomes available (there is no
+webhook, so this application never assumes it will be told).
+
+To disconnect at any time, click **Disconnect** — this deletes the
+stored API key immediately and disables the source; it does not delete
+evidence already imported.
+
+**Not implemented, deliberately excluded from this version:** Fathom
+OAuth, Fathom webhooks, recording-media/audio download, and background
+polling.
+
+## Zoom-to-Drive compatibility
+
+This application has **no native Zoom integration and calls no Zoom
+API** — see Section 11.6/11.7 of the product plan for why (avoiding a
+second OAuth app, host/admin-permission questions, recording-download
+security, and webhook operations). Instead, it is compatible with
+whatever your **existing** Zoom-to-Drive workflow already produces —
+Zoom's own cloud-recording pipeline exporting a transcript and/or an AI
+Companion meeting summary that lands in a Google Drive folder you have
+already configured as a project's Drive source (see
+"[Google Drive setup](#google-drive-setup-optional)" above). **This is
+a prerequisite you must already have set up outside this
+application** — nothing here creates, configures, or verifies that
+Zoom-to-Drive workflow.
+
+**Supported file types**, discovered and parsed exactly like any other
+Drive file (no Zoom-specific code path):
+
+- **VTT transcripts** (`.vtt`) — Zoom's own cloud-recording transcript
+  export, parsed by the same VTT parser every other transcript source
+  uses.
+- **Chat exports** (`.txt`) and **meeting-summary documents**
+  (`.txt`/`.docx`, e.g. a Zoom AI Companion summary) — parsed by the
+  same TXT/DOCX parsers manual uploads and Drive already use.
+
+**Filename hints are advisory only, never a project decision.** The
+evidence viewer shows a small caption (e.g. "Looks like a Zoom
+cloud-recording transcript") when a stored file's original filename
+matches one of Zoom's own documented default export patterns
+(`GMT<timestamp>_...`, `....transcript.vtt`, `....chat.txt`) or looks
+like a meeting-summary document. This is display text only — which
+project a file belongs to is always decided by which project's
+configured Drive folder the file was found in, exactly as it is for
+every other Drive file; a Zoom-shaped filename in the wrong project's
+folder is still that project's evidence, and an oddly-named file inside
+the right folder is still correctly assigned.
+
+**Known limitation, discovered while building this compatibility
+coverage:** Zoom's actual VTT transcript export does not use WebVTT
+`<v Speaker>` voice tags — it puts the speaker's name as a plain-text
+`"Speaker Name: "` prefix inside each cue's own text instead. The VTT
+parser only recognizes `<v>` tags for its "merge adjacent cues from the
+same speaker" behavior (Section 8), so a Zoom-exported transcript
+imports completely (every word from every speaker is preserved,
+verbatim, and fully evidence-linkable) but without per-speaker turn
+boundaries — every cue in one Zoom VTT file currently merges into a
+single block. See `tests/fixtures/zoom_fixtures.py` and
+`tests/unit/test_zoom_drive_compatibility.py` for the fixture that
+surfaces this; it is a reasonable candidate for a small, dedicated
+follow-up (recognizing the plain-text `"Name: "` prefix as a fallback
+speaker marker) rather than something this change makes silently.
+
 ## Test
 
 ```bash
@@ -370,8 +512,9 @@ feature flag defaults to disabled, so leaving all Google/Fathom
 variables unset is a fully supported, fully functional configuration
 (manual ingestion never depends on any of them).
 
-Per-user secrets (the Drive refresh token, later a Fathom API key) are
-never read from `.env` — see "[Google Drive setup](#google-drive-setup-optional)"
+Per-user secrets (the Drive/Gmail/Calendar refresh tokens and the
+Fathom API key) are never read from `.env` — see
+"[Google Drive setup](#google-drive-setup-optional)"
 above and the product plan, Section 16, for the credential-storage
 design (OS keyring first, an explicit encrypted-file fallback second,
 never plaintext). The Google OAuth **client** ID/secret are configuration,
@@ -396,9 +539,9 @@ project-context/
 │   ├── chunking.py             # deterministic paragraph/page/turn-boundary chunking
 │   ├── credentials/            # OS-keyring-first, encrypted-file-fallback secret storage + connect/refresh/mask/disconnect service
 │   ├── db/                    # connection, migrations, health, and one repository per table/domain (projects, audit, sources, evidence, people, observations, ledger, evidence links, proposed mutations, reviews, corrections, briefs, sync), FTS5
-│   ├── domain/                # projects, audit, sources, evidence, people, observations, ledger, review, briefs, sync, email_normalization, calendar_matching (enums, models)
-│   ├── services/               # projects, evidence, extraction, observations, ledger, reconciliation, review, briefs, sync orchestration, drive_ingestion, gmail_ingestion, calendar_ingestion, google_connect
-│   ├── connectors/             # protocol/errors/http (shared), drive, gmail, calendar (all implemented), google_oauth; fathom not yet implemented
+│   ├── domain/                # projects, audit, sources, evidence, people, observations, ledger, review, briefs, sync, email_normalization, calendar_matching, fathom_matching, zoom_hints (enums, models)
+│   ├── services/               # projects, evidence, extraction, observations, ledger, reconciliation, review, briefs, sync orchestration, drive_ingestion, gmail_ingestion, calendar_ingestion, fathom_ingestion, google_connect
+│   ├── connectors/             # protocol/errors/http (shared), drive, gmail, calendar, fathom (all implemented), google_oauth
 │   ├── parsers/                # txt, md, docx, pdf, vtt + content-first kind detection
 │   ├── llm/                    # LLMProvider protocol, OpenAI adapter, retry, structured-extraction + brief-composition schemas, prompt loading
 │   ├── retrieval/               # deterministic Current Project Brief fact builder

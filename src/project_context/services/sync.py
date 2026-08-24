@@ -34,6 +34,7 @@ from project_context.connectors.calendar import (
 )
 from project_context.connectors.drive import DriveConnector
 from project_context.connectors.errors import ConnectorConfigError, ConnectorError
+from project_context.connectors.fathom import FathomConnector
 from project_context.connectors.gmail import GmailConnector
 from project_context.connectors.google_oauth import exchange_refresh_token
 from project_context.connectors.http import RequestsHttpTransport
@@ -43,6 +44,7 @@ from project_context.db import evidence_repository, sources_repository, sync_rep
 from project_context.db.connection import transaction
 from project_context.domain.calendar_matching import CalendarMatchRules, InvalidCalendarRuleError
 from project_context.domain.evidence import ArtifactAvailability, SourceArtifact
+from project_context.domain.fathom_matching import FathomMatchRules, InvalidFathomRuleError
 from project_context.domain.sources import Source, SourceHealthStatus, SourceKind
 from project_context.domain.sync import (
     SyncErrorClass,
@@ -53,7 +55,12 @@ from project_context.domain.sync import (
 )
 from project_context.llm.provider import LLMProvider, LLMProviderError
 from project_context.observability import get_logger
-from project_context.services import calendar_ingestion, drive_ingestion, gmail_ingestion
+from project_context.services import (
+    calendar_ingestion,
+    drive_ingestion,
+    fathom_ingestion,
+    gmail_ingestion,
+)
 from project_context.services import observations as observations_service
 from project_context.services import reconciliation as reconciliation_service
 from project_context.services.extraction import ExtractionStatus, extract_content
@@ -71,6 +78,13 @@ _MAX_PAGES_PER_SYNC = 2000
 #: day granularity, so the overlap is applied before truncating to a
 #: date — see `_gmail_since_date`.
 _GMAIL_OVERLAP = timedelta(hours=48)
+
+#: Section 11.5 / Prompt 13: "Poll using a last-created watermark plus a
+#: 48-hour overlap." Same overlap width as Gmail; Fathom's own
+#: `created_after` accepts a real ISO 8601 timestamp (not Gmail's
+#: day-only `after:`), so this is applied without truncation — see
+#: `_fathom_created_after`.
+_FATHOM_OVERLAP = timedelta(hours=48)
 
 
 class SourceNotConfiguredError(ValueError):
@@ -90,11 +104,13 @@ class SyncCounts:
     parsed: int = 0
     extracted: int = 0
     failed: int = 0
-    #: Always 0 in this prompt — the optional intake-folder/unassigned
-    #: routing feature (Section 11.2) was deliberately not built: this
-    #: connector supports exactly one folder boundary per source, so
-    #: every discovered artifact is unambiguously assigned to this
-    #: project by construction. See the Prompt 10 report for why.
+    #: Always 0 for Drive/Gmail/Calendar — each supports exactly one
+    #: boundary per source, so every discovered artifact is
+    #: unambiguously assigned to this project by construction (Prompt
+    #: 10). Fathom (Prompt 13) is the first connector that can populate
+    #: this: a meeting matched only by the weak `scheduled_event` tier
+    #: is stored as `ArtifactAvailability.UNASSIGNED` and counted here —
+    #: see `fathom_ingestion.get_or_create_fathom_artifact`.
     unassigned: int = 0
     proposed: int = 0
 
@@ -394,6 +410,95 @@ def sync_calendar_project(
 
 
 # ---------------------------------------------------------------------------
+# Fathom-specific entry point (Section 11.5; Prompt 13).
+# ---------------------------------------------------------------------------
+
+
+def _fathom_created_after(last_success_at: str | None) -> str | None:
+    """The configured `created_after` watermark: `last_success_at` minus
+    a 48-hour overlap (Section 11.5). `None` (no lower bound) on a
+    first sync, or if the stored timestamp is unexpectedly unparseable
+    — same convention as `_gmail_since_date`."""
+    if not last_success_at:
+        return None
+    try:
+        parsed = datetime.fromisoformat(last_success_at.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    watermark = parsed.astimezone(UTC) - _FATHOM_OVERLAP
+    return watermark.isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def sync_fathom_project(
+    conn: sqlite3.Connection,
+    project_id: str,
+    source_id: str,
+    *,
+    credential_service: CredentialService,
+    evidence_dir: Path,
+    chunk_target_chars: int,
+    chunk_overlap_ratio: float,
+    extraction_provider: LLMProvider | None = None,
+    extraction_model: str = DEFAULT_OPENAI_MODEL,
+) -> SyncRun:
+    """User-triggered `GET /meetings` polling (Section 11.5; FR-030;
+    FR-004: read-only, user-triggered only — never background/webhook).
+
+    Unlike Drive/Gmail/Calendar, there is no OAuth token to mint: the
+    stored credential *is* the long-lived, user-generated API key sent
+    as-is in `X-Api-Key` (Section 16: "user-generated API key ...
+    through the existing credential service"), so this function reads
+    it directly through `credential_service.get_secret` rather than
+    `credential_service.refresh`/an `exchange_refresh_token` call. A
+    missing/deleted credential produces the same "insert one failed
+    sync run, touch no other source" shape every other connector's
+    entry point uses for a failed token mint; an *invalid* key (a 401
+    from Fathom itself) is instead discovered by `sync_source`'s own
+    `connector.validate_config()` call and mapped to `reauth_required`
+    there (`_apply_connector_health`) — no separate handling needed
+    here, and no refresh is ever attempted for a static API key."""
+    source = sources_repository.get_source(conn, project_id, source_id)
+    if source is None:
+        raise SourceNotConfiguredError(f"source {source_id!r} not found in project {project_id!r}")
+
+    api_key = credential_service.get_secret(conn, project_id, source_id)
+    if api_key is None:
+        run = sync_repository.insert_sync_run(conn, project_id)
+        return sync_repository.finalize_sync_run(
+            conn, project_id, run.id, status=SyncRunStatus.FAILED,
+            discovered_count=0, unchanged_count=0, parsed_count=0, failed_count=1,
+            proposed_count=0, needs_assignment_count=0,
+        )
+
+    boundary = _load_boundary(source) or {}
+    try:
+        rules = FathomMatchRules.from_boundary(boundary)
+        connector = FathomConnector(
+            api_key=api_key, rules=rules,
+            created_after=_fathom_created_after(source.last_success_at),
+            http_transport=RequestsHttpTransport(),
+        )
+    except (InvalidFathomRuleError, ConnectorConfigError):
+        sources_repository.update_health(
+            conn, project_id, source_id,
+            health_status=SourceHealthStatus.DEGRADED, last_error_code="schema",
+        )
+        run = sync_repository.insert_sync_run(conn, project_id)
+        return sync_repository.finalize_sync_run(
+            conn, project_id, run.id, status=SyncRunStatus.FAILED,
+            discovered_count=0, unchanged_count=0, parsed_count=0, failed_count=1,
+            proposed_count=0, needs_assignment_count=0,
+        )
+    return sync_source(
+        conn, project_id, source_id, connector=connector, evidence_dir=evidence_dir,
+        chunk_target_chars=chunk_target_chars, chunk_overlap_ratio=chunk_overlap_ratio,
+        extraction_provider=extraction_provider, extraction_model=extraction_model,
+        get_or_create_artifact_fn=fathom_ingestion.get_or_create_fathom_artifact,
+        store_artifact_fn=fathom_ingestion.store_fathom_artifact,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Generic orchestration.
 # ---------------------------------------------------------------------------
 
@@ -431,6 +536,11 @@ def _boundary_is_configured(kind: SourceKind, boundary: dict | None) -> bool:
             # (as every test below does) instead surfaces it as the
             # same `SourceNotConfiguredError` a missing boundary would.
             return False
+    if kind is SourceKind.FATHOM:
+        try:
+            return FathomMatchRules.from_boundary(boundary).is_configured()
+        except InvalidFathomRuleError:
+            return False  # same convention as the Calendar branch above
     return True
 
 
@@ -630,6 +740,19 @@ def _process_one_artifact(
         with transaction(conn):
             artifact = get_or_create_artifact_fn(conn, project_id, source_id, metadata)
         artifact_id = artifact.id
+
+        # Section 11.5 / Prompt 13: an artifact whose deterministic
+        # assignment landed it in `ArtifactAvailability.UNASSIGNED`
+        # (today, only `fathom_ingestion.get_or_create_fathom_artifact`'s
+        # weakest — "scheduled_event" — tier) is still fully processed
+        # below like any other discovered item (fetched, stored,
+        # potentially extracted) so its evidence is ready the moment a
+        # person confirms its project in Unassigned Evidence; it is just
+        # also counted here, every run it is rediscovered, so the sync
+        # summary's "needs assignment" count always reflects how many
+        # *currently* unassigned items this source just saw.
+        if artifact.availability is ArtifactAvailability.UNASSIGNED:
+            counts.unassigned += 1
 
         # `metadata.is_trashed` — true only for Calendar's cancelled
         # events inside the current bounded scan (Section 11.4: "A

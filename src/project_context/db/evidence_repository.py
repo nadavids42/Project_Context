@@ -126,6 +126,7 @@ def insert_artifact(
     assignment_method: AssignmentMethod = AssignmentMethod.MANUAL,
     match_rule: str | None = None,
     match_reason: str | None = None,
+    availability: ArtifactAvailability = ArtifactAvailability.AVAILABLE,
 ) -> SourceArtifact:
     artifact_id = new_id()
     now = utc_now_iso()
@@ -135,7 +136,7 @@ def insert_artifact(
             (id, project_id, source_id, external_id, artifact_type, title, author,
              occurred_at, external_url, source_type, assignment_method, availability,
              current_content_id, match_rule, match_reason, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'available', NULL, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?)
         """,
         (
             artifact_id,
@@ -149,6 +150,7 @@ def insert_artifact(
             external_url,
             source_type.value if source_type else None,
             assignment_method.value,
+            availability.value,
             match_rule,
             match_reason,
             now,

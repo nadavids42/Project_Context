@@ -25,6 +25,7 @@ from project_context.credentials.store import CredentialStore
 from project_context.db import sources_repository, sync_repository
 from project_context.db.health import check_database_health
 from project_context.domain.calendar_matching import CalendarMatchRules, InvalidCalendarRuleError
+from project_context.domain.fathom_matching import FathomMatchRules, InvalidFathomRuleError
 from project_context.domain.sources import Source, SourceHealthStatus, SourceKind
 from project_context.services import extraction as extraction_service
 from project_context.services import sync as sync_service
@@ -45,6 +46,7 @@ _FLASH_KEY = "sources_settings_flash"
 _LAST_SYNC_COUNTS_KEY = "sources_settings_last_sync_counts"
 _GMAIL_LAST_SYNC_COUNTS_KEY = "sources_settings_gmail_last_sync_counts"
 _CALENDAR_LAST_SYNC_COUNTS_KEY = "sources_settings_calendar_last_sync_counts"
+_FATHOM_LAST_SYNC_COUNTS_KEY = "sources_settings_fathom_last_sync_counts"
 
 _HEALTH_RENDER = {
     SourceHealthStatus.UNCONFIGURED: ("info", "Not configured"),
@@ -80,6 +82,8 @@ def render() -> None:
             _render_gmail_section(conn, project.id)
             st.divider()
             _render_calendar_section(conn, project.id, project.name)
+            st.divider()
+            _render_fathom_section(conn, project.id)
 
     st.divider()
     st.subheader("Application health")
@@ -793,6 +797,255 @@ def _render_calendar_sync_section(
         st.rerun()
 
     last_run = st.session_state.get(_CALENDAR_LAST_SYNC_COUNTS_KEY)
+    if last_run is not None:
+        _render_sync_result(last_run)
+
+    _render_sync_history(conn, project_id, source.id)
+
+
+# ---------------------------------------------------------------------------
+# Fathom (Prompt 13).
+# ---------------------------------------------------------------------------
+
+
+def _parse_email_or_term_list(text: str) -> list[str]:
+    """Same newline-or-comma parsing convention as Calendar's
+    `_parse_list_field` — reused under a Fathom-specific name only so
+    each section's helper stays self-documenting."""
+    return _parse_list_field(text)
+
+
+def _parse_window_list(text: str) -> list[dict[str, str]]:
+    """One `start,end` ISO 8601 pair per line — the simplest possible
+    input for `FathomMatchRules.scheduled_windows` that still lets a
+    user express "this recurring meeting's time slot belongs to this
+    project" without a recurrence-rule mini-language."""
+    windows: list[dict[str, str]] = []
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        parts = [p.strip() for p in line.split(",")]
+        if len(parts) == 2 and parts[0] and parts[1]:
+            windows.append({"start": parts[0], "end": parts[1]})
+    return windows
+
+
+def _render_fathom_section(conn, project_id: str) -> None:
+    st.subheader("Fathom")
+    config = load_config()
+
+    if not config.feature_fathom_enabled:
+        st.info(
+            "Fathom integration is disabled. Set `PROJECT_CONTEXT_FEATURE_FATHOM_ENABLED=true` "
+            "to enable it.",
+            icon="🚧",
+        )
+        return
+
+    st.caption(
+        "Uses a user-generated Fathom API key (fathom.video → Settings → API keys), sent as "
+        "`X-Api-Key` through the same credential service as every other connector — **never** "
+        "Fathom OAuth, webhooks, or recording-media download (Section 11.5 of the product plan). "
+        "Meeting transcripts are the primary evidence sent to extraction. Fathom's own summary "
+        "and action items are stored and fully visible/citable as evidence, but are never sent "
+        "to extraction themselves — they cannot become an automatically accepted ledger "
+        "commitment on their own."
+    )
+
+    source = sources_repository.get_source_by_kind(conn, project_id, SourceKind.FATHOM)
+    credential_service = _credential_service(config)
+
+    if source is None or source.credential_ref is None:
+        _render_fathom_connect_form(conn, project_id, source, credential_service)
+        return
+
+    _render_connected_fathom(conn, project_id, source, credential_service, config)
+
+
+def _render_fathom_connect_form(
+    conn, project_id: str, source: Source | None, credential_service: CredentialService
+) -> None:
+    st.write("Not connected.")
+    with st.form("fathom-connect-form"):
+        api_key = st.text_input("Fathom API key", type="password")
+        connect_clicked = st.form_submit_button("Connect Fathom")
+    if connect_clicked:
+        if not api_key.strip():
+            st.error("Enter an API key first.")
+            return
+        if source is None:
+            source = sources_repository.insert_source(
+                conn, project_id, kind=SourceKind.FATHOM, display_name="Fathom API key"
+            )
+        credential_service.connect(conn, project_id, source.id, secret=api_key.strip())
+        _set_flash("success", "Connected to Fathom.")
+        st.rerun()
+
+
+def _render_connected_fathom(
+    conn, project_id: str, source: Source, credential_service: CredentialService, config: AppConfig
+) -> None:
+    kind, label = _HEALTH_RENDER.get(source.health_status, ("info", source.health_status.value))
+    getattr(st, kind)(f"**{label}**  ·  secret: `{MASKED_SECRET_DISPLAY}`")
+
+    freshness_col, error_col = st.columns(2)
+    with freshness_col:
+        st.metric("Last successful sync", source.last_success_at or "Never")
+    with error_col:
+        st.metric("Last safe error", source.last_error_code or "None")
+
+    boundary = json.loads(source.boundary_json) if source.boundary_json else {}
+    with st.form("fathom-rules-form"):
+        st.markdown("**Project boundary rules**, evaluated in this priority order:")
+        included_recording_ids = st.text_area(
+            "1. Explicitly included recording IDs (highest priority, one per line)",
+            value="\n".join(boundary.get("included_recording_ids", [])),
+        )
+        recorded_by_emails = st.text_area(
+            "2. Recorded-by / team emails (comma-separated)",
+            value=", ".join(boundary.get("recorded_by_emails", [])),
+            help="Any meeting recorded by one of these emails belongs to this project.",
+        )
+        client_domain = st.text_input(
+            "3. Client email domain", value=boundary.get("client_domain") or "",
+            help="Matches a meeting with a calendar invitee or transcript speaker at this domain.",
+        )
+        participant_emails = st.text_area(
+            "4. Explicit participant emails (comma-separated)",
+            value=", ".join(boundary.get("participant_emails", [])),
+        )
+        meeting_urls = st.text_area(
+            "5a. Recurring meeting URLs (comma-separated, lowest priority)",
+            value=", ".join(boundary.get("meeting_urls", [])),
+            help="This project's own recurring Zoom/Meet link, if it never changes.",
+        )
+        scheduled_windows = st.text_area(
+            "5b. Bounded time windows (one `start,end` ISO 8601 pair per line, lowest priority)",
+            value="\n".join(
+                f"{w['start']},{w['end']}" for w in boundary.get("scheduled_windows", [])
+            ),
+            help="A meeting URL or time-window match alone is never auto-assigned — it always "
+            "lands in Unassigned Evidence for manual review, since neither carries any "
+            "participant/domain corroboration.",
+        )
+        preview_col, save_col = st.columns(2)
+        preview_clicked = preview_col.form_submit_button("Preview")
+        save_clicked = save_col.form_submit_button("Save rules")
+
+    new_boundary = {
+        "included_recording_ids": _parse_email_or_term_list(included_recording_ids),
+        "recorded_by_emails": _parse_email_or_term_list(recorded_by_emails),
+        "client_domain": client_domain.strip() or None,
+        "participant_emails": _parse_email_or_term_list(participant_emails),
+        "meeting_urls": _parse_email_or_term_list(meeting_urls),
+        "scheduled_windows": _parse_window_list(scheduled_windows),
+    }
+
+    if preview_clicked:
+        _render_fathom_preview(conn, project_id, source, credential_service, new_boundary)
+    if save_clicked:
+        try:
+            configured = FathomMatchRules.from_boundary(new_boundary).is_configured()
+        except InvalidFathomRuleError as exc:
+            st.error(str(exc))
+            configured = None
+        if configured is False:
+            st.error("Configure at least one assignment rule before saving.")
+        elif configured:
+            sources_repository.update_boundary(
+                conn, project_id, source.id, boundary_json=json.dumps(new_boundary)
+            )
+            _set_flash("success", "Fathom rules saved.")
+            st.rerun()
+
+    enabled_col, disconnect_col = st.columns(2)
+    with enabled_col:
+        if source.enabled:
+            if st.button("Disable", key="disable-fathom"):
+                sources_repository.set_enabled(conn, project_id, source.id, enabled=False)
+                _set_flash("success", "Fathom source disabled.")
+                st.rerun()
+        else:
+            if st.button("Enable", key="enable-fathom"):
+                sources_repository.set_enabled(conn, project_id, source.id, enabled=True)
+                _set_flash("success", "Fathom source enabled.")
+                st.rerun()
+    with disconnect_col:
+        if st.button("Disconnect", key="disconnect-fathom"):
+            credential_service.disconnect(conn, project_id, source.id)
+            _set_flash("success", "Disconnected. The API key was deleted.")
+            st.rerun()
+
+    st.divider()
+    _render_fathom_sync_section(conn, project_id, source, credential_service, config)
+
+
+def _render_fathom_preview(
+    conn, project_id: str, source: Source, credential_service: CredentialService, boundary: dict,
+) -> None:
+    api_key = credential_service.get_secret(conn, project_id, source.id)
+    if api_key is None:
+        st.error("Reauthorization required — disconnect and connect again.")
+        return
+    from project_context.connectors.errors import ConnectorError
+    from project_context.connectors.fathom import FathomConnector
+    from project_context.connectors.http import RequestsHttpTransport
+
+    try:
+        rules = FathomMatchRules.from_boundary(boundary)
+    except InvalidFathomRuleError as exc:
+        st.error(str(exc))
+        return
+
+    connector = FathomConnector(
+        api_key=api_key, rules=rules, http_transport=RequestsHttpTransport()
+    )
+    try:
+        preview = connector.preview_detailed(boundary, limit=20)
+    except ConnectorError as exc:
+        st.error(f"Preview failed: {exc.safe_message}")
+        return
+
+    st.markdown(f"**Matched — {len(preview.matched)} recent meeting(s)** (showing up to 20):")
+    if not preview.matched:
+        st.caption("No matching meetings found.")
+    for item in preview.matched:
+        unassigned = item.extra.get("match_rule") == "scheduled_event"
+        badge = " · **would land in Unassigned Evidence**" if unassigned else ""
+        st.write(f"- **{item.title}** · {item.occurred_at or 'unknown time'}{badge}")
+        st.caption(f"  Why matched: {item.extra.get('match_reason')}")
+
+    with st.expander(f"Unmatched sample ({len(preview.unmatched_sample)} shown)"):
+        if not preview.unmatched_sample:
+            st.caption("No unmatched meetings sampled.")
+        for sample in preview.unmatched_sample:
+            reason = sample.reason or "no rule matched"
+            st.write(f"- {sample.title} — {reason}")
+
+
+def _render_fathom_sync_section(
+    conn, project_id: str, source: Source, credential_service: CredentialService, config: AppConfig,
+) -> None:
+    st.subheader("Sync Project")
+    if not source.enabled:
+        st.caption("Enable this source to sync.")
+        return
+    st.caption("User-triggered only — Fathom is polled here, never in the background.")
+    if st.button("Sync Project", key="sync-fathom-project"):
+        provider = extraction_service.build_default_provider()
+        with st.spinner("Syncing…"):
+            run = sync_service.sync_fathom_project(
+                conn, project_id, source.id, credential_service=credential_service,
+                evidence_dir=config.evidence_dir,
+                chunk_target_chars=config.chunk_target_chars,
+                chunk_overlap_ratio=config.chunk_overlap_ratio,
+                extraction_provider=provider,
+                extraction_model=config.openai_model,
+            )
+        st.session_state[_FATHOM_LAST_SYNC_COUNTS_KEY] = run
+        st.rerun()
+
+    last_run = st.session_state.get(_FATHOM_LAST_SYNC_COUNTS_KEY)
     if last_run is not None:
         _render_sync_result(last_run)
 

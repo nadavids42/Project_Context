@@ -72,8 +72,20 @@ questions) can be previewed and individually included/excluded before
 one Stage C composition call adds a `Suggested Discussion Topics`
 section — labeled suggestions only, never asserted as fact — through
 the same claim-validation, evidence-citation, and Markdown-export path
-the Current Project Brief uses. The evaluation harness is not
-implemented yet.
+the Current Project Brief uses. Finally, the **three-project
+evaluation harness** (Section 13) runs the ledger system and a
+recent-context baseline against three frozen synthetic corpora, scores
+precision/recall/evidence-correctness/leakage/review-burden/cost, and
+writes a go/iterate/stop report — see
+`python scripts/run_evaluation.py --help` and
+`src/project_context/evaluation/README.md`.
+
+This is a **stabilized first-version prototype checkpoint**, not a
+finished or commercial product — see
+[`docs/RELEASE_NOTES.md`](docs/RELEASE_NOTES.md) for exactly what's
+enabled/disabled/excluded, current test counts, and remaining known
+issues, and [`docs/ADR.md`](docs/ADR.md) for the twelve key
+architecture decisions behind this design.
 
 ## ⚠️ Privacy and data policy
 
@@ -100,6 +112,30 @@ product.
   "[Fathom setup](#fathom-setup-optional)" below, each including its
   own scope/authentication caveat.
 - Do not expose the Streamlit port beyond `127.0.0.1`.
+- **Parser limits — no OCR, no transcription.** A scanned/image-only
+  PDF page is flagged `ocr_required` and its text is never guessed at;
+  audio/video files are not transcribed by this application at all (a
+  VTT/text transcript you already have, from Zoom, Fathom, or anywhere
+  else, is what gets parsed and cited). DOCX headers/footers are not
+  extracted. See "[Zoom-to-Drive
+  compatibility](#zoom-to-drive-compatibility)" for one further, tested
+  parser limitation.
+- **No external writes, ever.** Every connector (Drive, Gmail,
+  Calendar, Fathom) is read-only end to end — this application has no
+  code path that creates, edits, or deletes anything in any of those
+  providers, and does not call a Zoom API at all.
+- **Deletion is explicit and two-tiered.** **Archive** (Projects page)
+  is reversible and destroys nothing. **Delete** (same page) is
+  irreversible: it previews exact row/file counts, requires typing the
+  project's exact name to confirm, and then actually removes that
+  project's evidence, ledger history, reviews, briefs, sync history,
+  and connector credentials — see "[Delete a
+  project](#delete-a-project)" below.
+- **Backups are local-file copies, not encryption.** `scripts/backup.py`
+  copies your database and evidence to a destination *you* choose,
+  which is expected to already be encrypted storage — see "[Backup and
+  restore](#backup-and-restore)" below for exactly what it does and
+  does not guarantee.
 
 ## Requirements
 
@@ -500,11 +536,110 @@ surfaces this; it is a reasonable candidate for a small, dedicated
 follow-up (recognizing the plain-text `"Name: "` prefix as a fallback
 speaker marker) rather than something this change makes silently.
 
+## Delete a project
+
+The Projects page has two destructive-looking but very different
+actions, side by side:
+
+- **Archive** — reversible. Hides the project from the active list;
+  every row, file, and credential is retained; **Restore** undoes it.
+- **Delete** — irreversible. Click **Delete**, and the confirmation
+  dialog shows real, freshly computed counts (evidence artifacts,
+  content versions and stored files, observations, ledger items/
+  versions, reviews, corrections, generated briefs, sync runs) before
+  asking you to type the project's exact name to proceed. Confirming
+  then:
+  1. disconnects and deletes any connector credential this project's
+     sources hold (separately from, and in addition to, what
+     **Disconnect** on Sources & Settings already does per-source);
+  2. deletes every row this project owns — evidence, chunks, FTS
+     entries, observations, ledger items/versions/evidence links,
+     proposed mutations, reviews, corrections, stakeholder links,
+     generated briefs/claims, sync history, and its own audit trail;
+  3. deletes the on-disk content-addressed evidence file for each
+     piece of content, **but only if no other project's evidence still
+     references those exact bytes** (this storage layer dedupes
+     identical content across projects; deleting one project never
+     deletes another project's evidence out from under it).
+
+  Canonical identity records (`people`) are shared across projects by
+  design (Section 9) and are never deleted by a project purge, even if
+  this was the only project referencing a given person.
+
+  This never happens automatically, never happens without the exact
+  typed confirmation, and — unlike disconnecting a single connector on
+  Sources & Settings — is not scoped to one source; it is the whole
+  project. See `src/project_context/services/project_deletion.py`.
+
+## Backup and restore
+
+```bash
+python scripts/backup.py backup --dest /path/to/your/encrypted/destination
+python scripts/backup.py verify --backup-dir /path/to/.../project-context-backup-<timestamp>
+python scripts/backup.py restore --backup-dir /path/to/.../project-context-backup-<timestamp> \
+    --target-data-dir /path/to/a/scratch/or/replacement/data/dir
+```
+
+`backup` checkpoints the database's WAL and copies it via SQLite's own
+online backup API (safe even if the app is currently running, unlike a
+raw file copy), plus every content-addressed evidence file a row still
+references, into a fresh timestamped directory — it never overwrites
+an earlier backup. `--dest` is **expected to already be encrypted
+storage** (an encrypted external drive, or somewhere under your
+already-full-disk-encrypted home directory per Section 16) — this
+script does not encrypt anything itself and cannot verify that a given
+path actually is encrypted.
+
+`restore` refuses to overwrite an existing database at
+`--target-data-dir` unless you also pass `--force`; **never point
+`--target-data-dir` at your real, in-use `data/` directory** — restore
+into a scratch directory and inspect it first. `tests/unit/
+test_backup_restore.py` includes a full backup -> restore smoke test,
+run automatically by `pytest`, entirely against temporary directories.
+
+**Known limitation:** this backs up your local files; it does not back
+up anything held only in the OS keyring. If your credentials live in
+the keyring (the default, when available) rather than the
+encrypted-file fallback, reconnecting Drive/Gmail/Calendar/Fathom after
+a restore onto a different machine/profile will be needed regardless —
+the ledger, evidence, and briefs restore completely either way.
+
+## Secure-delete maintenance (optional)
+
+```bash
+python scripts/secure_delete_maintenance.py
+```
+
+A separate, manual, opt-in maintenance step — never run automatically,
+including not after **Delete a project** above. Sets `PRAGMA
+secure_delete=ON` and runs `VACUUM` against the configured database,
+which reduces (but does not certify-erase) the chance previously
+deleted rows' bytes are still readable in the plain SQLite file.
+**Read `src/project_context/db/maintenance.py`'s module docstring
+before running this** — it documents exactly what this can and cannot
+guarantee (an existing backup/copy is untouched; a WAL/SHM sidecar is
+checkpointed first but a concurrent writer could still leave
+something; SSD wear-leveling and copy-on-write filesystem snapshots are
+entirely outside SQLite's — and this script's — control). Stop the
+running application first: this needs exclusive access to the database
+file and roughly its own size again in free disk space.
+
 ## Test
 
 ```bash
 pytest
 ```
+
+Automated tests cover unit/domain/repository/service/UI layers,
+connector contracts against recorded fixtures (never live credentials),
+prompt regression against frozen expected outputs, the three-project
+golden evaluation corpora, and the `tests/security/` cross-project
+sentinel/log-scan suite above. What automated tests cannot cover — a
+real OAuth consent screen, a real Fathom API key, visual review of a
+live sync — is
+[`docs/MANUAL_ACCEPTANCE_CHECKLIST.md`](docs/MANUAL_ACCEPTANCE_CHECKLIST.md),
+meant to be run on a clean Ubuntu profile before calling a build ready
+for dogfooding.
 
 ## Lint and format
 
@@ -512,6 +647,42 @@ pytest
 ruff check .
 ruff format .
 ```
+
+## Security scanning
+
+```bash
+ruff check .                       # includes no additional security rules; see below
+pytest tests/unit/test_secret_scan.py       # real-shaped secret patterns in tracked files
+pytest tests/security/                       # cross-project sentinel leakage + log-content scan
+uv export --no-deps -o requirements.txt && pip-audit -r requirements.txt   # or: pip-audit --local
+```
+
+`tests/unit/test_secret_scan.py` scans every tracked/would-be-tracked
+text file for real-shaped OpenAI/Google/AWS/GitHub secret patterns and
+confirms `.gitignore` actually covers this app's local credential
+artifacts. `tests/security/` is the consolidated cross-project sentinel
+suite (repositories, FTS, reconciliation, evidence-viewer authorization,
+brief fact building, claim validation, exports, model-request
+construction) plus a runtime log-content scan (evidence quotes/source
+bodies/a synthetic sentinel never appear in a log record); narrower,
+scattered isolation/redaction tests also exist throughout `tests/unit/`.
+
+**Dependency vulnerability scanning** uses [`pip-audit`](https://pypi.org/project/pip-audit/)
+(not a project dependency — install it ad hoc) against this project's
+*locked* dependency set specifically, not whatever else happens to be
+installed in your interpreter — `pip-audit -r <(uv export --no-deps)`,
+or sync `uv.lock` into a clean venv first and run `pip-audit --local`
+there. As of this checkpoint: **`pytest` 8.4.2 has a disclosed
+advisory (PYSEC-2026-1845) with a fix in 9.0.3**, outside this
+project's current `pytest>=8.0,<9` pin — left as a known, tracked P2
+issue rather than silently upgraded, since pytest is a dev-only tool
+(never runs against real data or in the shipped application) and a
+major-version bump deserves its own dedicated verification pass rather
+than a same-session drive-by upgrade. `cryptography` was found on an
+older pinned range with several disclosed advisories during this
+checkpoint and has already been bumped (`>=46.0.6,<51`) and re-locked —
+see [`docs/RELEASE_NOTES.md`](docs/RELEASE_NOTES.md) for the full,
+dated finding.
 
 ## Configuration
 
@@ -549,21 +720,24 @@ project-context/
 │   ├── config.py              # typed configuration loading (incl. Google OAuth client, feature flags)
 │   ├── observability.py       # redacted structured logging
 │   ├── evidence_store.py      # content-addressed SHA-256 evidence storage
+│   ├── backup.py               # local backup/restore (online backup API + referenced-evidence copy + manifest)
 │   ├── spans.py                # character-span validation (FR-008)
 │   ├── chunking.py             # deterministic paragraph/page/turn-boundary chunking
 │   ├── credentials/            # OS-keyring-first, encrypted-file-fallback secret storage + connect/refresh/mask/disconnect service
-│   ├── db/                    # connection, migrations, health, and one repository per table/domain (projects, audit, sources, evidence, people, observations, ledger, evidence links, proposed mutations, reviews, corrections, briefs, sync), FTS5
+│   ├── db/                    # connection (incl. DatabaseBusyError), migrations, health, maintenance (secure-delete/VACUUM), project_deletion_repository, and one repository per table/domain (projects, audit, sources, evidence, people, observations, ledger, evidence links, proposed mutations, reviews, corrections, briefs, sync), FTS5
 │   ├── domain/                # projects, audit, sources, evidence, people, observations, ledger, review, briefs, meeting_prep, sync, email_normalization, calendar_matching, fathom_matching, zoom_hints (enums, models)
-│   ├── services/               # projects, evidence, extraction, observations, ledger, reconciliation, review, briefs, brief_shared, meeting_prep, sync orchestration, drive_ingestion, gmail_ingestion, calendar_ingestion, fathom_ingestion, google_connect
+│   ├── services/               # projects, project_deletion, evidence, extraction, observations, ledger, reconciliation, review, briefs, brief_shared, meeting_prep, sync orchestration, drive_ingestion, gmail_ingestion, calendar_ingestion, fathom_ingestion, google_connect
 │   ├── connectors/             # protocol/errors/http (shared), drive, gmail, calendar, fathom (all implemented), google_oauth
-│   ├── parsers/                # txt, md, docx, pdf, vtt + content-first kind detection
+│   ├── parsers/                # txt, md, docx, pdf, vtt + content-first kind detection (no OCR, no transcription)
 │   ├── llm/                    # LLMProvider protocol, OpenAI adapter, retry, structured-extraction + brief-composition schemas, prompt loading
 │   ├── retrieval/               # deterministic Current Project Brief and Meeting Preparation Brief fact builders (brief_facts.py shared per-fact helpers)
-│   └── ui/                     # Streamlit pages: projects, overview, activity/review, ledger, evidence, briefs (Current Project + Meeting Preparation), sources & settings
+│   ├── evaluation/              # three-project ledger-vs-baseline evaluation harness (Section 13)
+│   └── ui/                     # Streamlit pages: projects (incl. Delete), overview, activity/review, ledger, evidence, briefs (Current Project + Meeting Preparation), sources & settings
 ├── migrations/                # numbered SQLite migrations (see migrations/README.md)
 ├── prompts/                   # versioned LLM prompt templates (extraction_v1.md, brief_current_v1.md, brief_meeting_prep_v1.md)
-├── tests/                     # unit, integration, fixtures, golden projects, prompt regression
-├── scripts/                   # seed/evaluate/export/purge utilities (not yet implemented)
+├── tests/                     # unit, security (cross-project sentinel suite + log scan), evaluation, fixtures, golden projects
+├── scripts/                   # build_benchmark_corpus, run_evaluation, backup, secure_delete_maintenance — see scripts/README.md
+├── docs/                      # product plan, ADR.md, RELEASE_NOTES.md, MANUAL_ACCEPTANCE_CHECKLIST.md
 └── data/                      # local SQLite DB + evidence store + credentials — gitignored, created at runtime
 ```
 

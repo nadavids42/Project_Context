@@ -50,7 +50,10 @@ def service(tmp_path):
 
 def test_connect_stores_secret_and_marks_ready(conn, project_id, source_id, service):
     source = service.connect(
-        conn, project_id, source_id, secret="refresh-token-123",
+        conn,
+        project_id,
+        source_id,
+        secret="refresh-token-123",
         external_account_id="user@example.com",
     )
     assert source.credential_ref is not None

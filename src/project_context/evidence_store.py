@@ -109,3 +109,17 @@ def read_bytes(evidence_dir: Path, sha256: str) -> bytes:
 
 def content_exists(evidence_dir: Path, sha256: str) -> bool:
     return content_path(evidence_dir, sha256).exists()
+
+
+def delete_object(evidence_dir: Path, sha256: str) -> None:
+    """Delete one content-addressed object by digest (Section 16:
+    "Content-addressed bytes are deleted only when no reference
+    remains"). Callers — `project_context.services.project_deletion` is
+    the only one today — are responsible for having already confirmed
+    no `source_contents` row anywhere still references this digest;
+    this function itself does not check the database, matching every
+    other function in this module (a pure storage-layer primitive, no
+    SQL). Idempotent: deleting an already-absent digest is not an
+    error, matching `credentials.store.CredentialStore.delete_secret`'s
+    same idempotence rationale."""
+    content_path(evidence_dir, sha256).unlink(missing_ok=True)

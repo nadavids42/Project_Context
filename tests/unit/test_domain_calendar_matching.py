@@ -19,12 +19,18 @@ from project_context.domain.calendar_matching import (
 
 
 def _event(
-    event_id="evt1", title="Weekly sync", description="", organizer="me@example.com",
+    event_id="evt1",
+    title="Weekly sync",
+    description="",
+    organizer="me@example.com",
     attendees=(),
 ) -> CalendarEventSummary:
     return CalendarEventSummary(
-        event_id=event_id, title=title, description=description,
-        organizer_email=organizer, attendee_emails=tuple(attendees),
+        event_id=event_id,
+        title=title,
+        description=description,
+        organizer_email=organizer,
+        attendee_emails=tuple(attendees),
     )
 
 
@@ -177,7 +183,8 @@ def test_tier4_include_regex_is_case_insensitive():
 
 def test_precedence_tier1_beats_tier2_when_both_would_match():
     rules = CalendarMatchRules(
-        included_event_ids=("evt1",), project_name_terms=("Acme Rollout",),
+        included_event_ids=("evt1",),
+        project_name_terms=("Acme Rollout",),
     )
     result = evaluate_match(_event(event_id="evt1", title="Acme Rollout sync"), rules)
     assert result.rule_tier == RULE_TIER_EVENT_ID
@@ -185,11 +192,10 @@ def test_precedence_tier1_beats_tier2_when_both_would_match():
 
 def test_precedence_tier2_beats_tier3_when_both_would_match():
     rules = CalendarMatchRules(
-        project_name_terms=("Acme Rollout",), client_domain="acme.com",
+        project_name_terms=("Acme Rollout",),
+        client_domain="acme.com",
     )
-    result = evaluate_match(
-        _event(title="Acme Rollout sync", attendees=["bob@acme.com"]), rules
-    )
+    result = evaluate_match(_event(title="Acme Rollout sync", attendees=["bob@acme.com"]), rules)
     assert result.rule_tier == RULE_TIER_PROJECT_NAME_TERM
 
 

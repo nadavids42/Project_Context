@@ -81,8 +81,13 @@ def test_connect_google_drive_stores_the_refresh_token(
         return _FakeCredentials(refresh_token="rt-abc123")
 
     source = connect_google_drive(
-        conn, project_id, source_id, credential_service=credential_service,
-        client_id="cid", client_secret="csecret", flow_runner=fake_flow_runner,
+        conn,
+        project_id,
+        source_id,
+        credential_service=credential_service,
+        client_id="cid",
+        client_secret="csecret",
+        flow_runner=fake_flow_runner,
     )
 
     assert source.health_status is SourceHealthStatus.READY
@@ -101,8 +106,13 @@ def test_connect_google_drive_never_requests_a_write_scope(
         return _FakeCredentials(refresh_token="rt")
 
     connect_google_drive(
-        conn, project_id, source_id, credential_service=credential_service,
-        client_id="cid", client_secret="csecret", flow_runner=fake_flow_runner,
+        conn,
+        project_id,
+        source_id,
+        credential_service=credential_service,
+        client_id="cid",
+        client_secret="csecret",
+        flow_runner=fake_flow_runner,
     )
     assert all("write" not in scope for scope in seen_scopes)
 
@@ -115,8 +125,13 @@ def test_connect_google_drive_raises_when_no_refresh_token_is_returned(
 
     with pytest.raises(GoogleConnectError):
         connect_google_drive(
-            conn, project_id, source_id, credential_service=credential_service,
-            client_id="cid", client_secret="csecret", flow_runner=fake_flow_runner,
+            conn,
+            project_id,
+            source_id,
+            credential_service=credential_service,
+            client_id="cid",
+            client_secret="csecret",
+            flow_runner=fake_flow_runner,
         )
 
 
@@ -130,8 +145,13 @@ def test_connect_gmail_stores_the_refresh_token(
         return _FakeCredentials(refresh_token="rt-gmail-123")
 
     source = connect_gmail(
-        conn, project_id, gmail_source_id, credential_service=credential_service,
-        client_id="cid", client_secret="csecret", flow_runner=fake_flow_runner,
+        conn,
+        project_id,
+        gmail_source_id,
+        credential_service=credential_service,
+        client_id="cid",
+        client_secret="csecret",
+        flow_runner=fake_flow_runner,
     )
 
     assert source.health_status is SourceHealthStatus.READY
@@ -149,8 +169,13 @@ def test_connect_gmail_never_requests_a_write_or_send_scope(
         return _FakeCredentials(refresh_token="rt")
 
     connect_gmail(
-        conn, project_id, gmail_source_id, credential_service=credential_service,
-        client_id="cid", client_secret="csecret", flow_runner=fake_flow_runner,
+        conn,
+        project_id,
+        gmail_source_id,
+        credential_service=credential_service,
+        client_id="cid",
+        client_secret="csecret",
+        flow_runner=fake_flow_runner,
     )
     for scope in seen_scopes:
         for forbidden in ("modify", "compose", "send", "settings", "write"):
@@ -165,8 +190,13 @@ def test_connect_gmail_raises_when_no_refresh_token_is_returned(
 
     with pytest.raises(GoogleConnectError):
         connect_gmail(
-            conn, project_id, gmail_source_id, credential_service=credential_service,
-            client_id="cid", client_secret="csecret", flow_runner=fake_flow_runner,
+            conn,
+            project_id,
+            gmail_source_id,
+            credential_service=credential_service,
+            client_id="cid",
+            client_secret="csecret",
+            flow_runner=fake_flow_runner,
         )
 
 
@@ -178,6 +208,7 @@ def test_connect_gmail_and_connect_drive_keep_independent_credentials(
     each connector source's credential independent (see
     `project_context.services.google_connect`'s module docstring) —
     connecting Gmail must never touch Drive's stored token."""
+
     def drive_flow(client_config, scopes, *, port=0):
         return _FakeCredentials(refresh_token="drive-token")
 
@@ -185,12 +216,22 @@ def test_connect_gmail_and_connect_drive_keep_independent_credentials(
         return _FakeCredentials(refresh_token="gmail-token")
 
     connect_google_drive(
-        conn, project_id, source_id, credential_service=credential_service,
-        client_id="cid", client_secret="csecret", flow_runner=drive_flow,
+        conn,
+        project_id,
+        source_id,
+        credential_service=credential_service,
+        client_id="cid",
+        client_secret="csecret",
+        flow_runner=drive_flow,
     )
     connect_gmail(
-        conn, project_id, gmail_source_id, credential_service=credential_service,
-        client_id="cid", client_secret="csecret", flow_runner=gmail_flow,
+        conn,
+        project_id,
+        gmail_source_id,
+        credential_service=credential_service,
+        client_id="cid",
+        client_secret="csecret",
+        flow_runner=gmail_flow,
     )
 
     assert credential_service.get_secret(conn, project_id, source_id) == "drive-token"
@@ -207,8 +248,13 @@ def test_connect_calendar_stores_the_refresh_token(
         return _FakeCredentials(refresh_token="rt-calendar-123")
 
     source = connect_calendar(
-        conn, project_id, calendar_source_id, credential_service=credential_service,
-        client_id="cid", client_secret="csecret", flow_runner=fake_flow_runner,
+        conn,
+        project_id,
+        calendar_source_id,
+        credential_service=credential_service,
+        client_id="cid",
+        client_secret="csecret",
+        flow_runner=fake_flow_runner,
     )
 
     assert source.health_status is SourceHealthStatus.READY
@@ -226,8 +272,13 @@ def test_connect_calendar_never_requests_a_write_scope(
         return _FakeCredentials(refresh_token="rt")
 
     connect_calendar(
-        conn, project_id, calendar_source_id, credential_service=credential_service,
-        client_id="cid", client_secret="csecret", flow_runner=fake_flow_runner,
+        conn,
+        project_id,
+        calendar_source_id,
+        credential_service=credential_service,
+        client_id="cid",
+        client_secret="csecret",
+        flow_runner=fake_flow_runner,
     )
     for scope in seen_scopes:
         assert "write" not in scope
@@ -241,8 +292,13 @@ def test_connect_calendar_raises_when_no_refresh_token_is_returned(
 
     with pytest.raises(GoogleConnectError):
         connect_calendar(
-            conn, project_id, calendar_source_id, credential_service=credential_service,
-            client_id="cid", client_secret="csecret", flow_runner=fake_flow_runner,
+            conn,
+            project_id,
+            calendar_source_id,
+            credential_service=credential_service,
+            client_id="cid",
+            client_secret="csecret",
+            flow_runner=fake_flow_runner,
         )
 
 
@@ -252,19 +308,35 @@ def test_connect_calendar_keeps_independent_credentials_from_drive_and_gmail(
     def flow_for(token):
         def runner(client_config, scopes, *, port=0):
             return _FakeCredentials(refresh_token=token)
+
         return runner
 
     connect_google_drive(
-        conn, project_id, source_id, credential_service=credential_service,
-        client_id="cid", client_secret="csecret", flow_runner=flow_for("drive-token"),
+        conn,
+        project_id,
+        source_id,
+        credential_service=credential_service,
+        client_id="cid",
+        client_secret="csecret",
+        flow_runner=flow_for("drive-token"),
     )
     connect_gmail(
-        conn, project_id, gmail_source_id, credential_service=credential_service,
-        client_id="cid", client_secret="csecret", flow_runner=flow_for("gmail-token"),
+        conn,
+        project_id,
+        gmail_source_id,
+        credential_service=credential_service,
+        client_id="cid",
+        client_secret="csecret",
+        flow_runner=flow_for("gmail-token"),
     )
     connect_calendar(
-        conn, project_id, calendar_source_id, credential_service=credential_service,
-        client_id="cid", client_secret="csecret", flow_runner=flow_for("calendar-token"),
+        conn,
+        project_id,
+        calendar_source_id,
+        credential_service=credential_service,
+        client_id="cid",
+        client_secret="csecret",
+        flow_runner=flow_for("calendar-token"),
     )
 
     assert credential_service.get_secret(conn, project_id, source_id) == "drive-token"

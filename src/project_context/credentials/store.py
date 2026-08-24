@@ -133,9 +133,7 @@ class CredentialStore:
             try:
                 self._keyring().set_password(_SERVICE_NAME, ref.local_id, new_secret)
             except Exception as exc:  # noqa: BLE001 - reported, not silently downgraded
-                raise CredentialStoreError(
-                    "failed to update credential in the OS keyring"
-                ) from exc
+                raise CredentialStoreError("failed to update credential in the OS keyring") from exc
             return
         self._set_encrypted(ref.local_id, new_secret)
 

@@ -272,9 +272,7 @@ def test_schema_repair_succeeds_on_the_one_allowed_attempt():
 
 def test_schema_repair_failing_twice_raises_schema_failure_error():
     client = FakeOpenAIClient(
-        responses=FakeResponsesResource(
-            queue=[_validation_error(), _validation_error()]
-        )
+        responses=FakeResponsesResource(queue=[_validation_error(), _validation_error()])
     )
     provider, client = _provider(client=client)
 

@@ -63,19 +63,40 @@ def make_content_and_chunk(conn, project_id, *, text):
     n = next(_counter)
     source = sources_repository.ensure_manual_source(conn, project_id)
     artifact = evidence_repository.insert_artifact(
-        conn, project_id, source.id, external_id=f"t:{project_id}:{n}",
-        artifact_type=ArtifactType.MANUAL_TEXT, title="Notes", author=None,
-        occurred_at=None, external_url=None, source_type=None,
+        conn,
+        project_id,
+        source.id,
+        external_id=f"t:{project_id}:{n}",
+        artifact_type=ArtifactType.MANUAL_TEXT,
+        title="Notes",
+        author=None,
+        occurred_at=None,
+        external_url=None,
+        source_type=None,
     )
     content = evidence_repository.insert_content(
-        conn, project_id, artifact.id, sha256=hashlib.sha256(f"{n}:{text}".encode()).hexdigest(),
-        raw_storage_path=None, mime_type="text/plain", byte_size=len(text), normalized_text=text,
-        parser_name="text", parser_version="1", parse_status=ParseStatus.PARSED,
-        location_map=None, original_filename=None,
+        conn,
+        project_id,
+        artifact.id,
+        sha256=hashlib.sha256(f"{n}:{text}".encode()).hexdigest(),
+        raw_storage_path=None,
+        mime_type="text/plain",
+        byte_size=len(text),
+        normalized_text=text,
+        parser_name="text",
+        parser_version="1",
+        parse_status=ParseStatus.PARSED,
+        location_map=None,
+        original_filename=None,
     )
     spec = ChunkSpec(
-        ordinal=0, text=text, char_start=0, char_end=len(text), section_path=None,
-        sha256=hashlib.sha256(f"{n}:{text}:c".encode()).hexdigest(), token_estimate=len(text) // 4,
+        ordinal=0,
+        text=text,
+        char_start=0,
+        char_end=len(text),
+        section_path=None,
+        sha256=hashlib.sha256(f"{n}:{text}:c".encode()).hexdigest(),
+        token_estimate=len(text) // 4,
     )
     (chunk,) = evidence_repository.insert_chunks(conn, project_id, content.id, [spec])
     return content, chunk
@@ -83,9 +104,16 @@ def make_content_and_chunk(conn, project_id, *, text):
 
 def link_evidence(conn, project_id, target_type, target_id, content, chunk):
     return evidence_link_repository.insert_link(
-        conn, project_id, target_type=target_type, target_id=target_id,
-        content_id=content.id, chunk_id=chunk.id, char_start=0, char_end=len(chunk.text),
-        quote=chunk.text, support_role=EvidenceLinkSupportRole.SUPPORTS,
+        conn,
+        project_id,
+        target_type=target_type,
+        target_id=target_id,
+        content_id=content.id,
+        chunk_id=chunk.id,
+        char_start=0,
+        char_end=len(chunk.text),
+        quote=chunk.text,
+        support_role=EvidenceLinkSupportRole.SUPPORTS,
     )
 
 
@@ -93,15 +121,27 @@ def test_every_required_section_is_present_even_when_empty(conn, project_id):
     facts = build_current_project_brief_facts(conn, project_id)
     sections = {s.section: s for s in facts.sections}
     assert set(sections) == {
-        "objective_and_scope", "current_stage", "recent_changes", "next_milestone",
-        "open_commitments", "decisions", "risks_and_blockers", "unresolved_questions",
+        "objective_and_scope",
+        "current_stage",
+        "recent_changes",
+        "next_milestone",
+        "open_commitments",
+        "decisions",
+        "risks_and_blockers",
+        "unresolved_questions",
     }
     # Nothing has been accepted yet — every section but the project's own
     # metadata is honestly empty.
     assert len(sections["objective_and_scope"].facts) == 1
     assert len(sections["current_stage"].facts) == 1  # project.stage was given
-    for key in ("recent_changes", "next_milestone", "open_commitments", "decisions",
-                "risks_and_blockers", "unresolved_questions"):
+    for key in (
+        "recent_changes",
+        "next_milestone",
+        "open_commitments",
+        "decisions",
+        "risks_and_blockers",
+        "unresolved_questions",
+    ):
         assert sections[key].facts == ()
 
 
@@ -134,8 +174,12 @@ def test_open_commitment_carries_owner_status_due_date_and_evidence(conn, projec
     priya = make_person(conn, display_name="Priya")
     content, chunk = make_content_and_chunk(conn, project_id, text="Priya will send the report.")
     item, _v1 = create_ledger_item(
-        conn, project_id, kind=LedgerItemKind.COMMITMENT, canonical_title="Send the report",
-        canonical_description="Priya will send the report.", owner_person_id=priya.id,
+        conn,
+        project_id,
+        kind=LedgerItemKind.COMMITMENT,
+        canonical_title="Send the report",
+        canonical_description="Priya will send the report.",
+        owner_person_id=priya.id,
         due_date="2026-09-01",
     )
     link_evidence(conn, project_id, EvidenceLinkTargetType.LEDGER_ITEM, item.id, content, chunk)
@@ -154,10 +198,16 @@ def test_open_commitment_carries_owner_status_due_date_and_evidence(conn, projec
 
 def test_completed_commitment_is_excluded_from_open_commitments(conn, project_id):
     item, _v1 = create_ledger_item(
-        conn, project_id, kind=LedgerItemKind.COMMITMENT, canonical_title="Send the report",
+        conn,
+        project_id,
+        kind=LedgerItemKind.COMMITMENT,
+        canonical_title="Send the report",
     )
     append_ledger_version(
-        conn, project_id, item.id, transition_type=LedgerTransitionType.COMPLETE,
+        conn,
+        project_id,
+        item.id,
+        transition_type=LedgerTransitionType.COMPLETE,
         status=LedgerItemStatus.COMPLETED,
     )
     facts = build_current_project_brief_facts(conn, project_id)
@@ -167,11 +217,17 @@ def test_completed_commitment_is_excluded_from_open_commitments(conn, project_id
 
 def test_recent_changes_includes_the_completion_transition_with_previous_summary(conn, project_id):
     item, _v1 = create_ledger_item(
-        conn, project_id, kind=LedgerItemKind.COMMITMENT, canonical_title="Send the report",
+        conn,
+        project_id,
+        kind=LedgerItemKind.COMMITMENT,
+        canonical_title="Send the report",
         due_date="2026-08-28",
     )
     append_ledger_version(
-        conn, project_id, item.id, transition_type=LedgerTransitionType.COMPLETE,
+        conn,
+        project_id,
+        item.id,
+        transition_type=LedgerTransitionType.COMPLETE,
         status=LedgerItemStatus.COMPLETED,
     )
     facts = build_current_project_brief_facts(conn, project_id)
@@ -186,11 +242,17 @@ def test_recent_changes_includes_the_completion_transition_with_previous_summary
 
 def test_next_milestone_picks_the_nearest_due_date(conn, project_id):
     create_ledger_item(
-        conn, project_id, kind=LedgerItemKind.MILESTONE, canonical_title="Later milestone",
+        conn,
+        project_id,
+        kind=LedgerItemKind.MILESTONE,
+        canonical_title="Later milestone",
         due_date="2026-12-01",
     )
     create_ledger_item(
-        conn, project_id, kind=LedgerItemKind.MILESTONE, canonical_title="Sooner milestone",
+        conn,
+        project_id,
+        kind=LedgerItemKind.MILESTONE,
+        canonical_title="Sooner milestone",
         due_date="2026-09-01",
     )
     facts = build_current_project_brief_facts(conn, project_id)
@@ -201,13 +263,22 @@ def test_next_milestone_picks_the_nearest_due_date(conn, project_id):
 
 def test_decisions_section_only_includes_active_decisions(conn, project_id):
     active, _ = create_ledger_item(
-        conn, project_id, kind=LedgerItemKind.DECISION, canonical_title="Use vendor A",
+        conn,
+        project_id,
+        kind=LedgerItemKind.DECISION,
+        canonical_title="Use vendor A",
     )
     canceled_item, _ = create_ledger_item(
-        conn, project_id, kind=LedgerItemKind.DECISION, canonical_title="Use vendor B",
+        conn,
+        project_id,
+        kind=LedgerItemKind.DECISION,
+        canonical_title="Use vendor B",
     )
     append_ledger_version(
-        conn, project_id, canceled_item.id, transition_type=LedgerTransitionType.CANCEL,
+        conn,
+        project_id,
+        canceled_item.id,
+        transition_type=LedgerTransitionType.CANCEL,
         status=LedgerItemStatus.CANCELED,
     )
     facts = build_current_project_brief_facts(conn, project_id)
@@ -235,7 +306,10 @@ def test_unresolved_questions_only_includes_open_ones(conn, project_id):
         conn, project_id, kind=LedgerItemKind.OPEN_QUESTION, canonical_title="Which vendor?"
     )
     append_ledger_version(
-        conn, project_id, resolved_q.id, transition_type=LedgerTransitionType.RESOLVE,
+        conn,
+        project_id,
+        resolved_q.id,
+        transition_type=LedgerTransitionType.RESOLVE,
         status=LedgerItemStatus.RESOLVED,
     )
     facts = build_current_project_brief_facts(conn, project_id)
@@ -250,10 +324,16 @@ def test_two_project_leakage_is_impossible(conn):
     # Identical wording in both projects — a leakage bug would show up as
     # cross-contamination despite the shared text.
     create_ledger_item(
-        conn, project_a.id, kind=LedgerItemKind.RISK, canonical_title="Shared risk wording",
+        conn,
+        project_a.id,
+        kind=LedgerItemKind.RISK,
+        canonical_title="Shared risk wording",
     )
     create_ledger_item(
-        conn, project_b.id, kind=LedgerItemKind.RISK, canonical_title="Shared risk wording",
+        conn,
+        project_b.id,
+        kind=LedgerItemKind.RISK,
+        canonical_title="Shared risk wording",
     )
 
     facts_a = build_current_project_brief_facts(conn, project_a.id)

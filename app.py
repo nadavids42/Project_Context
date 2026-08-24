@@ -20,7 +20,7 @@ from project_context.db.connection import connect
 from project_context.db.migrations import MigrationError, run_migrations
 from project_context.observability import configure_logging, get_logger
 from project_context.ui.chrome import render_privacy_banner
-from project_context.ui.navigation import build_navigation
+from project_context.ui.navigation import build_navigation, run_navigation_with_busy_guard
 
 MIGRATIONS_DIR = Path(__file__).resolve().parent / "migrations"
 
@@ -67,4 +67,4 @@ if db_error is not None:
 logger.info("app_started", extra={"environment": config.environment.value})
 
 navigation = st.navigation(build_navigation())
-navigation.run()
+run_navigation_with_busy_guard(navigation)

@@ -252,13 +252,22 @@ def test_insert_link_accepts_a_real_brief_claim_target(conn):
     project_id = _make_project(conn)
     content, chunk = _content_and_chunk(conn, project_id)
     brief = brief_repository.insert_brief(
-        conn, project_id, brief_type=BriefType.CURRENT_PROJECT,
-        cutoff_at="2026-08-23T00:00:00Z", input_snapshot={},
+        conn,
+        project_id,
+        brief_type=BriefType.CURRENT_PROJECT,
+        cutoff_at="2026-08-23T00:00:00Z",
+        input_snapshot={},
     )
     claim = brief_repository.insert_claim(
-        conn, project_id, brief_id=brief.id, section="recent_changes", ordinal=0,
-        claim_text="Something happened.", claim_type=ClaimType.FACT,
-        cited_fact_ids=("fact-1",), validation_status=ClaimValidationStatus.VALID,
+        conn,
+        project_id,
+        brief_id=brief.id,
+        section="recent_changes",
+        ordinal=0,
+        claim_text="Something happened.",
+        claim_type=ClaimType.FACT,
+        cited_fact_ids=("fact-1",),
+        validation_status=ClaimValidationStatus.VALID,
     )
 
     link = evidence_link_repository.insert_link(

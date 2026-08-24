@@ -17,5 +17,27 @@
   `python scripts/run_evaluation.py --help` and
   `src/project_context/evaluation/README.md`.
 
-Seed golden fixtures / export a brief / purge a project (Section 8):
-not yet implemented.
+- `backup.py` — `backup`/`restore`/`verify` subcommands for local
+  database + evidence backups (Section 17). Copies the live SQLite
+  database via SQLite's own online backup API and every currently
+  referenced content-addressed evidence object into a fresh timestamped
+  directory under a destination you choose (expected to already be on
+  encrypted storage — this script does not encrypt anything itself).
+  `restore` refuses to overwrite an existing database unless `--force`
+  is passed. See `python scripts/backup.py --help` and
+  `src/project_context/backup.py`.
+
+- `secure_delete_maintenance.py` — explicit, optional local
+  secure-delete maintenance (Section 16): `PRAGMA secure_delete=ON`
+  plus `VACUUM` against the configured database, with an interactive
+  confirmation prompt (skip with `--yes`). Never run automatically —
+  see `src/project_context/db/maintenance.py`'s docstring for exactly
+  what this does and does not guarantee (it is not a substitute for
+  full-disk encryption or a certified data-destruction procedure).
+
+Project deletion itself (previewed, exactly-confirmed, full purge —
+Section 16) is a UI/service action, not a script — see **Delete a
+project** in the main README and
+`src/project_context/services/project_deletion.py`. Seeding golden
+fixtures happens through `build_benchmark_corpus.py` above; there is no
+separate seed script.

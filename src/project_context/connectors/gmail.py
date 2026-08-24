@@ -138,9 +138,7 @@ class GmailConnector:
 
     def validate_config(self) -> ConnectorHealth:
         try:
-            self._list_messages_page(
-                query=self._effective_query(), page_token=None, max_results=1
-            )
+            self._list_messages_page(query=self._effective_query(), page_token=None, max_results=1)
         except ConnectorAuthError as exc:
             return ConnectorHealth(status=ConnectorHealthStatus.AUTH_ERROR, detail=exc.safe_message)
         except ConnectorPermissionError as exc:
@@ -170,9 +168,7 @@ class GmailConnector:
             query=str(query).strip() if query else None,
             since_date=None,
         )
-        page = self._list_messages_page(
-            query=effective_query, page_token=None, max_results=limit
-        )
+        page = self._list_messages_page(query=effective_query, page_token=None, max_results=limit)
         results = [self._fetch_metadata(ref["id"]) for ref in page.get("messages", [])[:limit]]
         return results
 
@@ -236,20 +232,24 @@ class GmailConnector:
 
     def _request(self, url: str, *, params: dict[str, Any]):
         response = request_with_retry(
-            self._transport, "GET", url, params=params, headers=self._headers(),
-            sleep=self._sleep, rand=self._rand,
+            self._transport,
+            "GET",
+            url,
+            params=params,
+            headers=self._headers(),
+            sleep=self._sleep,
+            rand=self._rand,
         )
         if response.status_code == 400:
-            raise ConnectorConfigError(
-                "Gmail rejected this label/query as malformed search syntax"
-            )
+            raise ConnectorConfigError("Gmail rejected this label/query as malformed search syntax")
         return response
 
     def _list_messages_page(
         self, *, query: str, page_token: str | None, max_results: int
     ) -> dict[str, Any]:
         params: dict[str, Any] = {
-            "q": query, "maxResults": max(1, min(max_results, _GMAIL_MAX_PAGE_SIZE)),
+            "q": query,
+            "maxResults": max(1, min(max_results, _GMAIL_MAX_PAGE_SIZE)),
         }
         if page_token:
             params["pageToken"] = page_token

@@ -71,25 +71,41 @@ def _api(*, folder_id=_ROOT) -> FakeDriveApi:
     folder itself (a `files.get`) before ever listing its children."""
     api = FakeDriveApi()
     api.files[folder_id] = {
-        "id": folder_id, "mimeType": "application/vnd.google-apps.folder", "trashed": False,
+        "id": folder_id,
+        "mimeType": "application/vnd.google-apps.folder",
+        "trashed": False,
     }
     return api
 
 
 def _connector(api, *, folder_id=_ROOT):
     return DriveConnector(
-        access_token="fake-token", folder_id=folder_id, http_transport=api,
-        sleep=lambda _s: None, rand=lambda: 0.0,
+        access_token="fake-token",
+        folder_id=folder_id,
+        http_transport=api,
+        sleep=lambda _s: None,
+        rand=lambda: 0.0,
     )
 
 
 def _sync(
-    conn, project_id, source_id, api, evidence_dir, *,
-    extraction_provider=None, folder_id=_ROOT,
+    conn,
+    project_id,
+    source_id,
+    api,
+    evidence_dir,
+    *,
+    extraction_provider=None,
+    folder_id=_ROOT,
 ):
     return sync_service.sync_source(
-        conn, project_id, source_id, connector=_connector(api, folder_id=folder_id),
-        evidence_dir=evidence_dir, chunk_target_chars=4000, chunk_overlap_ratio=0.0,
+        conn,
+        project_id,
+        source_id,
+        connector=_connector(api, folder_id=folder_id),
+        evidence_dir=evidence_dir,
+        chunk_target_chars=4000,
+        chunk_overlap_ratio=0.0,
         extraction_provider=extraction_provider,
     )
 
@@ -100,8 +116,13 @@ def _sync(
 def test_sync_source_raises_for_missing_source(conn, project_id, tmp_path):
     with pytest.raises(sync_service.SourceNotConfiguredError):
         sync_service.sync_source(
-            conn, project_id, "does-not-exist", connector=_connector(FakeDriveApi()),
-            evidence_dir=tmp_path, chunk_target_chars=4000, chunk_overlap_ratio=0.0,
+            conn,
+            project_id,
+            "does-not-exist",
+            connector=_connector(FakeDriveApi()),
+            evidence_dir=tmp_path,
+            chunk_target_chars=4000,
+            chunk_overlap_ratio=0.0,
         )
 
 
@@ -111,8 +132,13 @@ def test_sync_source_raises_for_missing_boundary(conn, project_id, tmp_path):
     )
     with pytest.raises(sync_service.SourceNotConfiguredError):
         sync_service.sync_source(
-            conn, project_id, source.id, connector=_connector(FakeDriveApi()),
-            evidence_dir=tmp_path, chunk_target_chars=4000, chunk_overlap_ratio=0.0,
+            conn,
+            project_id,
+            source.id,
+            connector=_connector(FakeDriveApi()),
+            evidence_dir=tmp_path,
+            chunk_target_chars=4000,
+            chunk_overlap_ratio=0.0,
         )
 
 
@@ -121,8 +147,13 @@ def test_sync_source_raises_for_disabled_source(conn, project_id, tmp_path):
     sources_repository.set_enabled(conn, project_id, source.id, enabled=False)
     with pytest.raises(sync_service.SourceNotConfiguredError):
         sync_service.sync_source(
-            conn, project_id, source.id, connector=_connector(FakeDriveApi()),
-            evidence_dir=tmp_path, chunk_target_chars=4000, chunk_overlap_ratio=0.0,
+            conn,
+            project_id,
+            source.id,
+            connector=_connector(FakeDriveApi()),
+            evidence_dir=tmp_path,
+            chunk_target_chars=4000,
+            chunk_overlap_ratio=0.0,
         )
 
 
@@ -131,8 +162,13 @@ def test_sync_source_marks_reauth_required_when_folder_check_401s(conn, project_
     api = _api()
     api.fail_next(f"get:{_ROOT}", times=99, status_code=401)
     run = sync_service.sync_source(
-        conn, project_id, source.id, connector=_connector(api),
-        evidence_dir=tmp_path, chunk_target_chars=4000, chunk_overlap_ratio=0.0,
+        conn,
+        project_id,
+        source.id,
+        connector=_connector(api),
+        evidence_dir=tmp_path,
+        chunk_target_chars=4000,
+        chunk_overlap_ratio=0.0,
     )
     assert run.status is SyncRunStatus.FAILED
     refreshed = sources_repository.get_source(conn, project_id, source.id)
@@ -151,8 +187,13 @@ def test_sync_ingests_a_new_text_file_without_a_provider(conn, project_id, evide
     )
 
     run = sync_service.sync_source(
-        conn, project_id, source.id, connector=_connector(api),
-        evidence_dir=evidence_dir, chunk_target_chars=4000, chunk_overlap_ratio=0.0,
+        conn,
+        project_id,
+        source.id,
+        connector=_connector(api),
+        evidence_dir=evidence_dir,
+        chunk_target_chars=4000,
+        chunk_overlap_ratio=0.0,
     )
 
     assert run.status is SyncRunStatus.COMPLETED
@@ -175,8 +216,12 @@ def test_sync_ingests_a_new_text_file_without_a_provider(conn, project_id, evide
 def _extraction_batch_for(text: str, chunk_id: str) -> ExtractionBatch:
     span = EvidenceSpan(chunk_id=chunk_id, char_start=0, char_end=len(text), quote=text)
     observation = ExtractedObservation(
-        kind="commitment", subject="Send the report", statement=text,
-        owner_name=None, explicitness="explicit", evidence=[span],
+        kind="commitment",
+        subject="Send the report",
+        statement=text,
+        owner_name=None,
+        explicitness="explicit",
+        evidence=[span],
     )
     return ExtractionBatch(observations=[observation], source_contains_no_material_updates=False)
 
@@ -200,8 +245,13 @@ class _ReactiveProvider:
         batch = _extraction_batch_for(self._text, match.group(1))
         self.calls.append(input_text)
         return StructuredResult(
-            parsed=batch, provider="fake", model=config.model, request_id=None,
-            input_tokens=10, output_tokens=5, latency_ms=1,
+            parsed=batch,
+            provider="fake",
+            model=config.model,
+            request_id=None,
+            input_tokens=10,
+            output_tokens=5,
+            latency_ms=1,
             estimated_cost_usd=estimate_cost_usd(config.model, 10, 5),
         )
 
@@ -358,12 +408,20 @@ def test_partial_sync_persists_a_checkpoint_and_a_later_call_resumes(
     api.request = flaky_request  # type: ignore[method-assign]
 
     connector = DriveConnector(
-        access_token="t", folder_id=_ROOT, http_transport=api,
-        sleep=lambda _s: None, rand=lambda: 0.0,
+        access_token="t",
+        folder_id=_ROOT,
+        http_transport=api,
+        sleep=lambda _s: None,
+        rand=lambda: 0.0,
     )
     run1 = sync_service.sync_source(
-        conn, project_id, source.id, connector=connector, evidence_dir=evidence_dir,
-        chunk_target_chars=4000, chunk_overlap_ratio=0.0,
+        conn,
+        project_id,
+        source.id,
+        connector=connector,
+        evidence_dir=evidence_dir,
+        chunk_target_chars=4000,
+        chunk_overlap_ratio=0.0,
     )
     assert run1.discovered_count == 1  # only the first page's item before the failure
 
@@ -373,12 +431,20 @@ def test_partial_sync_persists_a_checkpoint_and_a_later_call_resumes(
     # The transport recovers, and a fresh connector resumes.
     failing["active"] = False
     connector2 = DriveConnector(
-        access_token="t", folder_id=_ROOT, http_transport=api,
-        sleep=lambda _s: None, rand=lambda: 0.0,
+        access_token="t",
+        folder_id=_ROOT,
+        http_transport=api,
+        sleep=lambda _s: None,
+        rand=lambda: 0.0,
     )
     run2 = sync_service.sync_source(
-        conn, project_id, source.id, connector=connector2, evidence_dir=evidence_dir,
-        chunk_target_chars=4000, chunk_overlap_ratio=0.0,
+        conn,
+        project_id,
+        source.id,
+        connector=connector2,
+        evidence_dir=evidence_dir,
+        chunk_target_chars=4000,
+        chunk_overlap_ratio=0.0,
     )
     assert run2.discovered_count == 1  # only the second item, resumed rather than restarted
     assert run2.status is SyncRunStatus.COMPLETED
@@ -428,13 +494,21 @@ def test_sync_never_logs_the_access_token(conn, project_id, evidence_dir, caplog
     secret_token = "FAKE-TEST-ACCESS-TOKEN-do-not-log-this-value"
 
     connector = DriveConnector(
-        access_token=secret_token, folder_id=_ROOT, http_transport=api,
-        sleep=lambda _s: None, rand=lambda: 0.0,
+        access_token=secret_token,
+        folder_id=_ROOT,
+        http_transport=api,
+        sleep=lambda _s: None,
+        rand=lambda: 0.0,
     )
     with caplog.at_level(logging.DEBUG):
         sync_service.sync_source(
-            conn, project_id, source.id, connector=connector, evidence_dir=evidence_dir,
-            chunk_target_chars=4000, chunk_overlap_ratio=0.0,
+            conn,
+            project_id,
+            source.id,
+            connector=connector,
+            evidence_dir=evidence_dir,
+            chunk_target_chars=4000,
+            chunk_overlap_ratio=0.0,
         )
 
     for record in caplog.records:
@@ -453,8 +527,13 @@ def test_syncing_a_source_id_from_a_different_project_is_rejected(conn, project_
 
     with pytest.raises(sync_service.SourceNotConfiguredError):
         sync_service.sync_source(
-            conn, other_project_id, source.id, connector=_connector(FakeDriveApi()),
-            evidence_dir=evidence_dir, chunk_target_chars=4000, chunk_overlap_ratio=0.0,
+            conn,
+            other_project_id,
+            source.id,
+            connector=_connector(FakeDriveApi()),
+            evidence_dir=evidence_dir,
+            chunk_target_chars=4000,
+            chunk_overlap_ratio=0.0,
         )
 
 
@@ -475,9 +554,15 @@ def test_sync_drive_project_marks_reauth_required_on_a_revoked_refresh_token(
     monkeypatch.setattr(sync_service, "exchange_refresh_token", fake_exchange)
 
     run = sync_service.sync_drive_project(
-        conn, project_id, source.id, credential_service=credential_service,
-        google_client_id="cid", google_client_secret="csecret",
-        evidence_dir=tmp_path, chunk_target_chars=4000, chunk_overlap_ratio=0.0,
+        conn,
+        project_id,
+        source.id,
+        credential_service=credential_service,
+        google_client_id="cid",
+        google_client_secret="csecret",
+        evidence_dir=tmp_path,
+        chunk_target_chars=4000,
+        chunk_overlap_ratio=0.0,
     )
     assert run.status is SyncRunStatus.FAILED
     refreshed = sources_repository.get_source(conn, project_id, source.id)

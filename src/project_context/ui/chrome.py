@@ -12,6 +12,7 @@ import html
 
 import streamlit as st
 
+from project_context.db.connection import DatabaseBusyError
 from project_context.domain.projects import Project
 
 _STATUS_LABELS = {
@@ -28,14 +29,33 @@ def status_label(status: str) -> str:
 
 
 def render_privacy_banner() -> None:
+    """The exact disclosure Section 16 ("Local vs hosted processing")
+    requires the UI to state — kept in sync with what this build
+    actually does, not what an earlier build did. Update this text in
+    the same change that changes what data leaves this device."""
     st.warning(
-        "Local development build. Use only synthetic, personal, public, or "
-        "explicitly authorized data — never employer or customer data without "
-        "explicit written permission. Source content is stored on this device. "
-        "Once extraction is implemented, selected text will be sent to the "
-        "configured LLM provider; this build does not send anything anywhere.",
+        "Local, single-user prototype — not a secured, multi-tenant product. "
+        "Use only synthetic, personal, public, or explicitly authorized data — "
+        "never employer or customer data without explicit written permission. "
+        "Source content is stored on this device. When you click **Extract "
+        "observations** (or generate a brief), that chunk's text is sent to "
+        "the configured LLM provider (`store: false`, no provider-hosted "
+        "retention) — nothing is sent automatically or in the background, and "
+        "extraction stays disabled until an API key is configured. Enabled "
+        "connectors (Drive/Gmail/Calendar/Fathom) send normal authenticated, "
+        "read-only requests to their own providers when you click Sync.",
         icon="⚠️",
     )
+
+
+def render_database_busy_error(exc: DatabaseBusyError) -> None:
+    """The "clear UI" half of Section 15's SQLite busy/locked
+    requirement — a friendly, actionable message instead of a raw
+    traceback. `app.build_navigation`-driven pages reach this through
+    `project_context.ui.navigation.run_navigation_with_busy_guard`,
+    which is the one place every page's rendering funnels through, so
+    no individual page needs its own `except DatabaseBusyError`."""
+    st.error(f"⏳ {exc.safe_message}")
 
 
 def render_project_identity_bar(project: Project | None) -> None:

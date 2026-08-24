@@ -23,8 +23,13 @@ from project_context.domain.evidence import ArtifactType, EvidenceSourceType
 
 def _connector(api: FakeGmailApi, *, label=None, query=None, since_date=None) -> GmailConnector:
     return GmailConnector(
-        access_token="fake-access-token", label=label, query=query, since_date=since_date,
-        http_transport=api, sleep=lambda _s: None, rand=lambda: 0.0,
+        access_token="fake-access-token",
+        label=label,
+        query=query,
+        since_date=since_date,
+        http_transport=api,
+        sleep=lambda _s: None,
+        rand=lambda: 0.0,
     )
 
 
@@ -133,7 +138,9 @@ def test_discover_paginates():
 def test_discover_populates_artifact_metadata_from_headers():
     api = FakeGmailApi()
     api.add_message(
-        "m1", subject="Kickoff call", from_addr="alice@example.com",
+        "m1",
+        subject="Kickoff call",
+        from_addr="alice@example.com",
         date="Mon, 1 Jun 2026 12:00:00 +0000",
     )
     artifact = _connector(api, label="Alpha").discover(None).artifacts[0]
@@ -234,7 +241,10 @@ def test_preview_requires_a_label_or_query_in_the_boundary():
 def test_fetch_normalizes_headers_and_plain_text_body():
     api = FakeGmailApi()
     api.add_message(
-        "m1", subject="Kickoff", from_addr="alice@example.com", to_addr="bob@example.com",
+        "m1",
+        subject="Kickoff",
+        from_addr="alice@example.com",
+        to_addr="bob@example.com",
         plain_text="Let's meet Friday.",
     )
     connector = _connector(api, label="Alpha")

@@ -111,8 +111,10 @@ def store_calendar_artifact(
             conn, project_id, existing_by_hash.id
         )
         return CalendarStoreResult(
-            artifact=artifact, content=existing_by_hash,
-            chunks=tuple(existing_chunks), created_new_version=False,
+            artifact=artifact,
+            content=existing_by_hash,
+            chunks=tuple(existing_chunks),
+            created_new_version=False,
         )
 
     try:
@@ -154,7 +156,8 @@ def store_calendar_artifact(
             ]
             if visible_blocks:
                 chunk_specs = chunk_blocks(
-                    visible_blocks, target_chars=chunk_target_chars,
+                    visible_blocks,
+                    target_chars=chunk_target_chars,
                     overlap_ratio=chunk_overlap_ratio,
                 )
                 chunks = evidence_repository.insert_chunks(

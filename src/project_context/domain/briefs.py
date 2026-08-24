@@ -217,6 +217,4 @@ class CurrentProjectBriefFacts(BaseModel):
         """Every fact across every section, keyed by its opaque
         `fact_id` — the one lookup table claim validation ever consults
         (`project_context.services.briefs`)."""
-        return {
-            fact.fact_id: fact for section in self.sections for fact in section.facts
-        }
+        return {fact.fact_id: fact for section in self.sections for fact in section.facts}

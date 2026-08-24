@@ -734,8 +734,7 @@ def _baseline_fake_claims() -> dict[str, tuple[BaselineScriptedClaim, ...]]:
                 evidence=(
                     (
                         "adv-w1-charter-doc",
-                        "We recommend a phased rollout starting with accounts "
-                        "receivable.",
+                        "We recommend a phased rollout starting with accounts receivable.",
                     ),
                 ),
             ),
@@ -750,8 +749,7 @@ def _baseline_fake_claims() -> dict[str, tuple[BaselineScriptedClaim, ...]]:
                 evidence=(
                     (
                         "adv-w1-charter-doc",
-                        "We recommend a phased rollout starting with accounts "
-                        "receivable.",
+                        "We recommend a phased rollout starting with accounts receivable.",
                     ),
                 ),
             ),

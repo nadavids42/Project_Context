@@ -34,7 +34,16 @@ _SECRET_PATTERNS = {
 #: Extensions worth scanning as text; binary/lockfile-ish content is
 #: skipped rather than decoded.
 _TEXT_SUFFIXES = {
-    ".py", ".sql", ".md", ".toml", ".txt", ".cfg", ".ini", ".yaml", ".yml", ".env",
+    ".py",
+    ".sql",
+    ".md",
+    ".toml",
+    ".txt",
+    ".cfg",
+    ".ini",
+    ".yaml",
+    ".yml",
+    ".env",
 }
 
 
@@ -48,7 +57,9 @@ def _tracked_files() -> list[Path]:
     content most likely to be new and unreviewed."""
     result = subprocess.run(
         ["git", "-C", str(REPO_ROOT), "ls-files", "--cached", "--others", "--exclude-standard"],
-        check=True, capture_output=True, text=True,
+        check=True,
+        capture_output=True,
+        text=True,
     )
     return [REPO_ROOT / line for line in result.stdout.splitlines() if line]
 

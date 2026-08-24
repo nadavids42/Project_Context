@@ -56,26 +56,48 @@ def _seed_pending_proposal(config, project_id, *, statement="Priya will send the
     try:
         source = sources_repository.ensure_manual_source(conn, project_id)
         artifact = evidence_repository.insert_artifact(
-            conn, project_id, source.id, external_id=f"t:{hash(statement)}",
-            artifact_type=ArtifactType.MANUAL_TEXT, title="Kickoff notes", author="Priya",
-            occurred_at=None, external_url=None, source_type=None,
+            conn,
+            project_id,
+            source.id,
+            external_id=f"t:{hash(statement)}",
+            artifact_type=ArtifactType.MANUAL_TEXT,
+            title="Kickoff notes",
+            author="Priya",
+            occurred_at=None,
+            external_url=None,
+            source_type=None,
         )
         content = evidence_repository.insert_content(
-            conn, project_id, artifact.id,
+            conn,
+            project_id,
+            artifact.id,
             sha256=hashlib.sha256(statement.encode()).hexdigest(),
-            raw_storage_path=None, mime_type="text/plain", byte_size=len(statement),
-            normalized_text=statement, parser_name="text", parser_version="1",
-            parse_status=ParseStatus.PARSED, location_map=None, original_filename=None,
+            raw_storage_path=None,
+            mime_type="text/plain",
+            byte_size=len(statement),
+            normalized_text=statement,
+            parser_name="text",
+            parser_version="1",
+            parse_status=ParseStatus.PARSED,
+            location_map=None,
+            original_filename=None,
         )
         spec = ChunkSpec(
-            ordinal=0, text=statement, char_start=0, char_end=len(statement), section_path=None,
+            ordinal=0,
+            text=statement,
+            char_start=0,
+            char_end=len(statement),
+            section_path=None,
             sha256=hashlib.sha256((statement + "c").encode()).hexdigest(),
             token_estimate=len(statement) // 4,
         )
         (chunk,) = evidence_repository.insert_chunks(conn, project_id, content.id, [spec])
         extracted = ExtractedObservation(
-            kind=ObservationKind.COMMITMENT, subject="Send the report", statement=statement,
-            owner_name="Priya", explicitness="explicit",
+            kind=ObservationKind.COMMITMENT,
+            subject="Send the report",
+            statement=statement,
+            owner_name="Priya",
+            explicitness="explicit",
             evidence=[
                 EvidenceSpan(
                     chunk_id=chunk.id, char_start=0, char_end=len(statement), quote=statement

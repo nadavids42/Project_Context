@@ -28,8 +28,11 @@ _ROOT = "root-folder-id"
 
 def _connector(api: FakeDriveApi, *, folder_id: str = _ROOT) -> DriveConnector:
     return DriveConnector(
-        access_token="fake-access-token", folder_id=folder_id, http_transport=api,
-        sleep=lambda _s: None, rand=lambda: 0.0,
+        access_token="fake-access-token",
+        folder_id=folder_id,
+        http_transport=api,
+        sleep=lambda _s: None,
+        rand=lambda: 0.0,
     )
 
 
@@ -162,7 +165,9 @@ def test_discover_version_marker_reflects_modified_time_for_change_detection():
         _ROOT,
         [
             api.add_file(
-                "f1", name="a.txt", mime_type="text/plain",
+                "f1",
+                name="a.txt",
+                mime_type="text/plain",
                 modified_time="2026-08-01T00:00:00Z",
             )
         ],
@@ -227,7 +232,9 @@ def test_fetch_downloads_a_binary_file():
 def test_fetch_exports_a_google_doc_to_text_plain():
     api = FakeDriveApi()
     metadata = api.add_file(
-        "doc1", name="Kickoff notes", mime_type=MIME_TYPE_GOOGLE_DOC,
+        "doc1",
+        name="Kickoff notes",
+        mime_type=MIME_TYPE_GOOGLE_DOC,
         export_content=b"Exported plain text content.",
     )
     api.add_folder(_ROOT, [metadata])

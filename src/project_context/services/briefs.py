@@ -158,7 +158,7 @@ def _plan_model_eligible_sections(
     fact_lookup = facts.fact_by_id()
 
     returned_by_key: dict[str, list[BriefClaimOutput]] = {}
-    for section_out in (composition.sections if composition is not None else []):
+    for section_out in composition.sections if composition is not None else []:
         if section_out.section not in _MODEL_ELIGIBLE_SECTIONS:
             logger.info("brief_section_unknown_heading", extra={"section": section_out.section})
             continue
@@ -181,7 +181,9 @@ def _plan_model_eligible_sections(
 
         section_claims = [
             plan_model_claim(
-                section=key, claim_out=claim_out, fact_lookup=fact_lookup,
+                section=key,
+                claim_out=claim_out,
+                fact_lookup=fact_lookup,
                 self_evidencing_sections=_SELF_EVIDENCING_SECTIONS,
             )
             for claim_out in returned_by_key.get(key, [])

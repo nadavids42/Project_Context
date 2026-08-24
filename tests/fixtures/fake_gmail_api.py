@@ -102,7 +102,9 @@ class FakeGmailApi:
 
         payload: dict[str, Any] = {"headers": headers, "parts": parts}
         self.messages[message_id] = {
-            "id": message_id, "threadId": thread_id or message_id, "payload": payload,
+            "id": message_id,
+            "threadId": thread_id or message_id,
+            "payload": payload,
         }
         if message_id not in self.message_order:
             self.message_order.append(message_id)
@@ -152,11 +154,7 @@ class FakeGmailApi:
         page_size = min(self.page_size, max_results)
         end = start + page_size
         page_ids = self.message_order[start:end]
-        body: dict[str, Any] = {
-            "messages": [
-                {"id": mid, "threadId": mid} for mid in page_ids
-            ]
-        }
+        body: dict[str, Any] = {"messages": [{"id": mid, "threadId": mid} for mid in page_ids]}
         if end < len(self.message_order):
             body["nextPageToken"] = str(end)
         return HttpResponse(status_code=200, headers={}, content=json.dumps(body).encode("utf-8"))
@@ -177,7 +175,8 @@ class FakeGmailApi:
             all_headers = message["payload"]["headers"]
             headers = [h for h in all_headers if h["name"] in allowed] if allowed else all_headers
             resource = {
-                "id": message["id"], "threadId": message["threadId"],
+                "id": message["id"],
+                "threadId": message["threadId"],
                 "payload": {"headers": headers},
             }
         else:

@@ -85,9 +85,7 @@ class RequestsHttpTransport:
     ) -> HttpResponse:
         import requests
 
-        response = requests.request(
-            method, url, params=params, headers=headers, timeout=timeout
-        )
+        response = requests.request(method, url, params=params, headers=headers, timeout=timeout)
         return HttpResponse(
             status_code=response.status_code, headers=response.headers, content=response.content
         )
@@ -144,8 +142,10 @@ def request_with_retry(
         logger.info(
             "connector_http_request",
             extra={
-                "method": method, "host": host,
-                "status_code": response.status_code, "attempt": attempt,
+                "method": method,
+                "host": host,
+                "status_code": response.status_code,
+                "attempt": attempt,
             },
         )
 

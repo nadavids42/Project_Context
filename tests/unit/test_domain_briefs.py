@@ -38,7 +38,8 @@ def test_fact_by_id_indexes_every_fact_across_every_section():
         generated_at="2026-08-23T00:00:00Z",
         sections=(
             BriefFactSection(
-                section="open_commitments", heading="Open Commitments",
+                section="open_commitments",
+                heading="Open Commitments",
                 facts=(_fact("f1", "open_commitments"), _fact("f2", "open_commitments")),
             ),
             BriefFactSection(

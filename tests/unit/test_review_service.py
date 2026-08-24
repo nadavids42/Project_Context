@@ -80,20 +80,38 @@ def make_observation(
     n = next(_counter)
     source = sources_repository.ensure_manual_source(conn, project_id)
     artifact = evidence_repository.insert_artifact(
-        conn, project_id, source.id,
+        conn,
+        project_id,
+        source.id,
         external_id=f"text:{project_id}:{n}",
         artifact_type=ArtifactType.MANUAL_TEXT,
-        title="Notes", author=None, occurred_at=None, external_url=None, source_type=None,
+        title="Notes",
+        author=None,
+        occurred_at=None,
+        external_url=None,
+        source_type=None,
     )
     content = evidence_repository.insert_content(
-        conn, project_id, artifact.id,
+        conn,
+        project_id,
+        artifact.id,
         sha256=hashlib.sha256(f"{n}:{statement}".encode()).hexdigest(),
-        raw_storage_path=None, mime_type="text/plain", byte_size=len(statement),
-        normalized_text=statement, parser_name="text", parser_version="1",
-        parse_status=ParseStatus.PARSED, location_map=None, original_filename=None,
+        raw_storage_path=None,
+        mime_type="text/plain",
+        byte_size=len(statement),
+        normalized_text=statement,
+        parser_name="text",
+        parser_version="1",
+        parse_status=ParseStatus.PARSED,
+        location_map=None,
+        original_filename=None,
     )
     spec = ChunkSpec(
-        ordinal=0, text=statement, char_start=0, char_end=len(statement), section_path=None,
+        ordinal=0,
+        text=statement,
+        char_start=0,
+        char_end=len(statement),
+        section_path=None,
         sha256=hashlib.sha256(f"{n}:{statement}:chunk".encode()).hexdigest(),
         token_estimate=len(statement) // 4,
     )
@@ -143,7 +161,10 @@ def ledger_snapshot(conn, project_id):
 
 def test_accept_create_proposal(conn, project_id):
     observation, *_ = make_observation(
-        conn, project_id, subject="Send the report", statement="Priya will send the report.",
+        conn,
+        project_id,
+        subject="Send the report",
+        statement="Priya will send the report.",
         owner_text="Priya",
     )
     result = reconcile(conn, project_id, observation)
@@ -170,14 +191,20 @@ def test_accept_create_proposal(conn, project_id):
 
 def test_accept_update_due_date(conn, project_id):
     item, _v1 = create_ledger_item(
-        conn, project_id, kind=LedgerItemKind.COMMITMENT,
-        canonical_title="Send the report", canonical_description="Priya will send the report.",
+        conn,
+        project_id,
+        kind=LedgerItemKind.COMMITMENT,
+        canonical_title="Send the report",
+        canonical_description="Priya will send the report.",
         due_date="2026-08-28",
     )
     observation, *_ = make_observation(
-        conn, project_id, subject="Send the report",
+        conn,
+        project_id,
+        subject="Send the report",
         statement="Priya said the report deadline moved to September 4th.",
-        date_value="2026-09-04", date_text="September 4th",
+        date_value="2026-09-04",
+        date_text="September 4th",
     )
     result = reconcile(conn, project_id, observation)
     assert result.proposal.action.value == "update"
@@ -192,11 +219,17 @@ def test_accept_update_due_date(conn, project_id):
 
 def test_accept_complete(conn, project_id):
     item, _v1 = create_ledger_item(
-        conn, project_id, kind=LedgerItemKind.COMMITMENT,
-        canonical_title="Send the report", canonical_description="Priya will send the report.",
+        conn,
+        project_id,
+        kind=LedgerItemKind.COMMITMENT,
+        canonical_title="Send the report",
+        canonical_description="Priya will send the report.",
     )
     observation, *_ = make_observation(
-        conn, project_id, subject="Send the report", statement="The report was sent to the client.",
+        conn,
+        project_id,
+        subject="Send the report",
+        statement="The report was sent to the client.",
     )
     result = reconcile(conn, project_id, observation)
     assert result.proposal.action.value == "complete"
@@ -215,11 +248,16 @@ def test_accept_complete(conn, project_id):
 
 def test_accept_cancel(conn, project_id):
     item, _v1 = create_ledger_item(
-        conn, project_id, kind=LedgerItemKind.COMMITMENT,
-        canonical_title="Send the report", canonical_description="Priya will send the report.",
+        conn,
+        project_id,
+        kind=LedgerItemKind.COMMITMENT,
+        canonical_title="Send the report",
+        canonical_description="Priya will send the report.",
     )
     observation, *_ = make_observation(
-        conn, project_id, subject="Send the report",
+        conn,
+        project_id,
+        subject="Send the report",
         statement="This commitment is cancelled; we won't proceed with the report.",
     )
     result = reconcile(conn, project_id, observation)
@@ -232,22 +270,34 @@ def test_accept_cancel(conn, project_id):
 
 def test_accept_add_evidence_writes_no_ledger_version(conn, project_id):
     item, _v1 = create_ledger_item(
-        conn, project_id, kind=LedgerItemKind.COMMITMENT,
-        canonical_title="Send the report", canonical_description="Priya will send the report.",
-        owner_person_id=None, due_date="2026-08-28",
+        conn,
+        project_id,
+        kind=LedgerItemKind.COMMITMENT,
+        canonical_title="Send the report",
+        canonical_description="Priya will send the report.",
+        owner_person_id=None,
+        due_date="2026-08-28",
     )
     first_content, first_chunk = _content_and_chunk_only(
         conn, project_id, "Priya will send the report by Friday."
     )
     evidence_link_repository.insert_link(
-        conn, project_id,
-        target_type=EvidenceLinkTargetType.LEDGER_ITEM, target_id=item.id,
-        content_id=first_content.id, chunk_id=first_chunk.id,
-        char_start=0, char_end=len(first_chunk.text), quote=first_chunk.text,
+        conn,
+        project_id,
+        target_type=EvidenceLinkTargetType.LEDGER_ITEM,
+        target_id=item.id,
+        content_id=first_content.id,
+        chunk_id=first_chunk.id,
+        char_start=0,
+        char_end=len(first_chunk.text),
+        quote=first_chunk.text,
         support_role=EvidenceLinkSupportRole.SUPPORTS,
     )
     observation, *_ = make_observation(
-        conn, project_id, subject="Send the report", statement="Priya will send the report.",
+        conn,
+        project_id,
+        subject="Send the report",
+        statement="Priya will send the report.",
         date_value="2026-08-28",
     )
     result = reconcile(conn, project_id, observation)
@@ -266,19 +316,40 @@ def _content_and_chunk_only(conn, project_id, text):
     n = next(_counter)
     source = sources_repository.ensure_manual_source(conn, project_id)
     artifact = evidence_repository.insert_artifact(
-        conn, project_id, source.id, external_id=f"extra:{project_id}:{n}",
-        artifact_type=ArtifactType.MANUAL_TEXT, title="Notes", author=None,
-        occurred_at=None, external_url=None, source_type=None,
+        conn,
+        project_id,
+        source.id,
+        external_id=f"extra:{project_id}:{n}",
+        artifact_type=ArtifactType.MANUAL_TEXT,
+        title="Notes",
+        author=None,
+        occurred_at=None,
+        external_url=None,
+        source_type=None,
     )
     content = evidence_repository.insert_content(
-        conn, project_id, artifact.id, sha256=hashlib.sha256(f"{n}:{text}".encode()).hexdigest(),
-        raw_storage_path=None, mime_type="text/plain", byte_size=len(text),
-        normalized_text=text, parser_name="text", parser_version="1",
-        parse_status=ParseStatus.PARSED, location_map=None, original_filename=None,
+        conn,
+        project_id,
+        artifact.id,
+        sha256=hashlib.sha256(f"{n}:{text}".encode()).hexdigest(),
+        raw_storage_path=None,
+        mime_type="text/plain",
+        byte_size=len(text),
+        normalized_text=text,
+        parser_name="text",
+        parser_version="1",
+        parse_status=ParseStatus.PARSED,
+        location_map=None,
+        original_filename=None,
     )
     spec = ChunkSpec(
-        ordinal=0, text=text, char_start=0, char_end=len(text), section_path=None,
-        sha256=hashlib.sha256(f"{n}:{text}:c".encode()).hexdigest(), token_estimate=len(text) // 4,
+        ordinal=0,
+        text=text,
+        char_start=0,
+        char_end=len(text),
+        section_path=None,
+        sha256=hashlib.sha256(f"{n}:{text}:c".encode()).hexdigest(),
+        token_estimate=len(text) // 4,
     )
     (chunk,) = evidence_repository.insert_chunks(conn, project_id, content.id, [spec])
     return content, chunk
@@ -287,7 +358,10 @@ def _content_and_chunk_only(conn, project_id, text):
 def test_edit_and_accept_overrides_wording_kind_owner_due_date_status(conn, project_id):
     priya = make_person(conn, display_name="Priya")
     observation, *_ = make_observation(
-        conn, project_id, subject="Send the report", statement="Someone will send the report.",
+        conn,
+        project_id,
+        subject="Send the report",
+        statement="Someone will send the report.",
     )
     result = reconcile(conn, project_id, observation)
     assert result.proposal.action.value == "create"
@@ -316,16 +390,22 @@ def test_edit_and_accept_overrides_wording_kind_owner_due_date_status(conn, proj
 
 def test_mark_complete_forces_completion_regardless_of_proposal_action(conn, project_id):
     item, _v1 = create_ledger_item(
-        conn, project_id, kind=LedgerItemKind.COMMITMENT,
-        canonical_title="Send the report", canonical_description="Priya will send the report.",
+        conn,
+        project_id,
+        kind=LedgerItemKind.COMMITMENT,
+        canonical_title="Send the report",
+        canonical_description="Priya will send the report.",
         due_date="2026-08-28",
     )
     # An UPDATE(due_date) proposal, not a completion — the human decides
     # it should actually be marked complete instead.
     observation, *_ = make_observation(
-        conn, project_id, subject="Send the report",
+        conn,
+        project_id,
+        subject="Send the report",
         statement="Priya said the report deadline moved to September 4th.",
-        date_value="2026-09-04", date_text="September 4th",
+        date_value="2026-09-04",
+        date_text="September 4th",
     )
     result = reconcile(conn, project_id, observation)
     assert result.proposal.action.value == "update"
@@ -340,13 +420,21 @@ def test_mark_complete_forces_completion_regardless_of_proposal_action(conn, pro
 def test_mark_superseded_forces_supersession(conn, project_id):
     priya = make_person(conn, display_name="Priya")
     item, _v1 = create_ledger_item(
-        conn, project_id, kind=LedgerItemKind.DECISION,
-        canonical_title="Use vendor A for hosting", owner_person_id=priya.id, due_date="2026-09-01",
+        conn,
+        project_id,
+        kind=LedgerItemKind.DECISION,
+        canonical_title="Use vendor A for hosting",
+        owner_person_id=priya.id,
+        due_date="2026-09-01",
     )
     observation, *_ = make_observation(
-        conn, project_id, kind="decision", subject="Use vendor A for hosting",
+        conn,
+        project_id,
+        kind="decision",
+        subject="Use vendor A for hosting",
         statement="The vendor decision needs another look.",
-        owner_text="Priya", date_value="2026-09-01",
+        owner_text="Priya",
+        date_value="2026-09-01",
     )
     result = reconcile(conn, project_id, observation)
 
@@ -360,16 +448,25 @@ def test_mark_superseded_forces_supersession(conn, project_id):
 
 def test_treat_as_new_ignores_matched_target(conn, project_id):
     item, _v1 = create_ledger_item(
-        conn, project_id, kind=LedgerItemKind.COMMITMENT, canonical_title="Send the report",
+        conn,
+        project_id,
+        kind=LedgerItemKind.COMMITMENT,
+        canonical_title="Send the report",
     )
     observation, *_ = make_observation(
-        conn, project_id, subject="Send the report", statement="Priya will send the report.",
+        conn,
+        project_id,
+        subject="Send the report",
+        statement="Priya will send the report.",
     )
     result = reconcile(conn, project_id, observation)
     # A near-exact subject match should find `item` as a candidate for a
     # plain accept; treat_as_new must ignore it regardless.
     outcome = review_service.treat_as_new(
-        conn, project_id, result.proposal.id, kind=LedgerItemKind.COMMITMENT,
+        conn,
+        project_id,
+        result.proposal.id,
+        kind=LedgerItemKind.COMMITMENT,
     )
 
     assert outcome.review.action is ReviewAction.TREAT_AS_NEW
@@ -380,11 +477,17 @@ def test_treat_as_new_ignores_matched_target(conn, project_id):
 
 def test_reject_leaves_ledger_unchanged(conn, project_id):
     item, _v1 = create_ledger_item(
-        conn, project_id, kind=LedgerItemKind.COMMITMENT, canonical_title="Send the report",
+        conn,
+        project_id,
+        kind=LedgerItemKind.COMMITMENT,
+        canonical_title="Send the report",
         canonical_description="Priya will send the report.",
     )
     observation, *_ = make_observation(
-        conn, project_id, subject="Send the report", statement="The report was sent to the client.",
+        conn,
+        project_id,
+        subject="Send the report",
+        statement="The report was sent to the client.",
     )
     result = reconcile(conn, project_id, observation)
 
@@ -408,18 +511,30 @@ def test_reject_leaves_ledger_unchanged(conn, project_id):
 def test_accept_conflict_proposal_is_refused(conn, project_id):
     priya = make_person(conn, display_name="Priya")
     item_a, _ = create_ledger_item(
-        conn, project_id, kind=LedgerItemKind.COMMITMENT, canonical_title="Send the report",
-        canonical_description="Priya will send the report.", owner_person_id=priya.id,
+        conn,
+        project_id,
+        kind=LedgerItemKind.COMMITMENT,
+        canonical_title="Send the report",
+        canonical_description="Priya will send the report.",
+        owner_person_id=priya.id,
         due_date="2026-08-28",
     )
     item_b, _ = create_ledger_item(
-        conn, project_id, kind=LedgerItemKind.COMMITMENT, canonical_title="Send the report",
-        canonical_description="Priya will send the report.", owner_person_id=priya.id,
+        conn,
+        project_id,
+        kind=LedgerItemKind.COMMITMENT,
+        canonical_title="Send the report",
+        canonical_description="Priya will send the report.",
+        owner_person_id=priya.id,
         due_date="2026-08-28",
     )
     observation, *_ = make_observation(
-        conn, project_id, subject="Send the report", statement="Priya will send the report.",
-        owner_text="Priya", date_value="2026-08-28",
+        conn,
+        project_id,
+        subject="Send the report",
+        statement="Priya will send the report.",
+        owner_text="Priya",
+        date_value="2026-08-28",
     )
     result = reconcile(conn, project_id, observation)
     assert result.proposal.action.value == "conflict"
@@ -430,7 +545,9 @@ def test_accept_conflict_proposal_is_refused(conn, project_id):
     # A human can still resolve it explicitly by redirecting to one
     # candidate via edit_and_accept.
     outcome = review_service.edit_and_accept_proposal(
-        conn, project_id, result.proposal.id,
+        conn,
+        project_id,
+        result.proposal.id,
         ProposalEdit(target_ledger_item_id=item_a.id, status=LedgerItemStatus.ACTIVE),
     )
     assert outcome.ledger_item.id == item_a.id
@@ -444,7 +561,10 @@ def test_accept_conflict_proposal_is_refused(conn, project_id):
 
 def test_double_submit_accept_is_idempotent(conn, project_id):
     observation, *_ = make_observation(
-        conn, project_id, subject="Send the report", statement="Priya will send the report.",
+        conn,
+        project_id,
+        subject="Send the report",
+        statement="Priya will send the report.",
     )
     result = reconcile(conn, project_id, observation)
 
@@ -461,7 +581,10 @@ def test_double_submit_accept_is_idempotent(conn, project_id):
 
 def test_double_submit_reject_is_idempotent(conn, project_id):
     observation, *_ = make_observation(
-        conn, project_id, subject="Send the report", statement="Priya will send the report.",
+        conn,
+        project_id,
+        subject="Send the report",
+        statement="Priya will send the report.",
     )
     result = reconcile(conn, project_id, observation)
 
@@ -481,13 +604,19 @@ def test_double_submit_reject_is_idempotent(conn, project_id):
 
 def test_stale_review_is_rejected(conn, project_id):
     item, v1 = create_ledger_item(
-        conn, project_id, kind=LedgerItemKind.COMMITMENT, canonical_title="Send the report",
+        conn,
+        project_id,
+        kind=LedgerItemKind.COMMITMENT,
+        canonical_title="Send the report",
         canonical_description="Priya will send the report.",
     )
     observation, *_ = make_observation(
-        conn, project_id, subject="Send the report",
+        conn,
+        project_id,
+        subject="Send the report",
         statement="Priya said the report deadline moved to September 4th.",
-        date_value="2026-09-04", date_text="September 4th",
+        date_value="2026-09-04",
+        date_text="September 4th",
     )
     result = reconcile(conn, project_id, observation)
 
@@ -498,20 +627,28 @@ def test_stale_review_is_rejected(conn, project_id):
     # Nothing was written.
     item_count, version_count = ledger_snapshot(conn, project_id)
     assert (item_count, version_count) == (1, 1)
-    assert proposed_mutation_repository.get_proposal(
-        conn, project_id, result.proposal.id
-    ).status is ProposedMutationStatus.PENDING
+    assert (
+        proposed_mutation_repository.get_proposal(conn, project_id, result.proposal.id).status
+        is ProposedMutationStatus.PENDING
+    )
 
 
 def test_matching_expected_version_succeeds(conn, project_id):
     item, v1 = create_ledger_item(
-        conn, project_id, kind=LedgerItemKind.COMMITMENT, canonical_title="Send the report",
-        canonical_description="Priya will send the report.", due_date="2026-08-28",
+        conn,
+        project_id,
+        kind=LedgerItemKind.COMMITMENT,
+        canonical_title="Send the report",
+        canonical_description="Priya will send the report.",
+        due_date="2026-08-28",
     )
     observation, *_ = make_observation(
-        conn, project_id, subject="Send the report",
+        conn,
+        project_id,
+        subject="Send the report",
         statement="Priya said the report deadline moved to September 4th.",
-        date_value="2026-09-04", date_text="September 4th",
+        date_value="2026-09-04",
+        date_text="September 4th",
     )
     result = reconcile(conn, project_id, observation)
 
@@ -528,10 +665,16 @@ def test_matching_expected_version_succeeds(conn, project_id):
 
 def test_invalid_transition_rolls_back_the_whole_review(conn, project_id):
     item, _v1 = create_ledger_item(
-        conn, project_id, kind=LedgerItemKind.RISK, canonical_title="Vendor delay risk",
+        conn,
+        project_id,
+        kind=LedgerItemKind.RISK,
+        canonical_title="Vendor delay risk",
     )
     observation, *_ = make_observation(
-        conn, project_id, kind="risk", subject="Vendor delay risk",
+        conn,
+        project_id,
+        kind="risk",
+        subject="Vendor delay risk",
         statement="Vendor delay risk noted.",
     )
     result = reconcile(conn, project_id, observation)
@@ -561,12 +704,19 @@ def test_owner_correction_is_recorded_and_flags_user_corrected(conn, project_id)
     diego = make_person(conn, display_name="Diego")
     sam = make_person(conn, display_name="Sam")
     item, _v1 = create_ledger_item(
-        conn, project_id, kind=LedgerItemKind.COMMITMENT, canonical_title="Send the report",
-        canonical_description="Priya will send the report.", owner_person_id=priya.id,
+        conn,
+        project_id,
+        kind=LedgerItemKind.COMMITMENT,
+        canonical_title="Send the report",
+        canonical_description="Priya will send the report.",
+        owner_person_id=priya.id,
     )
     observation, *_ = make_observation(
-        conn, project_id, subject="Send the report",
-        statement="The report: ownership moves to Diego.", owner_text="Diego",
+        conn,
+        project_id,
+        subject="Send the report",
+        statement="The report: ownership moves to Diego.",
+        owner_text="Diego",
     )
     result = reconcile(conn, project_id, observation)
     assert result.proposal.proposed_patch["owner_person_id"] == diego.id
@@ -590,13 +740,20 @@ def test_owner_correction_is_recorded_and_flags_user_corrected(conn, project_id)
 
 def test_due_date_correction_is_recorded(conn, project_id):
     item, _v1 = create_ledger_item(
-        conn, project_id, kind=LedgerItemKind.COMMITMENT, canonical_title="Send the report",
-        canonical_description="Priya will send the report.", due_date="2026-08-28",
+        conn,
+        project_id,
+        kind=LedgerItemKind.COMMITMENT,
+        canonical_title="Send the report",
+        canonical_description="Priya will send the report.",
+        due_date="2026-08-28",
     )
     observation, *_ = make_observation(
-        conn, project_id, subject="Send the report",
+        conn,
+        project_id,
+        subject="Send the report",
         statement="Priya said the report deadline moved to September 4th.",
-        date_value="2026-09-04", date_text="September 4th",
+        date_value="2026-09-04",
+        date_text="September 4th",
     )
     result = reconcile(conn, project_id, observation)
     assert result.proposal.proposed_patch["due_date"] == "2026-09-04"
@@ -615,7 +772,10 @@ def test_due_date_correction_is_recorded(conn, project_id):
 
 def test_accept_without_edits_records_no_corrections(conn, project_id):
     observation, *_ = make_observation(
-        conn, project_id, subject="Send the report", statement="Priya will send the report.",
+        conn,
+        project_id,
+        subject="Send the report",
+        statement="Priya will send the report.",
     )
     result = reconcile(conn, project_id, observation)
     outcome = review_service.accept_proposal(conn, project_id, result.proposal.id)
@@ -631,13 +791,21 @@ def test_accept_without_edits_records_no_corrections(conn, project_id):
 def test_supersession_links_predecessor_and_successor_bidirectionally(conn, project_id):
     priya = make_person(conn, display_name="Priya")
     old_item, old_v1 = create_ledger_item(
-        conn, project_id, kind=LedgerItemKind.DECISION, canonical_title="Use vendor A for hosting",
-        owner_person_id=priya.id, due_date="2026-09-01",
+        conn,
+        project_id,
+        kind=LedgerItemKind.DECISION,
+        canonical_title="Use vendor A for hosting",
+        owner_person_id=priya.id,
+        due_date="2026-09-01",
     )
     observation, *_ = make_observation(
-        conn, project_id, kind="decision", subject="Use vendor B for hosting",
+        conn,
+        project_id,
+        kind="decision",
+        subject="Use vendor B for hosting",
         statement="We will use vendor B instead of vendor A for hosting.",
-        owner_text="Priya", date_value="2026-09-01",
+        owner_text="Priya",
+        date_value="2026-09-01",
     )
     result = reconcile(conn, project_id, observation)
     assert result.proposal.action.value == "supersede"
@@ -667,22 +835,36 @@ def test_supersession_links_predecessor_and_successor_bidirectionally(conn, proj
 def test_supersession_preserves_old_evidence_and_history(conn, project_id):
     priya = make_person(conn, display_name="Priya")
     old_item, old_v1 = create_ledger_item(
-        conn, project_id, kind=LedgerItemKind.DECISION, canonical_title="Use vendor A for hosting",
-        owner_person_id=priya.id, due_date="2026-09-01",
+        conn,
+        project_id,
+        kind=LedgerItemKind.DECISION,
+        canonical_title="Use vendor A for hosting",
+        owner_person_id=priya.id,
+        due_date="2026-09-01",
     )
     old_content, old_chunk = _content_and_chunk_only(
         conn, project_id, "We chose vendor A for hosting."
     )
     evidence_link_repository.insert_link(
-        conn, project_id, target_type=EvidenceLinkTargetType.LEDGER_ITEM, target_id=old_item.id,
-        content_id=old_content.id, chunk_id=old_chunk.id,
-        char_start=0, char_end=len(old_chunk.text),
-        quote=old_chunk.text, support_role=EvidenceLinkSupportRole.SUPPORTS,
+        conn,
+        project_id,
+        target_type=EvidenceLinkTargetType.LEDGER_ITEM,
+        target_id=old_item.id,
+        content_id=old_content.id,
+        chunk_id=old_chunk.id,
+        char_start=0,
+        char_end=len(old_chunk.text),
+        quote=old_chunk.text,
+        support_role=EvidenceLinkSupportRole.SUPPORTS,
     )
     observation, *_ = make_observation(
-        conn, project_id, kind="decision", subject="Use vendor B for hosting",
+        conn,
+        project_id,
+        kind="decision",
+        subject="Use vendor B for hosting",
         statement="We will use vendor B instead of vendor A for hosting.",
-        owner_text="Priya", date_value="2026-09-01",
+        owner_text="Priya",
+        date_value="2026-09-01",
     )
     result = reconcile(conn, project_id, observation)
     review_service.accept_proposal(conn, project_id, result.proposal.id)
@@ -715,10 +897,16 @@ def test_queue_state_survives_a_simulated_restart(tmp_path, migrations_dir):
     project = create_project(conn1, ProjectCreateInput(name="Acme Rollout", objective="Ship it"))
 
     obs_a, *_ = make_observation(
-        conn1, project.id, subject="Send the report", statement="Priya will send it.",
+        conn1,
+        project.id,
+        subject="Send the report",
+        statement="Priya will send it.",
     )
     obs_b, *_ = make_observation(
-        conn1, project.id, subject="Renew the contract", statement="Diego will renew it.",
+        conn1,
+        project.id,
+        subject="Renew the contract",
+        statement="Diego will renew it.",
     )
     result_a = reconcile(conn1, project.id, obs_a)
     result_b = reconcile(conn1, project.id, obs_b)
@@ -732,10 +920,7 @@ def test_queue_state_survives_a_simulated_restart(tmp_path, migrations_dir):
         pending = proposed_mutation_repository.list_pending_for_project(conn2, project.id)
         assert [p.id for p in pending] == [result_b.proposal.id]
 
-        accepted = [
-            p
-            for p in review_repository.list_for_project(conn2, project.id)
-        ]
+        accepted = [p for p in review_repository.list_for_project(conn2, project.id)]
         assert len(accepted) == 1
 
         queue = review_service.list_review_queue(conn2, project.id)
@@ -757,16 +942,24 @@ def test_queue_state_survives_a_simulated_restart(tmp_path, migrations_dir):
 def test_cross_project_target_redirect_is_rejected(conn, project_id):
     other_project = create_project(conn, ProjectCreateInput(name="Other", objective="Other work"))
     other_item, _ = create_ledger_item(
-        conn, other_project.id, kind=LedgerItemKind.COMMITMENT, canonical_title="Unrelated item",
+        conn,
+        other_project.id,
+        kind=LedgerItemKind.COMMITMENT,
+        canonical_title="Unrelated item",
     )
     observation, *_ = make_observation(
-        conn, project_id, subject="Send the report", statement="Priya will send the report.",
+        conn,
+        project_id,
+        subject="Send the report",
+        statement="Priya will send the report.",
     )
     result = reconcile(conn, project_id, observation)
 
     with pytest.raises(review_service.CrossProjectReferenceError):
         review_service.edit_and_accept_proposal(
-            conn, project_id, result.proposal.id,
+            conn,
+            project_id,
+            result.proposal.id,
             ProposalEdit(target_ledger_item_id=other_item.id, status=LedgerItemStatus.ACTIVE),
         )
     # Nothing was written to either project's ledger.
@@ -777,7 +970,10 @@ def test_cross_project_target_redirect_is_rejected(conn, project_id):
 def test_proposal_from_a_different_project_is_not_found(conn, project_id):
     other_project = create_project(conn, ProjectCreateInput(name="Other", objective="Other work"))
     observation, *_ = make_observation(
-        conn, project_id, subject="Send the report", statement="Priya will send the report.",
+        conn,
+        project_id,
+        subject="Send the report",
+        statement="Priya will send the report.",
     )
     result = reconcile(conn, project_id, observation)
 
@@ -787,10 +983,16 @@ def test_proposal_from_a_different_project_is_not_found(conn, project_id):
 
 def test_evidence_link_id_from_another_observation_is_rejected(conn, project_id):
     observation, *_ = make_observation(
-        conn, project_id, subject="Send the report", statement="Priya will send the report.",
+        conn,
+        project_id,
+        subject="Send the report",
+        statement="Priya will send the report.",
     )
     other_observation, *_ = make_observation(
-        conn, project_id, subject="Renew the contract", statement="Diego will renew it.",
+        conn,
+        project_id,
+        subject="Renew the contract",
+        statement="Diego will renew it.",
     )
     other_result = reconcile(conn, project_id, other_observation)
     other_links = evidence_link_repository.list_for_target(
@@ -800,7 +1002,9 @@ def test_evidence_link_id_from_another_observation_is_rejected(conn, project_id)
     result = reconcile(conn, project_id, observation)
     with pytest.raises(review_service.ReviewValidationError):
         review_service.edit_and_accept_proposal(
-            conn, project_id, result.proposal.id,
+            conn,
+            project_id,
+            result.proposal.id,
             ProposalEdit(evidence_link_ids=(other_links[0].id,)),
         )
     del other_result
@@ -808,7 +1012,10 @@ def test_evidence_link_id_from_another_observation_is_rejected(conn, project_id)
 
 def test_evidence_selection_requires_at_least_one_link(conn, project_id):
     observation, *_ = make_observation(
-        conn, project_id, subject="Send the report", statement="Priya will send the report.",
+        conn,
+        project_id,
+        subject="Send the report",
+        statement="Priya will send the report.",
     )
     result = reconcile(conn, project_id, observation)
     with pytest.raises(review_service.ReviewValidationError):
@@ -849,7 +1056,10 @@ def _assert_projection_matches_latest_version(conn, project_id, item_id):
 def test_projection_matches_latest_version_after_each_action(conn, project_id, build_case):
     if build_case == "create":
         observation, *_ = make_observation(
-            conn, project_id, subject="Send the report", statement="Priya will send the report.",
+            conn,
+            project_id,
+            subject="Send the report",
+            statement="Priya will send the report.",
         )
         result = reconcile(conn, project_id, observation)
         outcome = review_service.accept_proposal(conn, project_id, result.proposal.id)
@@ -857,8 +1067,12 @@ def test_projection_matches_latest_version_after_each_action(conn, project_id, b
         return
 
     item, _v1 = create_ledger_item(
-        conn, project_id, kind=LedgerItemKind.COMMITMENT, canonical_title="Send the report",
-        canonical_description="Priya will send the report.", due_date="2026-08-28",
+        conn,
+        project_id,
+        kind=LedgerItemKind.COMMITMENT,
+        canonical_title="Send the report",
+        canonical_description="Priya will send the report.",
+        due_date="2026-08-28",
     )
     statements = {
         "update": (
@@ -881,13 +1095,21 @@ def test_projection_matches_latest_version_after_each_action(conn, project_id, b
 def test_projection_matches_latest_version_for_both_items_after_supersede(conn, project_id):
     priya = make_person(conn, display_name="Priya")
     old_item, _v1 = create_ledger_item(
-        conn, project_id, kind=LedgerItemKind.DECISION, canonical_title="Use vendor A for hosting",
-        owner_person_id=priya.id, due_date="2026-09-01",
+        conn,
+        project_id,
+        kind=LedgerItemKind.DECISION,
+        canonical_title="Use vendor A for hosting",
+        owner_person_id=priya.id,
+        due_date="2026-09-01",
     )
     observation, *_ = make_observation(
-        conn, project_id, kind="decision", subject="Use vendor B for hosting",
+        conn,
+        project_id,
+        kind="decision",
+        subject="Use vendor B for hosting",
         statement="We will use vendor B instead of vendor A for hosting.",
-        owner_text="Priya", date_value="2026-09-01",
+        owner_text="Priya",
+        date_value="2026-09-01",
     )
     result = reconcile(conn, project_id, observation)
     outcome = review_service.accept_proposal(conn, project_id, result.proposal.id)

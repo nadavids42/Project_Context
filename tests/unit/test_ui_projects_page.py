@@ -22,6 +22,7 @@ is kept out of Streamlit callbacks in the first place.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -30,7 +31,9 @@ from streamlit.testing.v1 import AppTest
 from project_context.config import load_config
 from project_context.db.connection import connect
 from project_context.db.migrations import run_migrations
+from project_context.domain.evidence import EvidenceSourceType, ManualTextInput
 from project_context.domain.projects import ProjectCreateInput, ProjectStatus
+from project_context.services.evidence import submit_manual_text
 from project_context.services.projects import archive_project, create_project
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -204,6 +207,43 @@ def test_archive_confirmation_dialog_names_the_project(isolated_config):
 
     assert not at.exception
     assert any(project.name in w.value for w in at.markdown)
+
+
+def test_delete_confirmation_dialog_shows_a_real_preview_and_requires_typed_confirmation(
+    isolated_config,
+):
+    """Section 16: "previews counts... requires exact confirmation" —
+    checked at the content level (see module docstring: `st.dialog`
+    submit round-trips are covered at the service layer,
+    tests/unit/test_project_deletion.py)."""
+    project = _seed_project(isolated_config)
+    conn = connect(isolated_config.sqlite_path)
+    submit_manual_text(
+        conn,
+        project.id,
+        ManualTextInput(
+            title="Kickoff notes",
+            text="Some evidence text.",
+            source_type=EvidenceSourceType.MEETING_NOTES,
+            occurred_at=datetime(2026, 8, 1, tzinfo=UTC),
+        ),
+        evidence_dir=isolated_config.evidence_dir,
+        chunk_target_chars=4000,
+        chunk_overlap_ratio=0.0,
+    )
+    conn.close()
+
+    at = _run_app()
+    at.run()
+    [b for b in at.button if b.key == f"delete-{project.id}"][0].click().run()
+
+    assert not at.exception
+    rendered = " ".join(m.value for m in at.markdown) + " ".join(e.value for e in at.error)
+    assert project.name in rendered
+    assert "1** evidence artifact" in rendered
+    assert any(ti.label is not None and "Type the project name" in ti.label for ti in at.text_input)
+    assert any(b.label == "Permanently delete" for b in at.button)
+    assert any(b.label == "Cancel" for b in at.button)
 
 
 # --- Project-scoped pages: honest empty state and visible identity --------

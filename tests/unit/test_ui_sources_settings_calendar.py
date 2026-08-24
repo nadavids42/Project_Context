@@ -127,8 +127,14 @@ def test_calendar_connect_button_stores_a_credential_and_flashes_success(
     import project_context.ui.pages.sources_settings as page
 
     def fake_connect_calendar(
-        conn, project_id, source_id, *,
-        credential_service, client_id, client_secret, redirect_port,
+        conn,
+        project_id,
+        source_id,
+        *,
+        credential_service,
+        client_id,
+        client_secret,
+        redirect_port,
     ):
         return credential_service.connect(
             conn, project_id, source_id, secret="fake-calendar-refresh-token"
@@ -250,9 +256,18 @@ def test_calendar_sync_button_runs_sync_and_displays_counts(isolated_config, mon
 
             run = sync_repository.insert_sync_run(conn2, project_id)
             finalized = sync_repository.finalize_sync_run(
-                conn2, project_id, run.id, status=SyncRunStatus.COMPLETED,
-                discovered_count=2, unchanged_count=0, downloaded_count=2, parsed_count=2,
-                extracted_count=1, failed_count=0, proposed_count=1, needs_assignment_count=0,
+                conn2,
+                project_id,
+                run.id,
+                status=SyncRunStatus.COMPLETED,
+                discovered_count=2,
+                unchanged_count=0,
+                downloaded_count=2,
+                parsed_count=2,
+                extracted_count=1,
+                failed_count=0,
+                proposed_count=1,
+                needs_assignment_count=0,
             )
             conn2.commit()
             return finalized
@@ -270,6 +285,12 @@ def test_calendar_sync_button_runs_sync_and_displays_counts(isolated_config, mon
     assert any("sync completed" in s.value.lower() for s in at.success)
     metric_labels = {m.label for m in at.metric}
     expected = {
-        "Discovered", "Unchanged", "Downloaded", "Parsed", "Extracted", "Failed", "Unassigned",
+        "Discovered",
+        "Unchanged",
+        "Downloaded",
+        "Parsed",
+        "Extracted",
+        "Failed",
+        "Unassigned",
     }
     assert expected <= metric_labels

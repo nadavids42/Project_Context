@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import streamlit as st
 
+from project_context.db.connection import DatabaseBusyError
 from project_context.ui.pages import (
     activity,
     briefs,
@@ -51,6 +52,23 @@ def build_navigation() -> dict[str, list[st.Page]]:
             _make_page(sources_settings.render, "Sources & Settings", "⚙️", "sources-settings"),
         ],
     }
+
+
+def run_navigation_with_busy_guard(navigation: st.Page) -> None:
+    """`navigation.run()`, with one shared catch for `DatabaseBusyError`
+    (Section 15: "Simulate SQLite busy/locked state with... clear UI").
+    `app.py` calls this instead of `navigation.run()` directly so every
+    page gets a friendly message on lock contention without each page
+    needing its own `try`/`except` — the same "one shared entry point"
+    shape this codebase already uses for credential access
+    (`CredentialService`) and error classification (`connectors.errors`).
+    """
+    from project_context.ui.chrome import render_database_busy_error
+
+    try:
+        navigation.run()
+    except DatabaseBusyError as exc:
+        render_database_busy_error(exc)
 
 
 def overview_page() -> st.Page:

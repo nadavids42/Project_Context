@@ -72,8 +72,11 @@ def test_commitment_appears_in_its_own_tab(isolated_config, project_id):
     conn = connect(isolated_config.sqlite_path)
     try:
         create_ledger_item(
-            conn, project_id, kind=LedgerItemKind.COMMITMENT,
-            canonical_title="Send the report", canonical_description="Priya will send it.",
+            conn,
+            project_id,
+            kind=LedgerItemKind.COMMITMENT,
+            canonical_title="Send the report",
+            canonical_description="Priya will send it.",
             due_date="2026-08-28",
         )
     finally:
@@ -91,8 +94,11 @@ def test_history_button_opens_the_drawer(isolated_config, project_id):
     conn = connect(isolated_config.sqlite_path)
     try:
         item, _v1 = create_ledger_item(
-            conn, project_id, kind=LedgerItemKind.COMMITMENT,
-            canonical_title="Send the report", canonical_description="Priya will send it.",
+            conn,
+            project_id,
+            kind=LedgerItemKind.COMMITMENT,
+            canonical_title="Send the report",
+            canonical_description="Priya will send it.",
         )
     finally:
         conn.close()

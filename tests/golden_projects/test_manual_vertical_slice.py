@@ -146,13 +146,20 @@ def _ingest_extract_persist(
     conn, project_id, evidence_dir, *, filename, source_type, occurred_at, data, facts
 ):
     upload = ManualFileUploadInput(
-        title=filename, source_type=source_type, occurred_at=occurred_at,
-        filename=filename, data=data,
+        title=filename,
+        source_type=source_type,
+        occurred_at=occurred_at,
+        filename=filename,
+        data=data,
     )
     ingest_result = submit_file_upload(
-        conn, project_id, upload, evidence_dir=evidence_dir,
+        conn,
+        project_id,
+        upload,
+        evidence_dir=evidence_dir,
         max_upload_bytes=_MAX_UPLOAD_BYTES,
-        chunk_target_chars=CHUNK_TARGET_CHARS, chunk_overlap_ratio=0.0,
+        chunk_target_chars=CHUNK_TARGET_CHARS,
+        chunk_overlap_ratio=0.0,
     )
     responses = _responses_for(ingest_result.chunks, facts)
     provider = FakeLLMProvider(responses=list(responses))
@@ -163,7 +170,8 @@ def _ingest_extract_persist(
 
     for observation in run_result.accepted:
         observations_service.persist_observation(
-            conn, project_id,
+            conn,
+            project_id,
             content_id=ingest_result.content.id,
             chunk_id=observation.evidence[0].chunk_id,
             extracted=observation,
@@ -177,7 +185,8 @@ def _reconcile_and_accept_all(conn, project_id):
     outcomes = []
     for proposal in pending:
         assert proposal.action is not ProposedMutationAction.CONFLICT, (
-            proposal.action, proposal.candidate_features
+            proposal.action,
+            proposal.candidate_features,
         )
         outcomes.append(review_service.accept_proposal(conn, project_id, proposal.id))
     return outcomes
@@ -216,9 +225,13 @@ def _run_full_pipeline(conn, evidence_dir, project: GoldenProject) -> str:
     project_id = created.id
 
     kickoff = _ingest_extract_persist(
-        conn, project_id, evidence_dir,
-        filename=f"{project.key}-kickoff.vtt", source_type=EvidenceSourceType.CALL_RECORDING,
-        occurred_at=datetime(2026, 8, 1, 9, 0), data=project.kickoff_vtt,
+        conn,
+        project_id,
+        evidence_dir,
+        filename=f"{project.key}-kickoff.vtt",
+        source_type=EvidenceSourceType.CALL_RECORDING,
+        occurred_at=datetime(2026, 8, 1, 9, 0),
+        data=project.kickoff_vtt,
         facts=project.round1_facts,
     )
     round1_outcomes = _reconcile_and_accept_all(conn, project_id)
@@ -226,25 +239,35 @@ def _run_full_pipeline(conn, evidence_dir, project: GoldenProject) -> str:
     assert len(round1_outcomes) == len(project.round1_facts)
 
     _ingest_extract_persist(
-        conn, project_id, evidence_dir,
-        filename=f"{project.key}-standup-1.md", source_type=EvidenceSourceType.MEETING_NOTES,
+        conn,
+        project_id,
+        evidence_dir,
+        filename=f"{project.key}-standup-1.md",
+        source_type=EvidenceSourceType.MEETING_NOTES,
         occurred_at=datetime(2026, 8, 12, 9, 0),
-        data=project.followup_md_1.encode("utf-8"), facts=project.round2_facts,
+        data=project.followup_md_1.encode("utf-8"),
+        facts=project.round2_facts,
     )
     round2_outcomes = _reconcile_and_accept_all(conn, project_id)
     assert {o.proposal.action for o in round2_outcomes} == {
-        ProposedMutationAction.UPDATE, ProposedMutationAction.COMPLETE,
+        ProposedMutationAction.UPDATE,
+        ProposedMutationAction.COMPLETE,
     }
 
     _ingest_extract_persist(
-        conn, project_id, evidence_dir,
-        filename=f"{project.key}-standup-2.md", source_type=EvidenceSourceType.MEETING_NOTES,
+        conn,
+        project_id,
+        evidence_dir,
+        filename=f"{project.key}-standup-2.md",
+        source_type=EvidenceSourceType.MEETING_NOTES,
         occurred_at=datetime(2026, 8, 22, 9, 0),
-        data=project.followup_md_2.encode("utf-8"), facts=project.round3_facts,
+        data=project.followup_md_2.encode("utf-8"),
+        facts=project.round3_facts,
     )
     round3_outcomes = _reconcile_and_accept_all(conn, project_id)
     assert {o.proposal.action for o in round3_outcomes} == {
-        ProposedMutationAction.UPDATE, ProposedMutationAction.SUPERSEDE,
+        ProposedMutationAction.UPDATE,
+        ProposedMutationAction.SUPERSEDE,
     }
 
     assert kickoff.created_new_version is True
@@ -285,9 +308,7 @@ def _assert_ledger_state(conn, project_id, project: GoldenProject) -> None:
     assert blocker.supersedes_item_id == risk.id
     assert risk.superseded_by_item_id == blocker.id
 
-    milestone = _item_by_title(
-        conn, project_id, LedgerItemKind.MILESTONE, project.milestone_title
-    )
+    milestone = _item_by_title(conn, project_id, LedgerItemKind.MILESTONE, project.milestone_title)
     assert milestone.status is LedgerItemStatus.OPEN
 
     question = _item_by_title(
@@ -399,24 +420,36 @@ def test_rerun_ingestion_extraction_reconciliation_creates_no_duplicates(conn, e
     # (freshly queued, since FakeLLMProvider is consume-once) responses.
     for filename, source_type, occurred_at, data, facts in (
         (
-            f"{project.key}-kickoff.vtt", EvidenceSourceType.CALL_RECORDING,
-            datetime(2026, 8, 1, 9, 0), project.kickoff_vtt, project.round1_facts,
+            f"{project.key}-kickoff.vtt",
+            EvidenceSourceType.CALL_RECORDING,
+            datetime(2026, 8, 1, 9, 0),
+            project.kickoff_vtt,
+            project.round1_facts,
         ),
         (
-            f"{project.key}-standup-1.md", EvidenceSourceType.MEETING_NOTES,
+            f"{project.key}-standup-1.md",
+            EvidenceSourceType.MEETING_NOTES,
             datetime(2026, 8, 12, 9, 0),
-            project.followup_md_1.encode("utf-8"), project.round2_facts,
+            project.followup_md_1.encode("utf-8"),
+            project.round2_facts,
         ),
         (
-            f"{project.key}-standup-2.md", EvidenceSourceType.MEETING_NOTES,
+            f"{project.key}-standup-2.md",
+            EvidenceSourceType.MEETING_NOTES,
             datetime(2026, 8, 22, 9, 0),
-            project.followup_md_2.encode("utf-8"), project.round3_facts,
+            project.followup_md_2.encode("utf-8"),
+            project.round3_facts,
         ),
     ):
         ingest_result = _ingest_extract_persist(
-            conn, project_id, evidence_dir,
-            filename=filename, source_type=source_type, occurred_at=occurred_at,
-            data=data, facts=facts,
+            conn,
+            project_id,
+            evidence_dir,
+            filename=filename,
+            source_type=source_type,
+            occurred_at=occurred_at,
+            data=data,
+            facts=facts,
         )
         assert ingest_result.created_new_version is False
 
@@ -474,12 +507,9 @@ def test_two_project_leakage_is_impossible_through_the_full_pipeline(conn, evide
             item.id for item in ledger_repository.list_items_for_project(conn, project_id)
         }
         all_observation_ids[key] = {
-            obs.id
-            for obs in observation_repository.list_observations_for_project(conn, project_id)
+            obs.id for obs in observation_repository.list_observations_for_project(conn, project_id)
         }
-        all_claim_item_ids[key] = {
-            c.ledger_item_id for c in briefs[key].claims if c.ledger_item_id
-        }
+        all_claim_item_ids[key] = {c.ledger_item_id for c in briefs[key].claims if c.ledger_item_id}
         # The manual source itself belongs to exactly this project.
         manual_source = sources_repository.get_manual_source(conn, project_id)
         assert manual_source is not None

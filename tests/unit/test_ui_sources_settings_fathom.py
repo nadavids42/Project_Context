@@ -229,9 +229,18 @@ def test_fathom_sync_button_runs_sync_and_displays_counts(isolated_config, monke
 
             run = sync_repository.insert_sync_run(conn2, project_id)
             finalized = sync_repository.finalize_sync_run(
-                conn2, project_id, run.id, status=SyncRunStatus.COMPLETED,
-                discovered_count=1, unchanged_count=0, downloaded_count=1, parsed_count=1,
-                extracted_count=1, failed_count=0, proposed_count=1, needs_assignment_count=0,
+                conn2,
+                project_id,
+                run.id,
+                status=SyncRunStatus.COMPLETED,
+                discovered_count=1,
+                unchanged_count=0,
+                downloaded_count=1,
+                parsed_count=1,
+                extracted_count=1,
+                failed_count=0,
+                proposed_count=1,
+                needs_assignment_count=0,
             )
             conn2.commit()
             return finalized
@@ -249,7 +258,13 @@ def test_fathom_sync_button_runs_sync_and_displays_counts(isolated_config, monke
     assert any("sync completed" in s.value.lower() for s in at.success)
     metric_labels = {m.label for m in at.metric}
     expected = {
-        "Discovered", "Unchanged", "Downloaded", "Parsed", "Extracted", "Failed", "Unassigned",
+        "Discovered",
+        "Unchanged",
+        "Downloaded",
+        "Parsed",
+        "Extracted",
+        "Failed",
+        "Unassigned",
     }
     assert expected <= metric_labels
 
@@ -268,7 +283,9 @@ def test_fathom_preview_flags_scheduled_event_only_matches_as_unassigned(
         class _FakeConnector:
             def preview_detailed(self, boundary, *, limit):
                 matched = ArtifactMetadata(
-                    external_id="rec1", title="Weekly slot", artifact_type=ArtifactType.MEETING,
+                    external_id="rec1",
+                    title="Weekly slot",
+                    artifact_type=ArtifactType.MEETING,
                     version_marker="v1",
                     extra={"match_rule": "scheduled_event", "match_reason": "time window match"},
                 )
@@ -285,9 +302,7 @@ def test_fathom_preview_flags_scheduled_event_only_matches_as_unassigned(
     at = _at_for(isolated_config, project.id)
     at.run()
 
-    windows_inputs = [
-        ta for ta in at.text_area if "bounded time windows" in ta.label.lower()
-    ]
+    windows_inputs = [ta for ta in at.text_area if "bounded time windows" in ta.label.lower()]
     windows_inputs[0].set_value("2026-06-01T00:00:00Z,2026-06-02T00:00:00Z")
     preview_buttons = [b for b in at.button if b.label == "Preview"]
     preview_buttons[0].click().run()

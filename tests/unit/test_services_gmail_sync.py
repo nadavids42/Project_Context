@@ -60,25 +60,43 @@ def _make_gmail_source(conn, project_id, *, label="Acme", query=None):
         conn, project_id, kind=SourceKind.GMAIL, display_name="Gmail label/query"
     )
     return sources_repository.update_boundary(
-        conn, project_id, source.id,
+        conn,
+        project_id,
+        source.id,
         boundary_json=json.dumps({"label": label, "query": query}),
     )
 
 
 def _connector(api, *, label="Acme", query=None):
     return GmailConnector(
-        access_token="fake-token", label=label, query=query, http_transport=api,
-        sleep=lambda _s: None, rand=lambda: 0.0,
+        access_token="fake-token",
+        label=label,
+        query=query,
+        http_transport=api,
+        sleep=lambda _s: None,
+        rand=lambda: 0.0,
     )
 
 
 def _sync(
-    conn, project_id, source_id, api, evidence_dir, *,
-    extraction_provider=None, label="Acme", query=None,
+    conn,
+    project_id,
+    source_id,
+    api,
+    evidence_dir,
+    *,
+    extraction_provider=None,
+    label="Acme",
+    query=None,
 ):
     return sync_service.sync_source(
-        conn, project_id, source_id, connector=_connector(api, label=label, query=query),
-        evidence_dir=evidence_dir, chunk_target_chars=4000, chunk_overlap_ratio=0.0,
+        conn,
+        project_id,
+        source_id,
+        connector=_connector(api, label=label, query=query),
+        evidence_dir=evidence_dir,
+        chunk_target_chars=4000,
+        chunk_overlap_ratio=0.0,
         extraction_provider=extraction_provider,
         get_or_create_artifact_fn=gmail_ingestion.get_or_create_gmail_artifact,
         store_artifact_fn=gmail_ingestion.store_gmail_artifact,
@@ -94,8 +112,13 @@ def test_sync_source_raises_for_missing_boundary(conn, project_id, tmp_path):
     )
     with pytest.raises(sync_service.SourceNotConfiguredError):
         sync_service.sync_source(
-            conn, project_id, source.id, connector=_connector(FakeGmailApi()),
-            evidence_dir=tmp_path, chunk_target_chars=4000, chunk_overlap_ratio=0.0,
+            conn,
+            project_id,
+            source.id,
+            connector=_connector(FakeGmailApi()),
+            evidence_dir=tmp_path,
+            chunk_target_chars=4000,
+            chunk_overlap_ratio=0.0,
             get_or_create_artifact_fn=gmail_ingestion.get_or_create_gmail_artifact,
             store_artifact_fn=gmail_ingestion.store_gmail_artifact,
         )
@@ -190,13 +213,19 @@ def test_gmail_sync_failure_does_not_affect_other_sources(conn, project_id, evid
     )
     drive_api = FakeDriveApi()
     drive_api.files["root"] = {
-        "id": "root", "mimeType": "application/vnd.google-apps.folder", "trashed": False,
+        "id": "root",
+        "mimeType": "application/vnd.google-apps.folder",
+        "trashed": False,
     }
     drive_api.add_folder("root", [])
     drive_run = sync_service.sync_source(
-        conn, project_id, drive_source.id,
+        conn,
+        project_id,
+        drive_source.id,
         connector=DriveConnector(access_token="t", folder_id="root", http_transport=drive_api),
-        evidence_dir=tmp_path, chunk_target_chars=4000, chunk_overlap_ratio=0.0,
+        evidence_dir=tmp_path,
+        chunk_target_chars=4000,
+        chunk_overlap_ratio=0.0,
     )
     assert drive_run.status is SyncRunStatus.COMPLETED
 
@@ -218,8 +247,12 @@ def _extraction_batch_for(
 ) -> ExtractionBatch:
     span = EvidenceSpan(chunk_id=chunk_id, char_start=char_start, char_end=char_end, quote=text)
     observation = ExtractedObservation(
-        kind="commitment", subject="Send the report", statement=text,
-        owner_name=None, explicitness="explicit", evidence=[span],
+        kind="commitment",
+        subject="Send the report",
+        statement=text,
+        owner_name=None,
+        explicitness="explicit",
+        evidence=[span],
     )
     return ExtractionBatch(observations=[observation], source_contains_no_material_updates=False)
 
@@ -250,8 +283,13 @@ class _ReactiveProvider:
             self._text, chunk_id_match.group(1), char_start=char_start, char_end=char_end
         )
         return StructuredResult(
-            parsed=batch, provider="fake", model=config.model, request_id=None,
-            input_tokens=10, output_tokens=5, latency_ms=1,
+            parsed=batch,
+            provider="fake",
+            model=config.model,
+            request_id=None,
+            input_tokens=10,
+            output_tokens=5,
+            latency_ms=1,
             estimated_cost_usd=estimate_cost_usd(config.model, 10, 5),
         )
 
@@ -263,7 +301,11 @@ def test_sync_with_provider_extracts_and_reconciles(conn, project_id, evidence_d
     api.add_message("m1", plain_text=text)
 
     run = _sync(
-        conn, project_id, source.id, api, evidence_dir,
+        conn,
+        project_id,
+        source.id,
+        api,
+        evidence_dir,
         extraction_provider=_ReactiveProvider(text),
     )
 
@@ -300,8 +342,13 @@ def test_quoted_history_is_not_sent_to_extraction(conn, project_id, evidence_dir
             self.seen_inputs.append(input_text)
             batch = ExtractionBatch(observations=[], source_contains_no_material_updates=True)
             return StructuredResult(
-                parsed=batch, provider="fake", model=config.model, request_id=None,
-                input_tokens=1, output_tokens=1, latency_ms=1,
+                parsed=batch,
+                provider="fake",
+                model=config.model,
+                request_id=None,
+                input_tokens=1,
+                output_tokens=1,
+                latency_ms=1,
                 estimated_cost_usd=estimate_cost_usd(config.model, 1, 1),
             )
 
@@ -354,7 +401,11 @@ def test_rerun_within_overlap_window_creates_no_duplicate_observations(
     api.add_message("m1", plain_text=text)
 
     first = _sync(
-        conn, project_id, source.id, api, evidence_dir,
+        conn,
+        project_id,
+        source.id,
+        api,
+        evidence_dir,
         extraction_provider=_ReactiveProvider(text),
     )
     assert first.proposed_count == 1
@@ -362,7 +413,11 @@ def test_rerun_within_overlap_window_creates_no_duplicate_observations(
     # Second sync: same message still listed (overlap window), nothing
     # new — must not create a second observation/proposal.
     second = _sync(
-        conn, project_id, source.id, api, evidence_dir,
+        conn,
+        project_id,
+        source.id,
+        api,
+        evidence_dir,
         extraction_provider=_ReactiveProvider(text),
     )
     assert second.unchanged_count == 1
@@ -378,12 +433,8 @@ def test_rerun_within_overlap_window_creates_no_duplicate_observations(
 
 
 def test_gmail_evidence_is_isolated_per_project(conn, evidence_dir):
-    project_a = create_project(
-        conn, ProjectCreateInput(name="Project A", objective="A")
-    ).id
-    project_b = create_project(
-        conn, ProjectCreateInput(name="Project B", objective="B")
-    ).id
+    project_a = create_project(conn, ProjectCreateInput(name="Project A", objective="A")).id
+    project_b = create_project(conn, ProjectCreateInput(name="Project B", objective="B")).id
 
     source_a = _make_gmail_source(conn, project_a)
     api_a = FakeGmailApi()
@@ -421,13 +472,21 @@ def test_gmail_sync_never_logs_the_access_token_subject_or_body(
     api.add_message("m1", subject=secret_subject, plain_text=secret_body)
 
     connector = GmailConnector(
-        access_token=secret_token, label="Acme", http_transport=api,
-        sleep=lambda _s: None, rand=lambda: 0.0,
+        access_token=secret_token,
+        label="Acme",
+        http_transport=api,
+        sleep=lambda _s: None,
+        rand=lambda: 0.0,
     )
     with caplog.at_level(logging.DEBUG):
         sync_service.sync_source(
-            conn, project_id, source.id, connector=connector, evidence_dir=evidence_dir,
-            chunk_target_chars=4000, chunk_overlap_ratio=0.0,
+            conn,
+            project_id,
+            source.id,
+            connector=connector,
+            evidence_dir=evidence_dir,
+            chunk_target_chars=4000,
+            chunk_overlap_ratio=0.0,
             get_or_create_artifact_fn=gmail_ingestion.get_or_create_gmail_artifact,
             store_artifact_fn=gmail_ingestion.store_gmail_artifact,
         )
@@ -463,9 +522,15 @@ def test_sync_gmail_project_marks_reauth_required_when_refresh_fails(
     monkeypatch.setattr(sync_service, "exchange_refresh_token", fake_exchange)
 
     run = sync_service.sync_gmail_project(
-        conn, project_id, source.id, credential_service=credential_service,
-        google_client_id="cid", google_client_secret="csecret",
-        evidence_dir=evidence_dir, chunk_target_chars=4000, chunk_overlap_ratio=0.0,
+        conn,
+        project_id,
+        source.id,
+        credential_service=credential_service,
+        google_client_id="cid",
+        google_client_secret="csecret",
+        evidence_dir=evidence_dir,
+        chunk_target_chars=4000,
+        chunk_overlap_ratio=0.0,
     )
     assert run.status is SyncRunStatus.FAILED
     refreshed = sources_repository.get_source(conn, project_id, source.id)
@@ -510,22 +575,40 @@ def test_store_gmail_artifact_excludes_quoted_history_from_chunks(conn, project_
     )
 
     metadata = ArtifactMetadata(
-        external_id="m1", title="Re: Report", artifact_type=ArtifactType.EMAIL,
-        source_type=EvidenceSourceType.EMAIL, version_marker="gmail:m1",
+        external_id="m1",
+        title="Re: Report",
+        artifact_type=ArtifactType.EMAIL,
+        source_type=EvidenceSourceType.EMAIL,
+        version_marker="gmail:m1",
     )
     artifact = evidence_repository.insert_artifact(
-        conn, project_id, source.id, external_id="m1", artifact_type=ArtifactType.EMAIL,
-        title="Re: Report", author="bob@example.com", occurred_at=None, external_url=None,
-        source_type=EvidenceSourceType.EMAIL, assignment_method=AssignmentMethod.BOUNDARY_MATCH,
+        conn,
+        project_id,
+        source.id,
+        external_id="m1",
+        artifact_type=ArtifactType.EMAIL,
+        title="Re: Report",
+        author="bob@example.com",
+        occurred_at=None,
+        external_url=None,
+        source_type=EvidenceSourceType.EMAIL,
+        assignment_method=AssignmentMethod.BOUNDARY_MATCH,
     )
     raw = RawArtifact(
-        metadata=metadata, data=full_text.encode("utf-8"), mime_type="text/plain",
+        metadata=metadata,
+        data=full_text.encode("utf-8"),
+        mime_type="text/plain",
         filename="gmail-m1.txt",
     )
 
     result = gmail_ingestion.store_gmail_artifact(
-        conn, project_id, artifact, raw, evidence_dir=evidence_dir,
-        chunk_target_chars=4000, chunk_overlap_ratio=0.0,
+        conn,
+        project_id,
+        artifact,
+        raw,
+        evidence_dir=evidence_dir,
+        chunk_target_chars=4000,
+        chunk_overlap_ratio=0.0,
     )
 
     assert quoted not in "".join(chunk.text for chunk in result.chunks)

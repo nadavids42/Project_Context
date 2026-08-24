@@ -46,9 +46,7 @@ def test_insert_sync_run_starts_running(conn, project_id):
 
 
 def test_get_sync_run_is_project_scoped(conn, project_id):
-    other_id = create_project(
-        conn, ProjectCreateInput(name="Other", objective="Other work")
-    ).id
+    other_id = create_project(conn, ProjectCreateInput(name="Other", objective="Other work")).id
     run = sync_repository.insert_sync_run(conn, project_id)
     assert sync_repository.get_sync_run(conn, other_id, run.id) is None
     assert sync_repository.get_sync_run(conn, project_id, run.id) is not None
@@ -57,9 +55,16 @@ def test_get_sync_run_is_project_scoped(conn, project_id):
 def test_finalize_sync_run_sets_status_counts_and_ended_at(conn, project_id):
     run = sync_repository.insert_sync_run(conn, project_id)
     finalized = sync_repository.finalize_sync_run(
-        conn, project_id, run.id,
-        status=SyncRunStatus.COMPLETED, discovered_count=5, unchanged_count=2,
-        parsed_count=3, failed_count=0, proposed_count=1, needs_assignment_count=0,
+        conn,
+        project_id,
+        run.id,
+        status=SyncRunStatus.COMPLETED,
+        discovered_count=5,
+        unchanged_count=2,
+        parsed_count=3,
+        failed_count=0,
+        proposed_count=1,
+        needs_assignment_count=0,
     )
     assert finalized.status is SyncRunStatus.COMPLETED
     assert finalized.ended_at is not None
@@ -77,13 +82,24 @@ def test_list_sync_runs_for_project_orders_newest_first(conn, project_id):
 def test_insert_and_list_sync_items_for_run(conn, project_id, source_id):
     run = sync_repository.insert_sync_run(conn, project_id)
     sync_repository.insert_sync_item(
-        conn, project_id, sync_run_id=run.id, source_id=source_id, artifact_id=None,
-        external_id="drive:file-1", stage=SyncItemStage.DISCOVERED,
+        conn,
+        project_id,
+        sync_run_id=run.id,
+        source_id=source_id,
+        artifact_id=None,
+        external_id="drive:file-1",
+        stage=SyncItemStage.DISCOVERED,
     )
     sync_repository.insert_sync_item(
-        conn, project_id, sync_run_id=run.id, source_id=source_id, artifact_id=None,
-        external_id="drive:file-2", stage=SyncItemStage.FAILED,
-        status=SyncItemStatus.ERROR, error_class=SyncErrorClass.NOT_FOUND,
+        conn,
+        project_id,
+        sync_run_id=run.id,
+        source_id=source_id,
+        artifact_id=None,
+        external_id="drive:file-2",
+        stage=SyncItemStage.FAILED,
+        status=SyncItemStatus.ERROR,
+        error_class=SyncErrorClass.NOT_FOUND,
         safe_error_message="file not found",
     )
     items = sync_repository.list_sync_items_for_run(conn, run.id)
@@ -95,14 +111,26 @@ def test_insert_and_list_sync_items_for_run(conn, project_id, source_id):
 def test_list_failed_sync_items_for_source_returns_latest_failure_only(conn, project_id, source_id):
     run1 = sync_repository.insert_sync_run(conn, project_id)
     sync_repository.insert_sync_item(
-        conn, project_id, sync_run_id=run1.id, source_id=source_id, artifact_id=None,
-        external_id="drive:file-1", stage=SyncItemStage.FAILED,
-        status=SyncItemStatus.ERROR, error_class=SyncErrorClass.RATE_LIMIT,
+        conn,
+        project_id,
+        sync_run_id=run1.id,
+        source_id=source_id,
+        artifact_id=None,
+        external_id="drive:file-1",
+        stage=SyncItemStage.FAILED,
+        status=SyncItemStatus.ERROR,
+        error_class=SyncErrorClass.RATE_LIMIT,
     )
     run2 = sync_repository.insert_sync_run(conn, project_id)
     sync_repository.insert_sync_item(
-        conn, project_id, sync_run_id=run2.id, source_id=source_id, artifact_id=None,
-        external_id="drive:file-1", stage=SyncItemStage.PARSED, status=SyncItemStatus.OK,
+        conn,
+        project_id,
+        sync_run_id=run2.id,
+        source_id=source_id,
+        artifact_id=None,
+        external_id="drive:file-1",
+        stage=SyncItemStage.PARSED,
+        status=SyncItemStatus.OK,
     )
     failed = sync_repository.list_failed_sync_items_for_source(conn, source_id)
     assert failed == []  # the latest attempt for file-1 succeeded
@@ -111,9 +139,15 @@ def test_list_failed_sync_items_for_source_returns_latest_failure_only(conn, pro
 def test_list_failed_sync_items_for_source_surfaces_current_failures(conn, project_id, source_id):
     run = sync_repository.insert_sync_run(conn, project_id)
     sync_repository.insert_sync_item(
-        conn, project_id, sync_run_id=run.id, source_id=source_id, artifact_id=None,
-        external_id="drive:file-1", stage=SyncItemStage.FAILED,
-        status=SyncItemStatus.ERROR, error_class=SyncErrorClass.PROVIDER,
+        conn,
+        project_id,
+        sync_run_id=run.id,
+        source_id=source_id,
+        artifact_id=None,
+        external_id="drive:file-1",
+        stage=SyncItemStage.FAILED,
+        status=SyncItemStatus.ERROR,
+        error_class=SyncErrorClass.PROVIDER,
     )
     failed = sync_repository.list_failed_sync_items_for_source(conn, source_id)
     assert [i.external_id for i in failed] == ["drive:file-1"]

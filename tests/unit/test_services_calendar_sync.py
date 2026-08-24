@@ -69,15 +69,23 @@ def _make_calendar_source(conn, project_id, *, boundary=None):
 def _connector(api, *, rules=None):
     rules = rules or CalendarMatchRules(project_name_terms=("Acme Rollout",))
     return CalendarConnector(
-        access_token="fake-token", rules=rules, http_transport=api,
-        sleep=lambda _s: None, rand=lambda: 0.0,
+        access_token="fake-token",
+        rules=rules,
+        http_transport=api,
+        sleep=lambda _s: None,
+        rand=lambda: 0.0,
     )
 
 
 def _sync(conn, project_id, source_id, api, evidence_dir, *, extraction_provider=None, rules=None):
     return sync_service.sync_source(
-        conn, project_id, source_id, connector=_connector(api, rules=rules),
-        evidence_dir=evidence_dir, chunk_target_chars=4000, chunk_overlap_ratio=0.0,
+        conn,
+        project_id,
+        source_id,
+        connector=_connector(api, rules=rules),
+        evidence_dir=evidence_dir,
+        chunk_target_chars=4000,
+        chunk_overlap_ratio=0.0,
         extraction_provider=extraction_provider,
         get_or_create_artifact_fn=calendar_ingestion.get_or_create_calendar_artifact,
         store_artifact_fn=calendar_ingestion.store_calendar_artifact,
@@ -93,8 +101,13 @@ def test_sync_source_raises_for_missing_boundary(conn, project_id, tmp_path):
     )
     with pytest.raises(sync_service.SourceNotConfiguredError):
         sync_service.sync_source(
-            conn, project_id, source.id, connector=_connector(FakeCalendarApi()),
-            evidence_dir=tmp_path, chunk_target_chars=4000, chunk_overlap_ratio=0.0,
+            conn,
+            project_id,
+            source.id,
+            connector=_connector(FakeCalendarApi()),
+            evidence_dir=tmp_path,
+            chunk_target_chars=4000,
+            chunk_overlap_ratio=0.0,
             get_or_create_artifact_fn=calendar_ingestion.get_or_create_calendar_artifact,
             store_artifact_fn=calendar_ingestion.store_calendar_artifact,
         )
@@ -104,8 +117,13 @@ def test_sync_source_raises_for_empty_rule_set(conn, project_id, tmp_path):
     source = _make_calendar_source(conn, project_id, boundary={})
     with pytest.raises(sync_service.SourceNotConfiguredError):
         sync_service.sync_source(
-            conn, project_id, source.id, connector=_connector(FakeCalendarApi()),
-            evidence_dir=tmp_path, chunk_target_chars=4000, chunk_overlap_ratio=0.0,
+            conn,
+            project_id,
+            source.id,
+            connector=_connector(FakeCalendarApi()),
+            evidence_dir=tmp_path,
+            chunk_target_chars=4000,
+            chunk_overlap_ratio=0.0,
             get_or_create_artifact_fn=calendar_ingestion.get_or_create_calendar_artifact,
             store_artifact_fn=calendar_ingestion.store_calendar_artifact,
         )
@@ -174,7 +192,11 @@ def test_event_metadata_alone_cannot_produce_a_project_state_observation(
             raise AssertionError("extraction must never run for a description-less event")
 
     run = _sync(
-        conn, project_id, source.id, api, evidence_dir,
+        conn,
+        project_id,
+        source.id,
+        api,
+        evidence_dir,
         extraction_provider=_ExplodingProvider(),
     )
 
@@ -198,7 +220,9 @@ def test_metadata_header_is_never_chunked_even_with_a_description_present(
     source = _make_calendar_source(conn, project_id)
     api = FakeCalendarApi()
     api.add_event(
-        "evt1", summary="Acme Rollout sync", description="Priya will send the report.",
+        "evt1",
+        summary="Acme Rollout sync",
+        description="Priya will send the report.",
         organizer_email="sensitive-organizer@example.com",
     )
     run = _sync(conn, project_id, source.id, api, evidence_dir)
@@ -238,19 +262,30 @@ class _ReactiveProvider:
         char_start = chunk_text.index(self._text)
         char_end = char_start + len(self._text)
         span = EvidenceSpan(
-            chunk_id=chunk_id_match.group(1), char_start=char_start, char_end=char_end,
+            chunk_id=chunk_id_match.group(1),
+            char_start=char_start,
+            char_end=char_end,
             quote=self._text,
         )
         observation = ExtractedObservation(
-            kind="commitment", subject="Send the report", statement=self._text,
-            owner_name=None, explicitness="explicit", evidence=[span],
+            kind="commitment",
+            subject="Send the report",
+            statement=self._text,
+            owner_name=None,
+            explicitness="explicit",
+            evidence=[span],
         )
         batch = ExtractionBatch(
             observations=[observation], source_contains_no_material_updates=False
         )
         return StructuredResult(
-            parsed=batch, provider="fake", model=config.model, request_id=None,
-            input_tokens=10, output_tokens=5, latency_ms=1,
+            parsed=batch,
+            provider="fake",
+            model=config.model,
+            request_id=None,
+            input_tokens=10,
+            output_tokens=5,
+            latency_ms=1,
             estimated_cost_usd=estimate_cost_usd(config.model, 10, 5),
         )
 
@@ -293,13 +328,13 @@ def test_rerun_of_the_same_bounded_window_produces_no_change_only(conn, project_
     assert len(artifacts) == 1
 
 
-def test_rerun_updates_content_when_event_updated_timestamp_changes(
-    conn, project_id, evidence_dir
-):
+def test_rerun_updates_content_when_event_updated_timestamp_changes(conn, project_id, evidence_dir):
     source = _make_calendar_source(conn, project_id)
     api = FakeCalendarApi()
     api.add_event(
-        "evt1", summary="Acme Rollout sync", description="v1",
+        "evt1",
+        summary="Acme Rollout sync",
+        description="v1",
         updated="2026-05-01T00:00:00.000Z",
     )
 
@@ -312,9 +347,7 @@ def test_rerun_updates_content_when_event_updated_timestamp_changes(
     assert second.unchanged_count == 0
 
     artifacts = evidence_repository.list_artifacts_for_source(conn, project_id, source.id)
-    contents = evidence_repository.list_contents_for_artifact(
-        conn, project_id, artifacts[0].id
-    )
+    contents = evidence_repository.list_contents_for_artifact(conn, project_id, artifacts[0].id)
     assert len(contents) == 2  # both versions retained (FR-007)
 
 
@@ -373,13 +406,19 @@ def test_calendar_sync_failure_does_not_affect_other_sources(
     )
     drive_api = FakeDriveApi()
     drive_api.files["root"] = {
-        "id": "root", "mimeType": "application/vnd.google-apps.folder", "trashed": False,
+        "id": "root",
+        "mimeType": "application/vnd.google-apps.folder",
+        "trashed": False,
     }
     drive_api.add_folder("root", [])
     drive_run = sync_service.sync_source(
-        conn, project_id, drive_source.id,
+        conn,
+        project_id,
+        drive_source.id,
         connector=DriveConnector(access_token="t", folder_id="root", http_transport=drive_api),
-        evidence_dir=tmp_path, chunk_target_chars=4000, chunk_overlap_ratio=0.0,
+        evidence_dir=tmp_path,
+        chunk_target_chars=4000,
+        chunk_overlap_ratio=0.0,
     )
     assert drive_run.status is SyncRunStatus.COMPLETED
 
@@ -400,23 +439,27 @@ def test_calendar_evidence_is_isolated_per_project(conn, evidence_dir):
     project_a = create_project(conn, ProjectCreateInput(name="Project A", objective="A")).id
     project_b = create_project(conn, ProjectCreateInput(name="Project B", objective="B")).id
 
-    source_a = _make_calendar_source(
-        conn, project_a, boundary={"project_name_terms": ["Alpha"]}
-    )
+    source_a = _make_calendar_source(conn, project_a, boundary={"project_name_terms": ["Alpha"]})
     api_a = FakeCalendarApi()
     api_a.add_event("evt1", summary="Alpha sync", description="Secret sentinel Alpha content.")
     _sync(
-        conn, project_a, source_a.id, api_a, evidence_dir,
+        conn,
+        project_a,
+        source_a.id,
+        api_a,
+        evidence_dir,
         rules=CalendarMatchRules(project_name_terms=("Alpha",)),
     )
 
-    source_b = _make_calendar_source(
-        conn, project_b, boundary={"project_name_terms": ["Beta"]}
-    )
+    source_b = _make_calendar_source(conn, project_b, boundary={"project_name_terms": ["Beta"]})
     api_b = FakeCalendarApi()
     api_b.add_event("evt2", summary="Beta sync", description="Unrelated Beta content.")
     _sync(
-        conn, project_b, source_b.id, api_b, evidence_dir,
+        conn,
+        project_b,
+        source_b.id,
+        api_b,
+        evidence_dir,
         rules=CalendarMatchRules(project_name_terms=("Beta",)),
     )
 
@@ -443,13 +486,21 @@ def test_calendar_sync_never_logs_the_access_token_or_description(
     api.add_event("evt1", summary="Acme Rollout sync", description=secret_description)
 
     connector = CalendarConnector(
-        access_token=secret_token, rules=CalendarMatchRules(project_name_terms=("Acme Rollout",)),
-        http_transport=api, sleep=lambda _s: None, rand=lambda: 0.0,
+        access_token=secret_token,
+        rules=CalendarMatchRules(project_name_terms=("Acme Rollout",)),
+        http_transport=api,
+        sleep=lambda _s: None,
+        rand=lambda: 0.0,
     )
     with caplog.at_level(logging.DEBUG):
         sync_service.sync_source(
-            conn, project_id, source.id, connector=connector, evidence_dir=evidence_dir,
-            chunk_target_chars=4000, chunk_overlap_ratio=0.0,
+            conn,
+            project_id,
+            source.id,
+            connector=connector,
+            evidence_dir=evidence_dir,
+            chunk_target_chars=4000,
+            chunk_overlap_ratio=0.0,
             get_or_create_artifact_fn=calendar_ingestion.get_or_create_calendar_artifact,
             store_artifact_fn=calendar_ingestion.store_calendar_artifact,
         )
@@ -485,9 +536,15 @@ def test_sync_calendar_project_marks_reauth_required_when_refresh_fails(
     monkeypatch.setattr(sync_service, "exchange_refresh_token", fake_exchange)
 
     run = sync_service.sync_calendar_project(
-        conn, project_id, source.id, credential_service=credential_service,
-        google_client_id="cid", google_client_secret="csecret",
-        evidence_dir=evidence_dir, chunk_target_chars=4000, chunk_overlap_ratio=0.0,
+        conn,
+        project_id,
+        source.id,
+        credential_service=credential_service,
+        google_client_id="cid",
+        google_client_secret="csecret",
+        evidence_dir=evidence_dir,
+        chunk_target_chars=4000,
+        chunk_overlap_ratio=0.0,
     )
     assert run.status is SyncRunStatus.FAILED
     refreshed = sources_repository.get_source(conn, project_id, source.id)
@@ -497,18 +554,22 @@ def test_sync_calendar_project_marks_reauth_required_when_refresh_fails(
 def test_sync_calendar_project_fails_gracefully_on_invalid_regex(
     conn, project_id, evidence_dir, credential_service, monkeypatch
 ):
-    source = _make_calendar_source(
-        conn, project_id, boundary={"include_regex": "(unclosed"}
-    )
+    source = _make_calendar_source(conn, project_id, boundary={"include_regex": "(unclosed"})
     credential_service.connect(conn, project_id, source.id, secret="refresh-token")
     # Isolate this test to the invalid-regex failure path — never a
     # real token exchange over the network (Section 15).
     monkeypatch.setattr(sync_service, "exchange_refresh_token", lambda *a, **k: "fake-access-token")
 
     run = sync_service.sync_calendar_project(
-        conn, project_id, source.id, credential_service=credential_service,
-        google_client_id="cid", google_client_secret="csecret",
-        evidence_dir=evidence_dir, chunk_target_chars=4000, chunk_overlap_ratio=0.0,
+        conn,
+        project_id,
+        source.id,
+        credential_service=credential_service,
+        google_client_id="cid",
+        google_client_secret="csecret",
+        evidence_dir=evidence_dir,
+        chunk_target_chars=4000,
+        chunk_overlap_ratio=0.0,
     )
     assert run.status is SyncRunStatus.FAILED
     refreshed = sources_repository.get_source(conn, project_id, source.id)

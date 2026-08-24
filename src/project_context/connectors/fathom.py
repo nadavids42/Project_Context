@@ -298,7 +298,12 @@ class FathomConnector:
             params["include_summary"] = "true"
             params["include_action_items"] = "true"
         response = request_with_retry(
-            self._transport, "GET", FATHOM_MEETINGS_URL, params=params, headers=self._headers(),
-            sleep=self._sleep, rand=self._rand,
+            self._transport,
+            "GET",
+            FATHOM_MEETINGS_URL,
+            params=params,
+            headers=self._headers(),
+            sleep=self._sleep,
+            rand=self._rand,
         )
         return response.json()

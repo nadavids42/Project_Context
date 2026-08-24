@@ -117,6 +117,40 @@ def test_ensure_local_directories_is_explicit_opt_in(tmp_path, monkeypatch):
     assert config.sqlite_path.parent.is_dir()
 
 
+def test_ensure_local_directories_restricts_data_and_evidence_dirs_to_owner(tmp_path, monkeypatch):
+    """Section 16: "restrict the data directory to the user" — created
+    directories are chmod 0700, not left at the default umask-derived
+    mode (typically group/other-readable)."""
+    import stat
+
+    monkeypatch.chdir(tmp_path)
+    config = load_config(_env_file=None)
+
+    config.ensure_local_directories()
+
+    for directory in (config.data_dir, config.evidence_dir):
+        mode = stat.S_IMODE(directory.stat().st_mode)
+        assert mode == stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR
+
+
+def test_ensure_local_directories_self_heals_permissions_on_a_preexisting_directory(
+    tmp_path, monkeypatch
+):
+    """A directory created before this hardening existed (or by some
+    other process) is tightened on the next startup, not left as-is."""
+    import stat
+
+    monkeypatch.chdir(tmp_path)
+    config = load_config(_env_file=None)
+    config.data_dir.mkdir(parents=True)
+    config.data_dir.chmod(0o755)
+
+    config.ensure_local_directories()
+
+    mode = stat.S_IMODE(config.data_dir.stat().st_mode)
+    assert mode == stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR
+
+
 def test_credentials_dir_defaults_under_data_dir_and_is_not_precreated(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     config = load_config(_env_file=None)

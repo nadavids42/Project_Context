@@ -64,7 +64,6 @@ def test_import_all_submodules_without_side_effects(tmp_path, monkeypatch):
         "project_context.ui.pages.evidence",
         "project_context.ui.pages.briefs",
         "project_context.ui.pages.sources_settings",
-        "project_context.ui.pages.not_built",
         "project_context.ui.navigation",
     ]
     for name in submodules:

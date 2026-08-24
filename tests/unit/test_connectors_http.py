@@ -28,9 +28,7 @@ class FakeTransport:
         self.calls: list[dict] = []
 
     def request(self, method, url, *, params=None, headers=None, timeout=30.0):
-        self.calls.append(
-            {"method": method, "url": url, "params": params, "headers": headers}
-        )
+        self.calls.append({"method": method, "url": url, "params": params, "headers": headers})
         if not self.responses:
             raise AssertionError("FakeTransport called with no queued response")
         return self.responses.pop(0)
@@ -79,9 +77,7 @@ def test_404_raises_not_found_error_without_retrying():
 def test_429_with_retry_after_sleeps_the_exact_header_value_then_succeeds():
     transport = FakeTransport([_resp(429, headers={"Retry-After": "3"}), _resp(200)])
     slept = []
-    response = request_with_retry(
-        transport, "GET", "https://example.com/x", sleep=slept.append
-    )
+    response = request_with_retry(transport, "GET", "https://example.com/x", sleep=slept.append)
     assert response.status_code == 200
     assert slept == [3.0]
 
@@ -126,9 +122,7 @@ def test_5xx_exhausting_attempts_raises_server_error():
 
 def test_408_is_treated_as_transient_and_retried():
     transport = FakeTransport([_resp(408), _resp(200)])
-    response = request_with_retry(
-        transport, "GET", "https://example.com/x", sleep=_no_sleep
-    )
+    response = request_with_retry(transport, "GET", "https://example.com/x", sleep=_no_sleep)
     assert response.status_code == 200
 
 
@@ -137,8 +131,11 @@ def test_retry_never_logs_the_authorization_header_value(caplog):
     transport = FakeTransport([_resp(200)])
     with caplog.at_level(logging.DEBUG):
         request_with_retry(
-            transport, "GET", "https://www.googleapis.com/drive/v3/files",
-            headers={"Authorization": f"Bearer {secret_token}"}, sleep=_no_sleep,
+            transport,
+            "GET",
+            "https://www.googleapis.com/drive/v3/files",
+            headers={"Authorization": f"Bearer {secret_token}"},
+            sleep=_no_sleep,
         )
     for record in caplog.records:
         assert secret_token not in record.getMessage()

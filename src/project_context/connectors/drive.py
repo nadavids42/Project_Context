@@ -190,7 +190,8 @@ class DriveConnector:
 
         if next_token:
             next_checkpoint: dict[str, Any] | None = {
-                "folder_queue": folder_queue, "page_token": next_token,
+                "folder_queue": folder_queue,
+                "page_token": next_token,
             }
         else:
             remaining = folder_queue[1:]
@@ -202,19 +203,24 @@ class DriveConnector:
         mime_type = artifact.mime_type or ""
         if mime_type == MIME_TYPE_GOOGLE_DOC:
             response = self._request(
-                "GET", f"{DRIVE_API_BASE}/files/{artifact.external_id}/export",
+                "GET",
+                f"{DRIVE_API_BASE}/files/{artifact.external_id}/export",
                 params={"mimeType": DOC_EXPORT_MIME_TYPE},
             )
             return RawArtifact(
-                metadata=artifact, data=response.content, mime_type=DOC_EXPORT_MIME_TYPE,
+                metadata=artifact,
+                data=response.content,
+                mime_type=DOC_EXPORT_MIME_TYPE,
                 filename=f"{artifact.title}.txt",
             )
         response = self._request(
             "GET", f"{DRIVE_API_BASE}/files/{artifact.external_id}", params={"alt": "media"}
         )
         return RawArtifact(
-            metadata=artifact, data=response.content,
-            mime_type=mime_type or "application/octet-stream", filename=artifact.title,
+            metadata=artifact,
+            data=response.content,
+            mime_type=mime_type or "application/octet-stream",
+            filename=artifact.title,
         )
 
     # --- Drive-specific extra: availability check (not part of the
@@ -248,8 +254,13 @@ class DriveConnector:
 
     def _request(self, method: str, url: str, *, params: dict[str, Any]):
         return request_with_retry(
-            self._transport, method, url, params=params, headers=self._headers(),
-            sleep=self._sleep, rand=self._rand,
+            self._transport,
+            method,
+            url,
+            params=params,
+            headers=self._headers(),
+            sleep=self._sleep,
+            rand=self._rand,
         )
 
     def _list_children(

@@ -13,6 +13,9 @@ import sqlite3
 
 import streamlit as st
 
+from project_context.config import load_config
+from project_context.credentials.service import CredentialService
+from project_context.credentials.store import CredentialStore
 from project_context.domain.projects import (
     EDITABLE_STATUSES,
     NAME_MAX_LENGTH,
@@ -21,6 +24,11 @@ from project_context.domain.projects import (
     ProjectCreateInput,
     ProjectStatus,
     ProjectUpdateInput,
+)
+from project_context.services.project_deletion import (
+    DeletionConfirmationError,
+    delete_project,
+    preview_delete_project,
 )
 from project_context.services.projects import (
     ProjectNotFoundError,
@@ -78,7 +86,7 @@ def _render_project_row(conn: sqlite3.Connection, project: Project) -> None:
         updated_col.write(project.updated_at)
 
         with actions_col:
-            button_cols = st.columns(3)
+            button_cols = st.columns(4)
             if button_cols[0].button("Open", key=f"open-{project.id}"):
                 _select_and_open(project.id)
             if project.status is ProjectStatus.ARCHIVED:
@@ -89,6 +97,8 @@ def _render_project_row(conn: sqlite3.Connection, project: Project) -> None:
                     _open_edit_project_dialog(project)
                 if button_cols[2].button("Archive", key=f"archive-{project.id}"):
                     _open_archive_confirm_dialog(project)
+            if button_cols[3].button("Delete", key=f"delete-{project.id}"):
+                _open_delete_confirm_dialog(project)
 
 
 def _select_and_open(project_id: str) -> None:
@@ -134,6 +144,65 @@ def _open_archive_confirm_dialog(project: Project) -> None:
                 return
         st.rerun()
     if cancel_col.button("Cancel", key=f"cancel-archive-{project.id}"):
+        st.rerun()
+
+
+@st.dialog("Delete project?")
+def _open_delete_confirm_dialog(project: Project) -> None:
+    """Section 16: "Delete project previews counts, requires exact
+    confirmation" — distinct from, and far more destructive than,
+    Archive above. Every count shown here is real, computed fresh each
+    render, never an estimate."""
+    with project_context_connection() as conn:
+        try:
+            counts = preview_delete_project(conn, project.id)
+        except ProjectNotFoundError:
+            st.error("This project no longer exists.")
+            return
+
+    st.error(
+        f"This permanently deletes **{project.name}** — all evidence, ledger "
+        "history, reviews, corrections, briefs, sync history, and connector "
+        "credentials. This cannot be undone (use **Archive** instead if you "
+        "want a reversible, hide-only action).",
+        icon="🗑️",
+    )
+    st.markdown(
+        f"- **{counts.source_artifacts}** evidence artifact(s) across "
+        f"**{counts.sources}** source(s) ({counts.source_contents} content "
+        f"version(s), {counts.orphaned_content_objects} stored file(s) "
+        "removed if not shared with another project)\n"
+        f"- **{counts.observations}** extracted observation(s)\n"
+        f"- **{counts.ledger_items}** ledger item(s), "
+        f"{counts.ledger_versions} version(s)\n"
+        f"- **{counts.reviews}** review(s), {counts.corrections} correction(s)\n"
+        f"- **{counts.generated_briefs}** generated brief(s)\n"
+        f"- **{counts.sync_runs}** sync run(s)\n"
+    )
+    confirmation = st.text_input(
+        f"Type the project name (**{project.name}**) to confirm.",
+        key=f"delete-confirm-{project.id}",
+    )
+    confirm_col, cancel_col = st.columns(2)
+    if confirm_col.button("Permanently delete", type="primary", key=f"confirm-delete-{project.id}"):
+        config = load_config()
+        credential_service = CredentialService(
+            CredentialStore(credentials_dir=config.credentials_dir)
+        )
+        with project_context_connection() as conn:
+            try:
+                delete_project(
+                    conn,
+                    project.id,
+                    confirmation_text=confirmation,
+                    evidence_dir=config.evidence_dir,
+                    credential_service=credential_service,
+                )
+            except (ProjectNotFoundError, DeletionConfirmationError) as exc:
+                st.error(str(exc))
+                return
+        st.rerun()
+    if cancel_col.button("Cancel", key=f"cancel-delete-{project.id}"):
         st.rerun()
 
 

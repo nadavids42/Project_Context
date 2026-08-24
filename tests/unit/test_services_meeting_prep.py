@@ -265,7 +265,8 @@ def test_changes_since_previous_renders_a_real_transition_with_citation(conn, pr
                     section="changes_since_previous",
                     claims=[
                         BriefClaimOutput(
-                            text="A new vendor delay risk was raised.", claim_type="fact",
+                            text="A new vendor delay risk was raised.",
+                            claim_type="fact",
                             fact_ids=[fact_id],
                         )
                     ],
@@ -284,11 +285,17 @@ def test_changes_since_previous_renders_a_real_transition_with_citation(conn, pr
 
 def test_inference_claim_renders_with_inference_label(conn, project_id):
     make_evidenced_item(
-        conn, project_id, kind=LedgerItemKind.COMMITMENT, title="Send the report",
+        conn,
+        project_id,
+        kind=LedgerItemKind.COMMITMENT,
+        title="Send the report",
         due_date="2026-09-01",
     )
     make_evidenced_item(
-        conn, project_id, kind=LedgerItemKind.COMMITMENT, title="Review the report",
+        conn,
+        project_id,
+        kind=LedgerItemKind.COMMITMENT,
+        title="Review the report",
         due_date="2026-08-30",
     )
 
@@ -301,7 +308,8 @@ def test_inference_claim_renders_with_inference_label(conn, project_id):
                     claims=[
                         BriefClaimOutput(
                             text="The review is due before the report that depends on it.",
-                            claim_type="inference", fact_ids=fact_ids,
+                            claim_type="inference",
+                            fact_ids=fact_ids,
                         )
                     ],
                 )

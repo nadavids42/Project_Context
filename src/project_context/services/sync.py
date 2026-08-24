@@ -177,26 +177,45 @@ def sync_drive_project(
         raise SourceNotConfiguredError(f"source {source_id!r} not found in project {project_id!r}")
 
     access_token = mint_drive_access_token(
-        conn, project_id, source_id, credential_service=credential_service,
-        google_client_id=google_client_id, google_client_secret=google_client_secret,
+        conn,
+        project_id,
+        source_id,
+        credential_service=credential_service,
+        google_client_id=google_client_id,
+        google_client_secret=google_client_secret,
     )
     if access_token is None:
         run = sync_repository.insert_sync_run(conn, project_id)
         return sync_repository.finalize_sync_run(
-            conn, project_id, run.id, status=SyncRunStatus.FAILED,
-            discovered_count=0, unchanged_count=0, parsed_count=0, failed_count=1,
-            proposed_count=0, needs_assignment_count=0,
+            conn,
+            project_id,
+            run.id,
+            status=SyncRunStatus.FAILED,
+            discovered_count=0,
+            unchanged_count=0,
+            parsed_count=0,
+            failed_count=1,
+            proposed_count=0,
+            needs_assignment_count=0,
         )
 
     boundary = _load_boundary(source)
     folder_id = boundary.get("folder_id", "") if boundary else ""
     connector = DriveConnector(
-        access_token=access_token, folder_id=folder_id, http_transport=RequestsHttpTransport(),
+        access_token=access_token,
+        folder_id=folder_id,
+        http_transport=RequestsHttpTransport(),
     )
     return sync_source(
-        conn, project_id, source_id, connector=connector, evidence_dir=evidence_dir,
-        chunk_target_chars=chunk_target_chars, chunk_overlap_ratio=chunk_overlap_ratio,
-        extraction_provider=extraction_provider, extraction_model=extraction_model,
+        conn,
+        project_id,
+        source_id,
+        connector=connector,
+        evidence_dir=evidence_dir,
+        chunk_target_chars=chunk_target_chars,
+        chunk_overlap_ratio=chunk_overlap_ratio,
+        extraction_provider=extraction_provider,
+        extraction_model=extraction_model,
     )
 
 
@@ -221,7 +240,9 @@ def mint_gmail_access_token(
 
     def _refresh_and_capture(current_refresh_token: str) -> str:
         access_token_holder["access_token"] = exchange_refresh_token(
-            current_refresh_token, client_id=google_client_id, client_secret=google_client_secret,
+            current_refresh_token,
+            client_id=google_client_id,
+            client_secret=google_client_secret,
             scopes=[google_oauth.GMAIL_READONLY_SCOPE],
         )
         return current_refresh_token
@@ -281,15 +302,26 @@ def sync_gmail_project(
         raise SourceNotConfiguredError(f"source {source_id!r} not found in project {project_id!r}")
 
     access_token = mint_gmail_access_token(
-        conn, project_id, source_id, credential_service=credential_service,
-        google_client_id=google_client_id, google_client_secret=google_client_secret,
+        conn,
+        project_id,
+        source_id,
+        credential_service=credential_service,
+        google_client_id=google_client_id,
+        google_client_secret=google_client_secret,
     )
     if access_token is None:
         run = sync_repository.insert_sync_run(conn, project_id)
         return sync_repository.finalize_sync_run(
-            conn, project_id, run.id, status=SyncRunStatus.FAILED,
-            discovered_count=0, unchanged_count=0, parsed_count=0, failed_count=1,
-            proposed_count=0, needs_assignment_count=0,
+            conn,
+            project_id,
+            run.id,
+            status=SyncRunStatus.FAILED,
+            discovered_count=0,
+            unchanged_count=0,
+            parsed_count=0,
+            failed_count=1,
+            proposed_count=0,
+            needs_assignment_count=0,
         )
 
     boundary = _load_boundary(source) or {}
@@ -301,9 +333,15 @@ def sync_gmail_project(
         http_transport=RequestsHttpTransport(),
     )
     return sync_source(
-        conn, project_id, source_id, connector=connector, evidence_dir=evidence_dir,
-        chunk_target_chars=chunk_target_chars, chunk_overlap_ratio=chunk_overlap_ratio,
-        extraction_provider=extraction_provider, extraction_model=extraction_model,
+        conn,
+        project_id,
+        source_id,
+        connector=connector,
+        evidence_dir=evidence_dir,
+        chunk_target_chars=chunk_target_chars,
+        chunk_overlap_ratio=chunk_overlap_ratio,
+        extraction_provider=extraction_provider,
+        extraction_model=extraction_model,
         get_or_create_artifact_fn=gmail_ingestion.get_or_create_gmail_artifact,
         store_artifact_fn=gmail_ingestion.store_gmail_artifact,
     )
@@ -329,7 +367,9 @@ def mint_calendar_access_token(
 
     def _refresh_and_capture(current_refresh_token: str) -> str:
         access_token_holder["access_token"] = exchange_refresh_token(
-            current_refresh_token, client_id=google_client_id, client_secret=google_client_secret,
+            current_refresh_token,
+            client_id=google_client_id,
+            client_secret=google_client_secret,
             scopes=[google_oauth.CALENDAR_EVENTS_READONLY_SCOPE],
         )
         return current_refresh_token
@@ -368,15 +408,26 @@ def sync_calendar_project(
         raise SourceNotConfiguredError(f"source {source_id!r} not found in project {project_id!r}")
 
     access_token = mint_calendar_access_token(
-        conn, project_id, source_id, credential_service=credential_service,
-        google_client_id=google_client_id, google_client_secret=google_client_secret,
+        conn,
+        project_id,
+        source_id,
+        credential_service=credential_service,
+        google_client_id=google_client_id,
+        google_client_secret=google_client_secret,
     )
     if access_token is None:
         run = sync_repository.insert_sync_run(conn, project_id)
         return sync_repository.finalize_sync_run(
-            conn, project_id, run.id, status=SyncRunStatus.FAILED,
-            discovered_count=0, unchanged_count=0, parsed_count=0, failed_count=1,
-            proposed_count=0, needs_assignment_count=0,
+            conn,
+            project_id,
+            run.id,
+            status=SyncRunStatus.FAILED,
+            discovered_count=0,
+            unchanged_count=0,
+            parsed_count=0,
+            failed_count=1,
+            proposed_count=0,
+            needs_assignment_count=0,
         )
 
     boundary = _load_boundary(source) or {}
@@ -391,19 +442,35 @@ def sync_calendar_project(
         )
     except (InvalidCalendarRuleError, ConnectorConfigError):
         sources_repository.update_health(
-            conn, project_id, source_id,
-            health_status=SourceHealthStatus.DEGRADED, last_error_code="schema",
+            conn,
+            project_id,
+            source_id,
+            health_status=SourceHealthStatus.DEGRADED,
+            last_error_code="schema",
         )
         run = sync_repository.insert_sync_run(conn, project_id)
         return sync_repository.finalize_sync_run(
-            conn, project_id, run.id, status=SyncRunStatus.FAILED,
-            discovered_count=0, unchanged_count=0, parsed_count=0, failed_count=1,
-            proposed_count=0, needs_assignment_count=0,
+            conn,
+            project_id,
+            run.id,
+            status=SyncRunStatus.FAILED,
+            discovered_count=0,
+            unchanged_count=0,
+            parsed_count=0,
+            failed_count=1,
+            proposed_count=0,
+            needs_assignment_count=0,
         )
     return sync_source(
-        conn, project_id, source_id, connector=connector, evidence_dir=evidence_dir,
-        chunk_target_chars=chunk_target_chars, chunk_overlap_ratio=chunk_overlap_ratio,
-        extraction_provider=extraction_provider, extraction_model=extraction_model,
+        conn,
+        project_id,
+        source_id,
+        connector=connector,
+        evidence_dir=evidence_dir,
+        chunk_target_chars=chunk_target_chars,
+        chunk_overlap_ratio=chunk_overlap_ratio,
+        extraction_provider=extraction_provider,
+        extraction_model=extraction_model,
         get_or_create_artifact_fn=calendar_ingestion.get_or_create_calendar_artifact,
         store_artifact_fn=calendar_ingestion.store_calendar_artifact,
     )
@@ -465,34 +532,58 @@ def sync_fathom_project(
     if api_key is None:
         run = sync_repository.insert_sync_run(conn, project_id)
         return sync_repository.finalize_sync_run(
-            conn, project_id, run.id, status=SyncRunStatus.FAILED,
-            discovered_count=0, unchanged_count=0, parsed_count=0, failed_count=1,
-            proposed_count=0, needs_assignment_count=0,
+            conn,
+            project_id,
+            run.id,
+            status=SyncRunStatus.FAILED,
+            discovered_count=0,
+            unchanged_count=0,
+            parsed_count=0,
+            failed_count=1,
+            proposed_count=0,
+            needs_assignment_count=0,
         )
 
     boundary = _load_boundary(source) or {}
     try:
         rules = FathomMatchRules.from_boundary(boundary)
         connector = FathomConnector(
-            api_key=api_key, rules=rules,
+            api_key=api_key,
+            rules=rules,
             created_after=_fathom_created_after(source.last_success_at),
             http_transport=RequestsHttpTransport(),
         )
     except (InvalidFathomRuleError, ConnectorConfigError):
         sources_repository.update_health(
-            conn, project_id, source_id,
-            health_status=SourceHealthStatus.DEGRADED, last_error_code="schema",
+            conn,
+            project_id,
+            source_id,
+            health_status=SourceHealthStatus.DEGRADED,
+            last_error_code="schema",
         )
         run = sync_repository.insert_sync_run(conn, project_id)
         return sync_repository.finalize_sync_run(
-            conn, project_id, run.id, status=SyncRunStatus.FAILED,
-            discovered_count=0, unchanged_count=0, parsed_count=0, failed_count=1,
-            proposed_count=0, needs_assignment_count=0,
+            conn,
+            project_id,
+            run.id,
+            status=SyncRunStatus.FAILED,
+            discovered_count=0,
+            unchanged_count=0,
+            parsed_count=0,
+            failed_count=1,
+            proposed_count=0,
+            needs_assignment_count=0,
         )
     return sync_source(
-        conn, project_id, source_id, connector=connector, evidence_dir=evidence_dir,
-        chunk_target_chars=chunk_target_chars, chunk_overlap_ratio=chunk_overlap_ratio,
-        extraction_provider=extraction_provider, extraction_model=extraction_model,
+        conn,
+        project_id,
+        source_id,
+        connector=connector,
+        evidence_dir=evidence_dir,
+        chunk_target_chars=chunk_target_chars,
+        chunk_overlap_ratio=chunk_overlap_ratio,
+        extraction_provider=extraction_provider,
+        extraction_model=extraction_model,
         get_or_create_artifact_fn=fathom_ingestion.get_or_create_fathom_artifact,
         store_artifact_fn=fathom_ingestion.store_fathom_artifact,
     )
@@ -585,9 +676,16 @@ def sync_source(
         _apply_connector_health(conn, project_id, source_id, health.status)
         run = sync_repository.insert_sync_run(conn, project_id)
         return sync_repository.finalize_sync_run(
-            conn, project_id, run.id, status=SyncRunStatus.FAILED,
-            discovered_count=0, unchanged_count=0, parsed_count=0, failed_count=1,
-            proposed_count=0, needs_assignment_count=0,
+            conn,
+            project_id,
+            run.id,
+            status=SyncRunStatus.FAILED,
+            discovered_count=0,
+            unchanged_count=0,
+            parsed_count=0,
+            failed_count=1,
+            proposed_count=0,
+            needs_assignment_count=0,
         )
 
     run = sync_repository.insert_sync_run(conn, project_id)
@@ -608,9 +706,16 @@ def sync_source(
         except ConnectorError as exc:
             counts.failed += 1
             _record_item(
-                conn, project_id, run.id, source_id, None, f"connector:{source_id}",
-                stage=SyncItemStage.FAILED, start=time.monotonic(),
-                error_class=exc.error_class, safe_message=exc.safe_message,
+                conn,
+                project_id,
+                run.id,
+                source_id,
+                None,
+                f"connector:{source_id}",
+                stage=SyncItemStage.FAILED,
+                start=time.monotonic(),
+                error_class=exc.error_class,
+                safe_message=exc.safe_message,
             )
             break
 
@@ -618,17 +723,27 @@ def sync_source(
             counts.discovered += 1
             seen_external_ids.add(metadata.external_id)
             _process_one_artifact(
-                conn, project_id, run.id, source_id, connector, metadata, counts,
-                evidence_dir=evidence_dir, chunk_target_chars=chunk_target_chars,
+                conn,
+                project_id,
+                run.id,
+                source_id,
+                connector,
+                metadata,
+                counts,
+                evidence_dir=evidence_dir,
+                chunk_target_chars=chunk_target_chars,
                 chunk_overlap_ratio=chunk_overlap_ratio,
-                extraction_provider=extraction_provider, extraction_model=extraction_model,
+                extraction_provider=extraction_provider,
+                extraction_model=extraction_model,
                 get_or_create_artifact_fn=get_or_create_artifact_fn,
                 store_artifact_fn=store_artifact_fn,
             )
 
         checkpoint = page.next_checkpoint
         sources_repository.update_last_cursor(
-            conn, project_id, source_id,
+            conn,
+            project_id,
+            source_id,
             last_cursor=json.dumps(checkpoint) if checkpoint is not None else None,
         )
         if checkpoint is None:
@@ -651,20 +766,30 @@ def sync_source(
 
     status = _final_status(counts)
     finalized = sync_repository.finalize_sync_run(
-        conn, project_id, run.id, status=status,
-        discovered_count=counts.discovered, unchanged_count=counts.unchanged,
-        downloaded_count=counts.downloaded, parsed_count=counts.parsed,
-        extracted_count=counts.extracted, failed_count=counts.failed,
-        proposed_count=counts.proposed, needs_assignment_count=counts.unassigned,
+        conn,
+        project_id,
+        run.id,
+        status=status,
+        discovered_count=counts.discovered,
+        unchanged_count=counts.unchanged,
+        downloaded_count=counts.downloaded,
+        parsed_count=counts.parsed,
+        extracted_count=counts.extracted,
+        failed_count=counts.failed,
+        proposed_count=counts.proposed,
+        needs_assignment_count=counts.unassigned,
     )
     if status is not SyncRunStatus.FAILED:
         sources_repository.update_last_success(
             conn, project_id, source_id, last_success_at=finalized.ended_at or finalized.updated_at
         )
     sources_repository.update_health(
-        conn, project_id, source_id,
+        conn,
+        project_id,
+        source_id,
         health_status=(
-            SourceHealthStatus.HEALTHY if status is SyncRunStatus.COMPLETED
+            SourceHealthStatus.HEALTHY
+            if status is SyncRunStatus.COMPLETED
             else SourceHealthStatus.DEGRADED
         ),
     )
@@ -711,9 +836,17 @@ def _record_item(
     status = SyncItemStatus.ERROR if stage is SyncItemStage.FAILED else SyncItemStatus.OK
     with transaction(conn):
         sync_repository.insert_sync_item(
-            conn, project_id, sync_run_id=run_id, source_id=source_id, artifact_id=artifact_id,
-            external_id=external_id, stage=stage, status=status, error_class=error_class,
-            safe_error_message=safe_message, duration_ms=duration_ms,
+            conn,
+            project_id,
+            sync_run_id=run_id,
+            source_id=source_id,
+            artifact_id=artifact_id,
+            external_id=external_id,
+            stage=stage,
+            status=status,
+            error_class=error_class,
+            safe_error_message=safe_message,
+            duration_ms=duration_ms,
         )
 
 
@@ -767,13 +900,21 @@ def _process_one_artifact(
             if artifact.availability is ArtifactAvailability.AVAILABLE:
                 with transaction(conn):
                     evidence_repository.update_availability(
-                        conn, project_id, artifact.id,
+                        conn,
+                        project_id,
+                        artifact.id,
                         availability=ArtifactAvailability.DELETED_EXTERNAL,
                     )
             counts.unchanged += 1
             _record_item(
-                conn, project_id, run_id, source_id, artifact_id, metadata.external_id,
-                stage=SyncItemStage.SKIPPED, start=start,
+                conn,
+                project_id,
+                run_id,
+                source_id,
+                artifact_id,
+                metadata.external_id,
+                stage=SyncItemStage.SKIPPED,
+                start=start,
             )
             return
 
@@ -784,8 +925,14 @@ def _process_one_artifact(
         if drive_ingestion.is_unchanged(conn, project_id, artifact, metadata):
             counts.unchanged += 1
             _record_item(
-                conn, project_id, run_id, source_id, artifact_id, metadata.external_id,
-                stage=SyncItemStage.UNCHANGED, start=start,
+                conn,
+                project_id,
+                run_id,
+                source_id,
+                artifact_id,
+                metadata.external_id,
+                stage=SyncItemStage.UNCHANGED,
+                start=start,
             )
             return
 
@@ -793,8 +940,13 @@ def _process_one_artifact(
 
         with transaction(conn):
             result = store_artifact_fn(
-                conn, project_id, artifact, raw, evidence_dir=evidence_dir,
-                chunk_target_chars=chunk_target_chars, chunk_overlap_ratio=chunk_overlap_ratio,
+                conn,
+                project_id,
+                artifact,
+                raw,
+                evidence_dir=evidence_dir,
+                chunk_target_chars=chunk_target_chars,
+                chunk_overlap_ratio=chunk_overlap_ratio,
             )
 
         counts.downloaded += 1
@@ -805,35 +957,58 @@ def _process_one_artifact(
 
             if extraction_provider is not None and result.chunks:
                 extracted, stage = _extract_and_persist(
-                    conn, project_id, result.content.id,
-                    provider=extraction_provider, model=extraction_model,
+                    conn,
+                    project_id,
+                    result.content.id,
+                    provider=extraction_provider,
+                    model=extraction_model,
                 )
                 if extracted:
                     counts.extracted += 1
 
         _record_item(
-            conn, project_id, run_id, source_id, artifact_id, metadata.external_id,
-            stage=stage, start=start,
+            conn,
+            project_id,
+            run_id,
+            source_id,
+            artifact_id,
+            metadata.external_id,
+            stage=stage,
+            start=start,
         )
     except ConnectorError as exc:
         counts.failed += 1
         _record_item(
-            conn, project_id, run_id, source_id, artifact_id, metadata.external_id,
-            stage=SyncItemStage.FAILED, start=start,
-            error_class=exc.error_class, safe_message=exc.safe_message,
+            conn,
+            project_id,
+            run_id,
+            source_id,
+            artifact_id,
+            metadata.external_id,
+            stage=SyncItemStage.FAILED,
+            start=start,
+            error_class=exc.error_class,
+            safe_message=exc.safe_message,
         )
     except Exception as exc:  # noqa: BLE001 - one bad artifact must not abort the run
         counts.failed += 1
         logger.info(
             "sync_item_unexpected_error",
             extra={
-                "project_id": project_id, "source_id": source_id,
+                "project_id": project_id,
+                "source_id": source_id,
                 "error_class": type(exc).__name__,
             },
         )
         _record_item(
-            conn, project_id, run_id, source_id, artifact_id, metadata.external_id,
-            stage=SyncItemStage.FAILED, start=start,
+            conn,
+            project_id,
+            run_id,
+            source_id,
+            artifact_id,
+            metadata.external_id,
+            stage=SyncItemStage.FAILED,
+            start=start,
             error_class=SyncErrorClass.DATABASE,
             safe_message="unexpected error while processing this item",
         )
@@ -855,9 +1030,13 @@ def _extract_and_persist(
     if run_result.status is ExtractionStatus.COMPLETED:
         for observation in run_result.accepted:
             observations_service.persist_observation(
-                conn, project_id, content_id=content_id,
-                chunk_id=observation.evidence[0].chunk_id, extracted=observation,
-                model_id=run_result.model, prompt_version=run_result.prompt_version,
+                conn,
+                project_id,
+                content_id=content_id,
+                chunk_id=observation.evidence[0].chunk_id,
+                extracted=observation,
+                model_id=run_result.model,
+                prompt_version=run_result.prompt_version,
                 schema_version=run_result.schema_version,
             )
         return True, SyncItemStage.EXTRACTED
@@ -890,9 +1069,16 @@ def _detect_vanished_items(
         except ConnectorError as exc:
             counts.failed += 1
             _record_item(
-                conn, project_id, run_id, source_id, artifact.id, artifact.external_id,
-                stage=SyncItemStage.FAILED, start=start,
-                error_class=exc.error_class, safe_message=exc.safe_message,
+                conn,
+                project_id,
+                run_id,
+                source_id,
+                artifact.id,
+                artifact.external_id,
+                stage=SyncItemStage.FAILED,
+                start=start,
+                error_class=exc.error_class,
+                safe_message=exc.safe_message,
             )
             continue
         if availability is not ArtifactAvailability.AVAILABLE:
@@ -901,8 +1087,14 @@ def _detect_vanished_items(
                     conn, project_id, artifact.id, availability=availability
                 )
             _record_item(
-                conn, project_id, run_id, source_id, artifact.id, artifact.external_id,
-                stage=SyncItemStage.SKIPPED, start=start,
+                conn,
+                project_id,
+                run_id,
+                source_id,
+                artifact.id,
+                artifact.external_id,
+                stage=SyncItemStage.SKIPPED,
+                start=start,
             )
 
 

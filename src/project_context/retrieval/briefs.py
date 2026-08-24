@@ -106,9 +106,7 @@ def build_current_project_brief_facts(
         item = ledger_repository.get_item(conn, project_id, version.ledger_item_id)
         if item is None:
             continue  # defensive only; a version's item is never deleted
-        recent_facts.append(
-            transition_fact(conn, project_id, "recent_changes", version, item.kind)
-        )
+        recent_facts.append(transition_fact(conn, project_id, "recent_changes", version, item.kind))
     sections.append(
         BriefFactSection(
             section="recent_changes", heading="Recent Changes", facts=tuple(recent_facts)

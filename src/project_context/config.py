@@ -15,7 +15,10 @@ loading configuration.
 
 from __future__ import annotations
 
+import contextlib
 import logging
+import os
+import stat
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
@@ -50,6 +53,15 @@ DEFAULT_MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 DEFAULT_CHUNK_TARGET_CHARS = 4000
 DEFAULT_CHUNK_OVERLAP_RATIO = 0.10
 
+#: Owner-only directory permissions (0700) — Section 16, "restrict the
+#: data directory to the user." Applied to `data_dir`/`evidence_dir`
+#: exactly like `credentials/store.py` already applies it to
+#: `credentials_dir`. `os.chmod` is a no-op on filesystems that don't
+#: support POSIX permission bits (e.g. FAT); it never raises there, so
+#: this degrades silently rather than failing configuration on an
+#: unsupported OS ("where the OS supports them").
+_OWNER_ONLY_DIR = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR
+
 
 class Environment(StrEnum):
     """Named deployment environments. The prototype targets LOCAL only."""
@@ -67,6 +79,16 @@ class ConfigurationError(ValueError):
     message so callers (including the Streamlit health panel) can display
     it directly without leaking a raw framework traceback.
     """
+
+
+def _restrict_to_owner(directory: Path) -> None:
+    """Best-effort `chmod 0700`. Never raises: a filesystem that doesn't
+    support POSIX permission bits (or a directory this process doesn't
+    own) must not turn a permission tightening step into a startup
+    failure — the directory is still created and usable, just not
+    verified-restricted on that filesystem."""
+    with contextlib.suppress(OSError):
+        os.chmod(directory, _OWNER_ONLY_DIR)
 
 
 def _require_non_blank_path_str(value: Any, field_name: str) -> Any:
@@ -250,10 +272,20 @@ class AppConfig(BaseSettings):
         init) that actually need these directories to exist.
         `credentials_dir` is deliberately not created here — the
         credential store creates it itself, on first actual use, only if
-        the OS keyring turns out to be unavailable (Section 16)."""
+        the OS keyring turns out to be unavailable (Section 16).
+
+        Every directory this creates is restricted to the owner (0700)
+        immediately after creation (Section 16: "restrict the data
+        directory to the user") — including on a rerun against a
+        directory that already existed, so a directory created before
+        this hardening was added self-heals the next time the app
+        starts."""
         self.data_dir.mkdir(parents=True, exist_ok=True)
+        _restrict_to_owner(self.data_dir)
         self.evidence_dir.mkdir(parents=True, exist_ok=True)
+        _restrict_to_owner(self.evidence_dir)
         self.sqlite_path.parent.mkdir(parents=True, exist_ok=True)
+        _restrict_to_owner(self.sqlite_path.parent)
 
 
 def load_config(**overrides: Any) -> AppConfig:

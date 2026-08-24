@@ -242,13 +242,15 @@ def evaluate_match(meeting: FathomMeetingSummary, rules: FathomMatchRules) -> Ma
     — never raises for a well-formed `FathomMatchRules`."""
     if meeting.recording_id in rules.included_recording_ids:
         return MatchResult(
-            matched=True, rule_tier=RULE_TIER_MANUAL,
+            matched=True,
+            rule_tier=RULE_TIER_MANUAL,
             reason=f"explicitly included recording ID {meeting.recording_id!r}",
         )
 
     if meeting.recorded_by_email and meeting.recorded_by_email in rules.recorded_by_emails:
         return MatchResult(
-            matched=True, rule_tier=RULE_TIER_RECORDED_BY,
+            matched=True,
+            rule_tier=RULE_TIER_RECORDED_BY,
             reason=f"recorded by {meeting.recorded_by_email!r}, a configured team member",
         )
 
@@ -256,7 +258,8 @@ def evaluate_match(meeting: FathomMeetingSummary, rules: FathomMatchRules) -> Ma
         for email in meeting.all_participant_emails:
             if _domain_of(email) == rules.client_domain:
                 return MatchResult(
-                    matched=True, rule_tier=RULE_TIER_CLIENT_DOMAIN,
+                    matched=True,
+                    rule_tier=RULE_TIER_CLIENT_DOMAIN,
                     reason=f"participant {email!r} matches client domain {rules.client_domain!r}",
                 )
 
@@ -264,13 +267,15 @@ def evaluate_match(meeting: FathomMeetingSummary, rules: FathomMatchRules) -> Ma
         for email in meeting.all_participant_emails:
             if email in rules.participant_emails:
                 return MatchResult(
-                    matched=True, rule_tier=RULE_TIER_PARTICIPANT,
+                    matched=True,
+                    rule_tier=RULE_TIER_PARTICIPANT,
                     reason=f"participant {email!r} is an explicitly configured participant",
                 )
 
     if meeting.meeting_url and meeting.meeting_url in rules.meeting_urls:
         return MatchResult(
-            matched=True, rule_tier=RULE_TIER_SCHEDULED_EVENT,
+            matched=True,
+            rule_tier=RULE_TIER_SCHEDULED_EVENT,
             reason=f"meeting URL {meeting.meeting_url!r} is a configured recurring project link",
         )
 
@@ -280,7 +285,8 @@ def evaluate_match(meeting: FathomMeetingSummary, rules: FathomMatchRules) -> Ma
             for window in rules.scheduled_windows:
                 if window.contains(moment):
                     return MatchResult(
-                        matched=True, rule_tier=RULE_TIER_SCHEDULED_EVENT,
+                        matched=True,
+                        rule_tier=RULE_TIER_SCHEDULED_EVENT,
                         reason=(
                             f"start time {meeting.best_start_time!r} falls inside configured "
                             f"window {window.start!r}-{window.end!r}"

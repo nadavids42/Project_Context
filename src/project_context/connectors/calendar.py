@@ -206,8 +206,10 @@ class CalendarConnector:
     def validate_config(self) -> ConnectorHealth:
         try:
             self._list_events_page(
-                time_min=self._time_min, time_max=self._time_max,
-                page_token=None, max_results=1,
+                time_min=self._time_min,
+                time_max=self._time_max,
+                page_token=None,
+                max_results=1,
             )
         except ConnectorAuthError as exc:
             return ConnectorHealth(status=ConnectorHealthStatus.AUTH_ERROR, detail=exc.safe_message)
@@ -230,8 +232,10 @@ class CalendarConnector:
     def discover(self, checkpoint: dict[str, Any] | None) -> DiscoveryPage:
         page_token = checkpoint.get("page_token") if checkpoint else None
         page = self._list_events_page(
-            time_min=self._time_min, time_max=self._time_max,
-            page_token=page_token, max_results=self._page_size,
+            time_min=self._time_min,
+            time_max=self._time_max,
+            page_token=page_token,
+            max_results=self._page_size,
         )
         matched: list[ArtifactMetadata] = []
         for event in page.get("items", []):
@@ -275,8 +279,10 @@ class CalendarConnector:
         while len(matched) < limit and len(unmatched) < limit and pages < 50:
             pages += 1
             page = self._list_events_page(
-                time_min=self._time_min, time_max=self._time_max,
-                page_token=page_token, max_results=self._page_size,
+                time_min=self._time_min,
+                time_max=self._time_max,
+                page_token=page_token,
+                max_results=self._page_size,
             )
             for event in page.get("items", []):
                 if len(matched) >= limit and len(unmatched) >= limit:
@@ -376,16 +382,25 @@ class CalendarConnector:
         if page_token:
             params["pageToken"] = page_token
         response = request_with_retry(
-            self._transport, "GET", CALENDAR_EVENTS_URL, params=params, headers=self._headers(),
-            sleep=self._sleep, rand=self._rand,
+            self._transport,
+            "GET",
+            CALENDAR_EVENTS_URL,
+            params=params,
+            headers=self._headers(),
+            sleep=self._sleep,
+            rand=self._rand,
         )
         return response.json()
 
     def _get_single_event(self, event_id: str) -> dict[str, Any]:
         response = request_with_retry(
-            self._transport, "GET", f"{CALENDAR_EVENTS_URL}/{event_id}",
+            self._transport,
+            "GET",
+            f"{CALENDAR_EVENTS_URL}/{event_id}",
             params={"fields": _EVENT_FIELDS},
-            headers=self._headers(), sleep=self._sleep, rand=self._rand,
+            headers=self._headers(),
+            sleep=self._sleep,
+            rand=self._rand,
         )
         return response.json()
 
@@ -400,9 +415,10 @@ def _build_normalized_event_text(event: dict[str, Any], artifact: ArtifactMetada
     downstream reader could mistake for an asserted fact."""
     start = event.get("start") or {}
     end = event.get("end") or {}
-    attendees = ", ".join(
-        a["email"] for a in event.get("attendees", []) if a.get("email")
-    ) or "(none listed)"
+    attendees = (
+        ", ".join(a["email"] for a in event.get("attendees", []) if a.get("email"))
+        or "(none listed)"
+    )
     lines = [
         f"Title: {artifact.title}",
         f"Status: {event.get('status', 'confirmed')}",

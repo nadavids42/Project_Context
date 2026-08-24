@@ -149,9 +149,12 @@ def _render_activity_tab(conn: sqlite3.Connection, project_id: str) -> None:
 
     st.divider()
     st.caption(
-        "Sync failures and unassigned evidence are not shown here — automated "
-        "sync is not built in this step (manual evidence is always explicitly "
-        "assigned to this project at ingestion)."
+        "Sync failures and unassigned-evidence counts are not shown here — see "
+        "the Sources & Settings page's per-sync counts instead. There is no "
+        "dedicated unassigned-evidence review queue yet (a known, tracked "
+        "limitation, not an oversight — see docs/RELEASE_NOTES.md); ambiguous "
+        "matches are stored, visible in the Evidence list, and simply excluded "
+        "from automatic assignment."
     )
 
 
@@ -206,7 +209,11 @@ def _render_proposed_patch(
             st.write("Not applicable.")
         return
     patch_fields = (
-        "kind", "canonical_title", "canonical_description", "owner_person_id", "due_date",
+        "kind",
+        "canonical_title",
+        "canonical_description",
+        "owner_person_id",
+        "due_date",
     )
     for field_name in patch_fields:
         if field_name not in patch:
@@ -326,7 +333,10 @@ def _render_quick_actions(
     if cols[0].button("Accept", key=f"accept-{proposal.id}", disabled=not can_accept):
         _run_action(
             lambda: review_service.accept_proposal(
-                conn, project_id, proposal.id, note=note or None,
+                conn,
+                project_id,
+                proposal.id,
+                note=note or None,
                 expected_target_version_id=expected_version,
             ),
             success_message="Proposal accepted.",
@@ -342,7 +352,10 @@ def _render_quick_actions(
     if cols[2].button("Mark complete", key=f"complete-{proposal.id}", disabled=no_target):
         _run_action(
             lambda: review_service.mark_complete(
-                conn, project_id, proposal.id, note=note or None,
+                conn,
+                project_id,
+                proposal.id,
+                note=note or None,
                 expected_target_version_id=expected_version,
             ),
             success_message="Marked complete.",
@@ -367,9 +380,7 @@ def _render_edit_and_accept_form(
 
     default_title = patch.get("canonical_title") or (target.canonical_title if target else "") or ""
     default_description = (
-        patch.get("canonical_description")
-        or (target.canonical_description if target else "")
-        or ""
+        patch.get("canonical_description") or (target.canonical_description if target else "") or ""
     )
     default_kind = (
         LedgerItemKind(patch["kind"]) if patch.get("kind") else (target.kind if target else None)
@@ -412,11 +423,14 @@ def _render_edit_and_accept_form(
             "Description", value=default_description, key=f"desc-{proposal.id}"
         )
         kind_label = st.selectbox(
-            "Kind", options=[k.value for k in kind_options],
-            index=kind_index, key=f"kind-{proposal.id}",
+            "Kind",
+            options=[k.value for k in kind_options],
+            index=kind_index,
+            key=f"kind-{proposal.id}",
         )
         owner_label = st.selectbox(
-            "Owner", options=owner_options,
+            "Owner",
+            options=owner_options,
             index=owner_options.index(default_owner_label),
             key=f"owner-{proposal.id}",
         )
@@ -435,15 +449,17 @@ def _render_edit_and_accept_form(
         target_choice = None
         if len(target_options) > 1:
             target_choice = st.selectbox(
-                "Target item", options=target_options, key=f"target-{proposal.id}",
+                "Target item",
+                options=target_options,
+                key=f"target-{proposal.id}",
                 help="Redirect this proposal to a different close candidate.",
             )
-        evidence_options = {
-            f"{c.link_id[:8]}… — {c.quote[:80]}": c.link_id for c in card.evidence
-        }
+        evidence_options = {f"{c.link_id[:8]}… — {c.quote[:80]}": c.link_id for c in card.evidence}
         selected_evidence_labels = st.multiselect(
-            "Evidence to cite", options=list(evidence_options.keys()),
-            default=list(evidence_options.keys()), key=f"evidence-{proposal.id}",
+            "Evidence to cite",
+            options=list(evidence_options.keys()),
+            default=list(evidence_options.keys()),
+            key=f"evidence-{proposal.id}",
         )
         submitted = st.form_submit_button("Save edit & accept")
 
@@ -472,7 +488,11 @@ def _render_edit_and_accept_form(
     )
     _run_action(
         lambda: review_service.edit_and_accept_proposal(
-            conn, project_id, proposal.id, edits, note=note or None,
+            conn,
+            project_id,
+            proposal.id,
+            edits,
+            note=note or None,
             expected_target_version_id=expected_version,
         ),
         success_message="Edited and accepted.",

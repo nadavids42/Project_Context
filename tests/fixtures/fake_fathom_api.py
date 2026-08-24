@@ -101,7 +101,8 @@ class FakeFathomApi:
             meeting["meeting_type"] = meeting_type
         if default_summary_markdown:
             meeting["default_summary"] = {
-                "template_name": "default", "markdown_formatted": default_summary_markdown,
+                "template_name": "default",
+                "markdown_formatted": default_summary_markdown,
             }
         if action_items is not None:
             meeting["action_items"] = action_items

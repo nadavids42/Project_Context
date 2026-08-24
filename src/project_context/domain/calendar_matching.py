@@ -175,9 +175,7 @@ class CalendarEventSummary:
     def from_raw_event(cls, event: dict) -> CalendarEventSummary:
         organizer_email = (event.get("organizer") or {}).get("email")
         attendee_emails = tuple(
-            a["email"].strip().lower()
-            for a in event.get("attendees", [])
-            if a.get("email")
+            a["email"].strip().lower() for a in event.get("attendees", []) if a.get("email")
         )
         return cls(
             event_id=event["id"],
@@ -220,7 +218,7 @@ def _term_hit(text: str, terms: tuple[str, ...]) -> str | None:
 def _exclude_hit(event: CalendarEventSummary, rules: CalendarMatchRules) -> str | None:
     term = _term_hit(event.searchable_text, rules.exclude_terms)
     if term:
-        return f'exclude term {term!r}'
+        return f"exclude term {term!r}"
     if rules._exclude_pattern and rules._exclude_pattern.search(event.searchable_text):
         return f"exclude pattern {rules.exclude_regex!r}"
     return None
@@ -258,7 +256,8 @@ def evaluate_match(event: CalendarEventSummary, rules: CalendarMatchRules) -> Ma
         term = _term_hit(event.searchable_text, rules.project_name_terms)
         if term:
             include_hit = (
-                RULE_TIER_PROJECT_NAME_TERM, f"title/description contains project term {term!r}"
+                RULE_TIER_PROJECT_NAME_TERM,
+                f"title/description contains project term {term!r}",
             )
         else:
             domain_reason = _domain_participant_hit(event, rules)
@@ -273,10 +272,10 @@ def evaluate_match(event: CalendarEventSummary, rules: CalendarMatchRules) -> Ma
     if exclude_reason and include_hit:
         tier, reason = include_hit
         return MatchResult(
-            matched=False, rule_tier=None,
+            matched=False,
+            rule_tier=None,
             reason=(
-                f"excluded despite matching {tier} ({reason}) — "
-                f"{exclude_reason} takes precedence"
+                f"excluded despite matching {tier} ({reason}) — {exclude_reason} takes precedence"
             ),
         )
     if exclude_reason:

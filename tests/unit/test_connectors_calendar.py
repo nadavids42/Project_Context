@@ -25,8 +25,12 @@ from project_context.domain.evidence import ArtifactAvailability, ArtifactType
 
 def _connector(api: FakeCalendarApi, *, rules: CalendarMatchRules, **kwargs) -> CalendarConnector:
     return CalendarConnector(
-        access_token="fake-access-token", rules=rules, http_transport=api,
-        sleep=lambda _s: None, rand=lambda: 0.0, **kwargs
+        access_token="fake-access-token",
+        rules=rules,
+        http_transport=api,
+        sleep=lambda _s: None,
+        rand=lambda: 0.0,
+        **kwargs,
     )
 
 
@@ -58,7 +62,10 @@ def test_connector_construction_rejects_invalid_scan_window():
 def test_time_window_reflects_days_back_and_forward_from_now_fn():
     fixed_now = datetime(2026, 6, 15, 12, 0, 0, tzinfo=UTC)
     connector = _connector(
-        FakeCalendarApi(), rules=_MATCH_ALL, days_back=10, days_forward=5,
+        FakeCalendarApi(),
+        rules=_MATCH_ALL,
+        days_back=10,
+        days_forward=5,
         now_fn=lambda: fixed_now,
     )
     assert connector._time_min == "2026-06-05T12:00:00Z"
@@ -216,8 +223,11 @@ def test_fetch_includes_time_zone():
 def test_all_day_event_uses_date_not_datetime():
     api = FakeCalendarApi()
     api.add_event(
-        "evt1", summary="Acme Rollout offsite", all_day=True,
-        start="2026-06-01", end="2026-06-02",
+        "evt1",
+        summary="Acme Rollout offsite",
+        all_day=True,
+        start="2026-06-01",
+        end="2026-06-02",
     )
     rules = CalendarMatchRules(project_name_terms=("Acme Rollout",))
     connector = _connector(api, rules=rules)

@@ -792,8 +792,10 @@ def classify_action(
             action=ProposedMutationAction.CONFLICT,
             target_ledger_item_id=candidate.id,
             proposed_patch={},
-            reasons=("a different owner is stated but no explicit reassignment language was found "
-                     "(assistance language does not count as reassignment)",),
+            reasons=(
+                "a different owner is stated but no explicit reassignment language was found "
+                "(assistance language does not count as reassignment)",
+            ),
             escalation_reasons=tuple(escalation_reasons),
             explicit_language_used=False,
             transition_domain_valid=False,
@@ -906,8 +908,10 @@ def extraction_confidence(observation: Observation) -> ConfidenceBand:
     before a row ever reaches this module — every *stored* `Observation`
     already satisfies it, so only explicitness and owner/date presence
     are checked here."""
-    has_owner_or_date = bool(observation.owner_text) or observation.date_value is not None or bool(
-        observation.date_text
+    has_owner_or_date = (
+        bool(observation.owner_text)
+        or observation.date_value is not None
+        or bool(observation.date_text)
     )
     if observation.explicitness == "explicit" and has_owner_or_date:
         return ConfidenceBand.HIGH

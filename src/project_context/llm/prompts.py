@@ -102,12 +102,8 @@ def build_extraction_input(
         f"Occurred at: {_not_stated(artifact.occurred_at)}",
     ]
     return (
-        "<project>\n"
-        + "\n".join(project_lines)
-        + "\n</project>\n"
-        "<source_metadata>\n"
-        + "\n".join(source_lines)
-        + "\n</source_metadata>\n"
+        "<project>\n" + "\n".join(project_lines) + "\n</project>\n"
+        "<source_metadata>\n" + "\n".join(source_lines) + "\n</source_metadata>\n"
         f'<source_chunk id="{chunk.id}">\n'
         f"{chunk.text}\n"
         "</source_chunk>\n\n"

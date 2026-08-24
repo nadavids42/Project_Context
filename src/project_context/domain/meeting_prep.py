@@ -114,6 +114,4 @@ class MeetingPrepBriefFacts(BaseModel):
     def fact_by_id(self) -> dict[str, BriefFact]:
         """Every fact across every section, keyed by its opaque
         `fact_id` — mirrors `CurrentProjectBriefFacts.fact_by_id`."""
-        return {
-            fact.fact_id: fact for section in self.sections for fact in section.facts
-        }
+        return {fact.fact_id: fact for section in self.sections for fact in section.facts}

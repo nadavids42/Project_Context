@@ -415,7 +415,10 @@ def test_insert_content_accepts_an_explicit_version_key(conn, project_id):
     artifact = _insert_artifact(conn, project_id, source.id)
 
     content = _insert_content(
-        conn, project_id, artifact.id, sha256="d" * 64,
+        conn,
+        project_id,
+        artifact.id,
+        sha256="d" * 64,
         version_key="2026-08-01T00:00:00.000Z",
     )
 

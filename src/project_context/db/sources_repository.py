@@ -113,8 +113,16 @@ def insert_source(
         VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
         """,
         (
-            source_id, project_id, kind.value, display_name, external_account_id,
-            boundary_json, credential_ref, health_status.value, now, now,
+            source_id,
+            project_id,
+            kind.value,
+            display_name,
+            external_account_id,
+            boundary_json,
+            credential_ref,
+            health_status.value,
+            now,
+            now,
         ),
     )
     created = get_source(conn, project_id, source_id)

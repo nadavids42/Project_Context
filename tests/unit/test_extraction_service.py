@@ -256,9 +256,7 @@ def test_validate_observation_prompt_injection_gets_no_special_trust(
 # --- extract_content orchestration ----------------------------------------
 
 
-def test_extract_content_happy_path_multiple_atomic_observations(
-    conn, evidence_dir, project_id
-):
+def test_extract_content_happy_path_multiple_atomic_observations(conn, evidence_dir, project_id):
     para_1 = "Priya will send the report by Friday."
     para_2 = "The launch date may slip due to vendor delays."
     text = f"{para_1}\n\n{para_2}"
@@ -320,9 +318,7 @@ def test_extract_content_empty_material_source_yields_no_observations(
     assert len(provider.calls) == 1
 
 
-def test_extract_content_with_zero_chunks_never_calls_the_provider(
-    conn, evidence_dir, project_id
-):
+def test_extract_content_with_zero_chunks_never_calls_the_provider(conn, evidence_dir, project_id):
     upload = ManualFileUploadInput(
         title="Unsupported file",
         source_type=EvidenceSourceType.DOCUMENT,

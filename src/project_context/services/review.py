@@ -480,9 +480,13 @@ def _apply(
             before = after = _item_snapshot(target_item)
         else:
             plan = _plan_transition(
-                conn, project_id,
-                observation=observation, edits=edits, patch=patch,
-                effective_action=effective_action, target_item=target_item,
+                conn,
+                project_id,
+                observation=observation,
+                edits=edits,
+                patch=patch,
+                effective_action=effective_action,
+                target_item=target_item,
             )
             before, after = plan.before, plan.after
 
@@ -493,21 +497,35 @@ def _apply(
         # before/after snapshots computed purely from already-fetched
         # state (no ledger write has happened yet at this point).
         review = review_repository.insert_review(
-            conn, project_id, review_id=review_id, proposal_id=proposal_id,
-            action=review_action, before=before, after=after,
-            reason_code=reason_code, note=note, actor=actor,
+            conn,
+            project_id,
+            review_id=review_id,
+            proposal_id=proposal_id,
+            action=review_action,
+            before=before,
+            after=after,
+            reason_code=reason_code,
+            note=note,
+            actor=actor,
         )
 
         if edits.status is None and effective_action in _NO_LEDGER_MUTATION_ACTIONS:
             ledger_item, ledger_version, predecessor_item, corrections = _execute_no_mutation(
-                conn, project_id,
-                observation=observation, effective_action=effective_action,
-                target_item=target_item, edits=edits,
+                conn,
+                project_id,
+                observation=observation,
+                effective_action=effective_action,
+                target_item=target_item,
+                edits=edits,
             )
         else:
             ledger_item, ledger_version, predecessor_item, corrections = _execute_transition(
-                conn, project_id, plan,
-                observation=observation, review_id=review_id, actor=actor,
+                conn,
+                project_id,
+                plan,
+                observation=observation,
+                review_id=review_id,
+                actor=actor,
                 confidence_band=proposal.confidence_band,
             )
 
@@ -629,7 +647,8 @@ def _plan_transition(
     )
     due_date = edits.due_date if edits.due_date is not None else patch.get("due_date")
     status = (
-        edits.status if edits.status is not None
+        edits.status
+        if edits.status is not None
         else _FIXED_STATUS_FOR_TRANSITION.get(transition_type, target_item.status)
     )
     fields = {
@@ -672,7 +691,8 @@ def _execute_transition(
 
     if plan.transition_type is LedgerTransitionType.CREATE:
         item, version = create_ledger_item(
-            conn, project_id,
+            conn,
+            project_id,
             kind=plan.fields["kind"],
             canonical_title=plan.fields["canonical_title"],
             canonical_description=plan.fields["canonical_description"],
@@ -687,7 +707,9 @@ def _execute_transition(
         )
         if corrections:
             item = ledger_repository.update_projection(
-                conn, project_id, item.id,
+                conn,
+                project_id,
+                item.id,
                 canonical_title=item.canonical_title,
                 canonical_description=item.canonical_description,
                 status=item.status,
@@ -699,27 +721,36 @@ def _execute_transition(
                 user_corrected=True,
             )
         _link_evidence(
-            conn, project_id, plan.links,
-            target_type=EvidenceLinkTargetType.LEDGER_ITEM, target_id=item.id,
+            conn,
+            project_id,
+            plan.links,
+            target_type=EvidenceLinkTargetType.LEDGER_ITEM,
+            target_id=item.id,
             support_role=EvidenceLinkSupportRole.SUPPORTS,
         )
         _link_evidence(
-            conn, project_id, plan.links,
-            target_type=EvidenceLinkTargetType.LEDGER_VERSION, target_id=version.id,
+            conn,
+            project_id,
+            plan.links,
+            target_type=EvidenceLinkTargetType.LEDGER_VERSION,
+            target_id=version.id,
             support_role=EvidenceLinkSupportRole.SUPPORTS,
         )
         return item, version, None, corrections
 
     if plan.transition_type is LedgerTransitionType.SUPERSEDE:
         old_item, old_version = append_ledger_version(
-            conn, project_id, plan.target_item.id,
+            conn,
+            project_id,
+            plan.target_item.id,
             transition_type=LedgerTransitionType.SUPERSEDE,
             status=LedgerItemStatus.SUPERSEDED,
             observation_id=observation.id,
             review_id=review_id,
         )
         new_item, new_version = create_ledger_item(
-            conn, project_id,
+            conn,
+            project_id,
             kind=plan.fields["kind"],
             canonical_title=plan.fields["canonical_title"],
             canonical_description=plan.fields["canonical_description"],
@@ -742,23 +773,35 @@ def _execute_transition(
             conn, project_id, new_item, plan.patch, plan.fields, review_id, observation, actor
         )
         _link_evidence(
-            conn, project_id, plan.links,
-            target_type=EvidenceLinkTargetType.LEDGER_ITEM, target_id=new_item.id,
+            conn,
+            project_id,
+            plan.links,
+            target_type=EvidenceLinkTargetType.LEDGER_ITEM,
+            target_id=new_item.id,
             support_role=EvidenceLinkSupportRole.SUPPORTS,
         )
         _link_evidence(
-            conn, project_id, plan.links,
-            target_type=EvidenceLinkTargetType.LEDGER_VERSION, target_id=new_version.id,
+            conn,
+            project_id,
+            plan.links,
+            target_type=EvidenceLinkTargetType.LEDGER_VERSION,
+            target_id=new_version.id,
             support_role=EvidenceLinkSupportRole.SUPPORTS,
         )
         _link_evidence(
-            conn, project_id, plan.links,
-            target_type=EvidenceLinkTargetType.LEDGER_ITEM, target_id=old_item.id,
+            conn,
+            project_id,
+            plan.links,
+            target_type=EvidenceLinkTargetType.LEDGER_ITEM,
+            target_id=old_item.id,
             support_role=EvidenceLinkSupportRole.SUPERSESSION,
         )
         _link_evidence(
-            conn, project_id, plan.links,
-            target_type=EvidenceLinkTargetType.LEDGER_VERSION, target_id=old_version.id,
+            conn,
+            project_id,
+            plan.links,
+            target_type=EvidenceLinkTargetType.LEDGER_VERSION,
+            target_id=old_version.id,
             support_role=EvidenceLinkSupportRole.SUPERSESSION,
         )
         predecessor_item = ledger_repository.get_item(conn, project_id, old_item.id)
@@ -770,7 +813,9 @@ def _execute_transition(
         conn, project_id, target_item, plan.patch, plan.after, review_id, observation, actor
     )
     item, version = append_ledger_version(
-        conn, project_id, target_item.id,
+        conn,
+        project_id,
+        target_item.id,
         transition_type=plan.transition_type,
         status=plan.status,
         canonical_title=plan.fields["canonical_title"],
@@ -788,13 +833,19 @@ def _execute_transition(
         else EvidenceLinkSupportRole.SUPPORTS
     )
     _link_evidence(
-        conn, project_id, plan.links,
-        target_type=EvidenceLinkTargetType.LEDGER_ITEM, target_id=item.id,
+        conn,
+        project_id,
+        plan.links,
+        target_type=EvidenceLinkTargetType.LEDGER_ITEM,
+        target_id=item.id,
         support_role=support_role,
     )
     _link_evidence(
-        conn, project_id, plan.links,
-        target_type=EvidenceLinkTargetType.LEDGER_VERSION, target_id=version.id,
+        conn,
+        project_id,
+        plan.links,
+        target_type=EvidenceLinkTargetType.LEDGER_VERSION,
+        target_id=version.id,
         support_role=support_role,
     )
     return item, version, None, corrections
@@ -812,17 +863,27 @@ def _record_create_corrections(
 ) -> list[Correction]:
     corrections = []
     create_fields = (
-        "kind", "canonical_title", "canonical_description", "owner_person_id", "due_date"
+        "kind",
+        "canonical_title",
+        "canonical_description",
+        "owner_person_id",
+        "due_date",
     )
     for field_name in create_fields:
         original = patch.get(field_name)
         corrected = fields[field_name]
         corrected_value = corrected.value if hasattr(corrected, "value") else corrected
         correction = _record_correction_if_changed(
-            conn, project_id,
-            target_type=CorrectionTargetType.LEDGER_ITEM, target_id=item.id, review_id=review_id,
-            field_name=field_name, original=original, corrected=corrected_value,
-            observation=observation, actor=actor,
+            conn,
+            project_id,
+            target_type=CorrectionTargetType.LEDGER_ITEM,
+            target_id=item.id,
+            review_id=review_id,
+            field_name=field_name,
+            original=original,
+            corrected=corrected_value,
+            observation=observation,
+            actor=actor,
         )
         if correction is not None:
             corrections.append(correction)
@@ -844,12 +905,16 @@ def _record_update_corrections(
         original = patch.get(field_name)
         corrected = resolved[field_name]
         correction = _record_correction_if_changed(
-            conn, project_id,
+            conn,
+            project_id,
             target_type=CorrectionTargetType.LEDGER_ITEM,
             target_id=target_item.id,
             review_id=review_id,
-            field_name=field_name, original=original, corrected=corrected,
-            observation=observation, actor=actor,
+            field_name=field_name,
+            original=original,
+            corrected=corrected,
+            observation=observation,
+            actor=actor,
         )
         if correction is not None:
             corrections.append(correction)
@@ -878,10 +943,14 @@ def accept_proposal(
     `edit_and_accept_proposal`, `treat_as_new`, `mark_complete`,
     `mark_superseded`, or `reject_proposal` instead."""
     return _apply(
-        conn, project_id, proposal_id,
+        conn,
+        project_id,
+        proposal_id,
         edits=ProposalEdit(),
         review_action=ReviewAction.ACCEPT,
-        actor=actor, note=note, reason_code=reason_code,
+        actor=actor,
+        note=note,
+        reason_code=reason_code,
         expected_target_version_id=expected_target_version_id,
     )
 
@@ -903,10 +972,14 @@ def edit_and_accept_proposal(
     falls back to the proposal's own `proposed_patch`, then to the
     current ledger item's value."""
     return _apply(
-        conn, project_id, proposal_id,
+        conn,
+        project_id,
+        proposal_id,
         edits=edits,
         review_action=ReviewAction.EDIT_ACCEPT,
-        actor=actor, note=note, reason_code=reason_code,
+        actor=actor,
+        note=note,
+        reason_code=reason_code,
         expected_target_version_id=expected_target_version_id,
     )
 
@@ -925,10 +998,14 @@ def mark_complete(
     the proposal itself proposed — the human reviewer decided a
     different candidate/proposal really represents a completion."""
     return _apply(
-        conn, project_id, proposal_id,
+        conn,
+        project_id,
+        proposal_id,
         edits=ProposalEdit(status=LedgerItemStatus.COMPLETED),
         review_action=ReviewAction.MARK_COMPLETE,
-        actor=actor, note=note, reason_code=reason_code,
+        actor=actor,
+        note=note,
+        reason_code=reason_code,
         expected_target_version_id=expected_target_version_id,
     )
 
@@ -947,10 +1024,14 @@ def mark_superseded(
     marked superseded and a new successor item is created from this
     proposal's observation (Section 10.10)."""
     return _apply(
-        conn, project_id, proposal_id,
+        conn,
+        project_id,
+        proposal_id,
         edits=ProposalEdit(status=LedgerItemStatus.SUPERSEDED),
         review_action=ReviewAction.MARK_SUPERSEDED,
-        actor=actor, note=note, reason_code=reason_code,
+        actor=actor,
+        note=note,
+        reason_code=reason_code,
         expected_target_version_id=expected_target_version_id,
     )
 
@@ -985,10 +1066,14 @@ def treat_as_new(
         evidence_link_ids=evidence_link_ids,
     )
     return _apply(
-        conn, project_id, proposal_id,
+        conn,
+        project_id,
+        proposal_id,
         edits=edits,
         review_action=ReviewAction.TREAT_AS_NEW,
-        actor=actor, note=note, reason_code=reason_code,
+        actor=actor,
+        note=note,
+        reason_code=reason_code,
         expected_target_version_id=_UNSET,
         force_no_target=True,
     )
@@ -1016,19 +1101,34 @@ def reject_proposal(
     review_id = new_id()
     with transaction(conn):
         review = review_repository.insert_review(
-            conn, project_id, review_id=review_id, proposal_id=proposal_id,
-            action=ReviewAction.REJECT, before=None, after=None,
-            reason_code=reason_code, note=note, actor=actor,
+            conn,
+            project_id,
+            review_id=review_id,
+            proposal_id=proposal_id,
+            action=ReviewAction.REJECT,
+            before=None,
+            after=None,
+            reason_code=reason_code,
+            note=note,
+            actor=actor,
         )
         updated_proposal = proposed_mutation_repository.set_status(
-            conn, project_id, proposal_id,
-            ProposedMutationStatus.REJECTED, reviewed_at=review.reviewed_at,
+            conn,
+            project_id,
+            proposal_id,
+            ProposedMutationStatus.REJECTED,
+            reviewed_at=review.reviewed_at,
         )
         assert updated_proposal is not None
 
     return ReviewOutcome(
-        review=review, proposal=updated_proposal, ledger_item=None, ledger_version=None,
-        predecessor_item=None, corrections=(), already_applied=False,
+        review=review,
+        proposal=updated_proposal,
+        ledger_item=None,
+        ledger_version=None,
+        predecessor_item=None,
+        corrections=(),
+        already_applied=False,
     )
 
 

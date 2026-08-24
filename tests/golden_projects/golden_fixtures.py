@@ -159,8 +159,7 @@ def _pad(statement: str) -> str:
 
 def _build(flavor: _Flavor) -> GoldenProject:
     c1_create_statement = _pad(
-        f"{flavor.c1_owner} will finish the {flavor.c1_subject.lower()} "
-        f"by {flavor.c1_date_text}."
+        f"{flavor.c1_owner} will finish the {flavor.c1_subject.lower()} by {flavor.c1_date_text}."
     )
     c2_create_statement = _pad(
         f"{flavor.c2_owner} will send the {flavor.c2_subject.lower()} by Friday."
@@ -208,37 +207,55 @@ def _build(flavor: _Flavor) -> GoldenProject:
     round1_facts = (
         GoldenFact(ObservationKind.DECISION, flavor.decision_subject, decision_statement),
         GoldenFact(
-            ObservationKind.COMMITMENT, flavor.c1_subject, c1_create_statement,
-            owner_name=flavor.c1_owner, date_value=flavor.c1_date, date_text=flavor.c1_date_text,
+            ObservationKind.COMMITMENT,
+            flavor.c1_subject,
+            c1_create_statement,
+            owner_name=flavor.c1_owner,
+            date_value=flavor.c1_date,
+            date_text=flavor.c1_date_text,
         ),
         GoldenFact(
-            ObservationKind.COMMITMENT, flavor.c2_subject, c2_create_statement,
+            ObservationKind.COMMITMENT,
+            flavor.c2_subject,
+            c2_create_statement,
             owner_name=flavor.c2_owner,
         ),
         GoldenFact(
-            ObservationKind.RISK, flavor.risk_subject, risk_create_statement,
+            ObservationKind.RISK,
+            flavor.risk_subject,
+            risk_create_statement,
             owner_name=flavor.risk_owner,
         ),
         GoldenFact(
-            ObservationKind.MILESTONE, flavor.milestone_subject, milestone_create_statement,
-            date_value=flavor.milestone_date, date_text=flavor.milestone_date_text,
+            ObservationKind.MILESTONE,
+            flavor.milestone_subject,
+            milestone_create_statement,
+            date_value=flavor.milestone_date,
+            date_text=flavor.milestone_date_text,
         ),
         GoldenFact(ObservationKind.OPEN_QUESTION, flavor.question_subject, question_statement),
     )
     round2_facts = (
         GoldenFact(
-            ObservationKind.COMMITMENT, flavor.c1_subject, c1_owner_change_statement,
+            ObservationKind.COMMITMENT,
+            flavor.c1_subject,
+            c1_owner_change_statement,
             owner_name=flavor.c1_new_owner,
         ),
         GoldenFact(ObservationKind.COMMITMENT, flavor.c2_subject, c2_completion_statement),
     )
     round3_facts = (
         GoldenFact(
-            ObservationKind.COMMITMENT, flavor.c1_subject, c1_date_change_statement,
-            date_value=flavor.c1_new_date, date_text=flavor.c1_new_date_text,
+            ObservationKind.COMMITMENT,
+            flavor.c1_subject,
+            c1_date_change_statement,
+            date_value=flavor.c1_new_date,
+            date_text=flavor.c1_new_date_text,
         ),
         GoldenFact(
-            ObservationKind.BLOCKER, flavor.risk_subject, blocker_statement,
+            ObservationKind.BLOCKER,
+            flavor.risk_subject,
+            blocker_statement,
             owner_name=flavor.risk_owner,
         ),
     )

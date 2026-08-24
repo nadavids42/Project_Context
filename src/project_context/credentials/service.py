@@ -86,38 +86,43 @@ class CredentialService:
             source = sources_repository.get_source(conn, project_id, source_id)
             if source is None or source.credential_ref is None:
                 return sources_repository.update_health(
-                    conn, project_id, source_id,
-                    health_status=SourceHealthStatus.REAUTH_REQUIRED, last_error_code="auth",
+                    conn,
+                    project_id,
+                    source_id,
+                    health_status=SourceHealthStatus.REAUTH_REQUIRED,
+                    last_error_code="auth",
                 )
             current_secret = self._store.get_secret(source.credential_ref)
             if current_secret is None:
                 return sources_repository.update_health(
-                    conn, project_id, source_id,
-                    health_status=SourceHealthStatus.REAUTH_REQUIRED, last_error_code="auth",
+                    conn,
+                    project_id,
+                    source_id,
+                    health_status=SourceHealthStatus.REAUTH_REQUIRED,
+                    last_error_code="auth",
                 )
             try:
                 new_secret = refresh_fn(current_secret)
             except TokenRefreshError:
                 return sources_repository.update_health(
-                    conn, project_id, source_id,
-                    health_status=SourceHealthStatus.REAUTH_REQUIRED, last_error_code="auth",
+                    conn,
+                    project_id,
+                    source_id,
+                    health_status=SourceHealthStatus.REAUTH_REQUIRED,
+                    last_error_code="auth",
                 )
             self._store.update_secret(source.credential_ref, new_secret)
             return sources_repository.update_health(
                 conn, project_id, source_id, health_status=SourceHealthStatus.HEALTHY
             )
 
-    def get_secret(
-        self, conn: sqlite3.Connection, project_id: str, source_id: str
-    ) -> str | None:
+    def get_secret(self, conn: sqlite3.Connection, project_id: str, source_id: str) -> str | None:
         source = sources_repository.get_source(conn, project_id, source_id)
         if source is None or source.credential_ref is None:
             return None
         return self._store.get_secret(source.credential_ref)
 
-    def disconnect(
-        self, conn: sqlite3.Connection, project_id: str, source_id: str
-    ) -> Source:
+    def disconnect(self, conn: sqlite3.Connection, project_id: str, source_id: str) -> Source:
         """Delete local credential material and disable the source
         (Section 16: "Disconnect deletes local credential material and
         marks the source disabled"). The source row itself is retained
@@ -142,8 +147,11 @@ class CredentialService:
         other source (Section 8: "Token expiry should move connector to
         reauth_required without disabling other sources")."""
         return sources_repository.update_health(
-            conn, project_id, source_id,
-            health_status=SourceHealthStatus.REAUTH_REQUIRED, last_error_code=error_code,
+            conn,
+            project_id,
+            source_id,
+            health_status=SourceHealthStatus.REAUTH_REQUIRED,
+            last_error_code=error_code,
         )
 
 

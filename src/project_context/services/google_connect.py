@@ -64,9 +64,15 @@ def connect_google_drive(
     `DRIVE_READONLY_SCOPE` (Section 16: "Never request ... Drive write
     scopes")."""
     return _run_connect_flow(
-        conn, project_id, source_id, credential_service=credential_service,
-        client_id=client_id, client_secret=client_secret, redirect_port=redirect_port,
-        flow_runner=flow_runner, scope=google_oauth.DRIVE_READONLY_SCOPE,
+        conn,
+        project_id,
+        source_id,
+        credential_service=credential_service,
+        client_id=client_id,
+        client_secret=client_secret,
+        redirect_port=redirect_port,
+        flow_runner=flow_runner,
+        scope=google_oauth.DRIVE_READONLY_SCOPE,
     )
 
 
@@ -92,9 +98,15 @@ def connect_gmail(
     module's docstring for why this prototype does not pool a single
     Google token across connector kinds)."""
     return _run_connect_flow(
-        conn, project_id, source_id, credential_service=credential_service,
-        client_id=client_id, client_secret=client_secret, redirect_port=redirect_port,
-        flow_runner=flow_runner, scope=google_oauth.GMAIL_READONLY_SCOPE,
+        conn,
+        project_id,
+        source_id,
+        credential_service=credential_service,
+        client_id=client_id,
+        client_secret=client_secret,
+        redirect_port=redirect_port,
+        flow_runner=flow_runner,
+        scope=google_oauth.GMAIL_READONLY_SCOPE,
     )
 
 
@@ -116,9 +128,15 @@ def connect_calendar(
     Drive/Gmail — same per-source credential model, same tradeoff, as
     documented in this module's docstring."""
     return _run_connect_flow(
-        conn, project_id, source_id, credential_service=credential_service,
-        client_id=client_id, client_secret=client_secret, redirect_port=redirect_port,
-        flow_runner=flow_runner, scope=google_oauth.CALENDAR_EVENTS_READONLY_SCOPE,
+        conn,
+        project_id,
+        source_id,
+        credential_service=credential_service,
+        client_id=client_id,
+        client_secret=client_secret,
+        redirect_port=redirect_port,
+        flow_runner=flow_runner,
+        scope=google_oauth.CALENDAR_EVENTS_READONLY_SCOPE,
     )
 
 

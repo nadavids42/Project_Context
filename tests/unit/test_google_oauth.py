@@ -137,7 +137,9 @@ def test_exchange_refresh_token_accepts_an_explicit_gmail_scope(monkeypatch):
     monkeypatch.setattr(Credentials, "refresh", fake_refresh)
 
     token = google_oauth.exchange_refresh_token(
-        "stored-refresh-token", client_id="cid", client_secret="csecret",
+        "stored-refresh-token",
+        client_id="cid",
+        client_secret="csecret",
         scopes=[google_oauth.GMAIL_READONLY_SCOPE],
     )
     assert token == "fresh-access-token"

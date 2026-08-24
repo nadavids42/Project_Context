@@ -108,15 +108,21 @@ def test_build_brief_input_omits_unset_fields_rather_than_sending_null():
 
 def test_build_brief_input_with_multiple_sections_keeps_each_facts_list_separate():
     commitments = BriefFactSection(
-        section="open_commitments", heading="Open Commitments",
+        section="open_commitments",
+        heading="Open Commitments",
         facts=(_fact(fact_id="fact-1", section="open_commitments"),),
     )
     risks = BriefFactSection(
-        section="risks_and_blockers", heading="Risks and Blockers",
+        section="risks_and_blockers",
+        heading="Risks and Blockers",
         facts=(
             _fact(
-                fact_id="fact-2", section="risks_and_blockers",
-                title="Vendor delay risk", status="open", owner_name=None, due_date=None,
+                fact_id="fact-2",
+                section="risks_and_blockers",
+                title="Vendor delay risk",
+                status="open",
+                owner_name=None,
+                due_date=None,
             ),
         ),
     )

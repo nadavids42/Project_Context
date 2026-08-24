@@ -330,14 +330,19 @@ def test_zoom_vtt_transcript_ingests_through_manual_upload(conn, project_id, evi
     from project_context.services import evidence as evidence_service
 
     result = evidence_service.submit_file_upload(
-        conn, project_id,
+        conn,
+        project_id,
         ManualFileUploadInput(
-            title="Acme Kickoff transcript", source_type=EvidenceSourceType.CALL_RECORDING,
-            occurred_at=datetime(2026, 6, 1, tzinfo=UTC), filename=ZOOM_VTT_FILENAME,
+            title="Acme Kickoff transcript",
+            source_type=EvidenceSourceType.CALL_RECORDING,
+            occurred_at=datetime(2026, 6, 1, tzinfo=UTC),
+            filename=ZOOM_VTT_FILENAME,
             data=ZOOM_VTT_TRANSCRIPT_BYTES,
         ),
-        evidence_dir=evidence_dir, max_upload_bytes=25 * 1024 * 1024,
-        chunk_target_chars=4000, chunk_overlap_ratio=0.0,
+        evidence_dir=evidence_dir,
+        max_upload_bytes=25 * 1024 * 1024,
+        chunk_target_chars=4000,
+        chunk_overlap_ratio=0.0,
     )
     assert result.content.parse_status is ParseStatus.PARSED
     assert "We decided to ship the Acme rollout in July." in result.content.normalized_text
@@ -350,14 +355,19 @@ def test_zoom_summary_docx_ingests_through_manual_upload(conn, project_id, evide
     from project_context.services import evidence as evidence_service
 
     result = evidence_service.submit_file_upload(
-        conn, project_id,
+        conn,
+        project_id,
         ManualFileUploadInput(
-            title="Acme Kickoff summary", source_type=EvidenceSourceType.MEETING_NOTES,
-            occurred_at=datetime(2026, 6, 1, tzinfo=UTC), filename=ZOOM_SUMMARY_DOCX_FILENAME,
+            title="Acme Kickoff summary",
+            source_type=EvidenceSourceType.MEETING_NOTES,
+            occurred_at=datetime(2026, 6, 1, tzinfo=UTC),
+            filename=ZOOM_SUMMARY_DOCX_FILENAME,
             data=build_zoom_summary_docx(),
         ),
-        evidence_dir=evidence_dir, max_upload_bytes=25 * 1024 * 1024,
-        chunk_target_chars=4000, chunk_overlap_ratio=0.0,
+        evidence_dir=evidence_dir,
+        max_upload_bytes=25 * 1024 * 1024,
+        chunk_target_chars=4000,
+        chunk_overlap_ratio=0.0,
     )
     assert result.content.parse_status is ParseStatus.PARSED
     assert "Alice to schedule the next check-in." in result.content.normalized_text

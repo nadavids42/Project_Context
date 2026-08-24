@@ -99,8 +99,10 @@ def store_gmail_artifact(
             conn, project_id, existing_by_hash.id
         )
         return GmailStoreResult(
-            artifact=artifact, content=existing_by_hash,
-            chunks=tuple(existing_chunks), created_new_version=False,
+            artifact=artifact,
+            content=existing_by_hash,
+            chunks=tuple(existing_chunks),
+            created_new_version=False,
         )
 
     try:

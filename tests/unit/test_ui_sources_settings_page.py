@@ -59,6 +59,16 @@ def _at_for(config, project_id) -> AppTest:
     return at
 
 
+def test_drive_disabled_by_default_shows_the_feature_flag_hint(isolated_config):
+    project = _seed_project(isolated_config)
+
+    at = _at_for(isolated_config, project.id)
+    at.run()
+
+    assert not at.exception
+    assert any("drive integration is disabled" in i.value.lower() for i in at.info)
+
+
 def test_drive_enabled_without_oauth_client_shows_a_clear_warning(isolated_config, monkeypatch):
     monkeypatch.setenv("PROJECT_CONTEXT_FEATURE_DRIVE_ENABLED", "true")
     project = _seed_project(isolated_config)
@@ -94,12 +104,16 @@ def test_connect_button_stores_a_credential_and_flashes_success(isolated_config,
     import project_context.ui.pages.sources_settings as page
 
     def fake_connect(
-        conn, project_id, source_id, *,
-        credential_service, client_id, client_secret, redirect_port,
+        conn,
+        project_id,
+        source_id,
+        *,
+        credential_service,
+        client_id,
+        client_secret,
+        redirect_port,
     ):
-        return credential_service.connect(
-            conn, project_id, source_id, secret="fake-refresh-token"
-        )
+        return credential_service.connect(conn, project_id, source_id, secret="fake-refresh-token")
 
     monkeypatch.setattr(page, "connect_google_drive", fake_connect)
 
@@ -186,9 +200,18 @@ def test_sync_button_runs_sync_and_displays_counts(isolated_config, monkeypatch)
 
             run = sync_repository.insert_sync_run(conn2, project_id)
             finalized = sync_repository.finalize_sync_run(
-                conn2, project_id, run.id, status=SyncRunStatus.COMPLETED,
-                discovered_count=3, unchanged_count=1, downloaded_count=2, parsed_count=2,
-                extracted_count=1, failed_count=0, proposed_count=1, needs_assignment_count=0,
+                conn2,
+                project_id,
+                run.id,
+                status=SyncRunStatus.COMPLETED,
+                discovered_count=3,
+                unchanged_count=1,
+                downloaded_count=2,
+                parsed_count=2,
+                extracted_count=1,
+                failed_count=0,
+                proposed_count=1,
+                needs_assignment_count=0,
             )
             conn2.commit()
             return finalized
@@ -206,6 +229,12 @@ def test_sync_button_runs_sync_and_displays_counts(isolated_config, monkeypatch)
     assert any("sync completed" in s.value.lower() for s in at.success)
     metric_labels = {m.label for m in at.metric}
     expected = {
-        "Discovered", "Unchanged", "Downloaded", "Parsed", "Extracted", "Failed", "Unassigned",
+        "Discovered",
+        "Unchanged",
+        "Downloaded",
+        "Parsed",
+        "Extracted",
+        "Failed",
+        "Unassigned",
     }
     assert expected <= metric_labels

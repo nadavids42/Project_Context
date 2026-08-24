@@ -119,8 +119,11 @@ def test_update_health_sets_status_and_error_code(conn, project_id):
         conn, project_id, kind=SourceKind.DRIVE, display_name="Drive folder"
     )
     updated = sources_repository.update_health(
-        conn, project_id, source.id,
-        health_status=SourceHealthStatus.REAUTH_REQUIRED, last_error_code="auth",
+        conn,
+        project_id,
+        source.id,
+        health_status=SourceHealthStatus.REAUTH_REQUIRED,
+        last_error_code="auth",
     )
     assert updated.health_status is SourceHealthStatus.REAUTH_REQUIRED
     assert updated.last_error_code == "auth"

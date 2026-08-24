@@ -82,8 +82,14 @@ def insert_sync_run(
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            run_id, project_id, now, SyncRunStatus.RUNNING.value, SyncTrigger.MANUAL.value,
-            correlation_id, app_version, now,
+            run_id,
+            project_id,
+            now,
+            SyncRunStatus.RUNNING.value,
+            SyncTrigger.MANUAL.value,
+            correlation_id,
+            app_version,
+            now,
         ),
     )
     run = get_sync_run(conn, project_id, run_id)
@@ -123,9 +129,19 @@ def finalize_sync_run(
         WHERE id = ? AND project_id = ?
         """,
         (
-            status.value, now, discovered_count, unchanged_count, downloaded_count,
-            parsed_count, extracted_count, failed_count, proposed_count,
-            needs_assignment_count, now, run_id, project_id,
+            status.value,
+            now,
+            discovered_count,
+            unchanged_count,
+            downloaded_count,
+            parsed_count,
+            extracted_count,
+            failed_count,
+            proposed_count,
+            needs_assignment_count,
+            now,
+            run_id,
+            project_id,
         ),
     )
     run = get_sync_run(conn, project_id, run_id)
@@ -177,9 +193,19 @@ def insert_sync_item(
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            item_id, sync_run_id, source_id, artifact_id, external_id, stage.value, status.value,
-            attempt_count, error_class.value if error_class else None, safe_error_message,
-            duration_ms, now, now,
+            item_id,
+            sync_run_id,
+            source_id,
+            artifact_id,
+            external_id,
+            stage.value,
+            status.value,
+            attempt_count,
+            error_class.value if error_class else None,
+            safe_error_message,
+            duration_ms,
+            now,
+            now,
         ),
     )
     item = get_sync_item(conn, item_id)

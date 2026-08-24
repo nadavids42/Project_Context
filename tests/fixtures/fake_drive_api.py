@@ -71,8 +71,12 @@ class FakeDriveApi:
         """Registers full metadata/content for `file_id` and returns the
         raw child dict callers pass to `add_folder`."""
         metadata = {
-            "id": file_id, "name": name, "mimeType": mime_type,
-            "modifiedTime": modified_time, "trashed": trashed, **extra,
+            "id": file_id,
+            "name": name,
+            "mimeType": mime_type,
+            "modifiedTime": modified_time,
+            "trashed": trashed,
+            **extra,
         }
         if size is not None:
             metadata["size"] = str(size)

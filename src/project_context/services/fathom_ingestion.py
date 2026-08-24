@@ -303,8 +303,10 @@ def store_fathom_artifact(
             conn, project_id, existing_by_hash.id
         )
         return FathomStoreResult(
-            artifact=artifact, content=existing_by_hash,
-            chunks=tuple(existing_chunks), created_new_version=False,
+            artifact=artifact,
+            content=existing_by_hash,
+            chunks=tuple(existing_chunks),
+            created_new_version=False,
         )
 
     try:

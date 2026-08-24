@@ -137,7 +137,10 @@ def _render_drive_section(conn, project_id: str) -> None:
 
 
 def _render_connect_form(
-    conn, project_id: str, source: Source | None, credential_service: CredentialService,
+    conn,
+    project_id: str,
+    source: Source | None,
+    credential_service: CredentialService,
     config: AppConfig,
 ) -> None:
     st.write("Not connected.")
@@ -149,7 +152,10 @@ def _render_connect_form(
                 )
             with st.spinner("Waiting for authorization in your browser…"):
                 connect_google_drive(
-                    conn, project_id, source.id, credential_service=credential_service,
+                    conn,
+                    project_id,
+                    source.id,
+                    credential_service=credential_service,
                     client_id=config.google_oauth_client_id,
                     client_secret=config.google_oauth_client_secret,
                     redirect_port=config.google_oauth_redirect_port,
@@ -162,7 +168,10 @@ def _render_connect_form(
 
 
 def _render_connected_drive(
-    conn, project_id: str, source: Source, credential_service: CredentialService,
+    conn,
+    project_id: str,
+    source: Source,
+    credential_service: CredentialService,
     config: AppConfig,
 ) -> None:
     kind, label = _HEALTH_RENDER.get(source.health_status, ("info", source.health_status.value))
@@ -177,7 +186,8 @@ def _render_connected_drive(
     boundary = json.loads(source.boundary_json) if source.boundary_json else {}
     with st.form("drive-folder-form"):
         folder_id = st.text_input(
-            "Drive folder ID", value=boundary.get("folder_id", ""),
+            "Drive folder ID",
+            value=boundary.get("folder_id", ""),
             help="The ID from the folder's Drive URL: drive.google.com/drive/folders/<this part>",
         )
         preview_col, save_col = st.columns(2)
@@ -216,14 +226,21 @@ def _render_connected_drive(
 
 
 def _render_preview(
-    conn, project_id: str, source: Source, credential_service: CredentialService,
-    config: AppConfig, folder_id: str,
+    conn,
+    project_id: str,
+    source: Source,
+    credential_service: CredentialService,
+    config: AppConfig,
+    folder_id: str,
 ) -> None:
     if not folder_id:
         st.error("Enter a folder ID first.")
         return
     access_token = sync_service.mint_drive_access_token(
-        conn, project_id, source.id, credential_service=credential_service,
+        conn,
+        project_id,
+        source.id,
+        credential_service=credential_service,
         google_client_id=config.google_oauth_client_id,
         google_client_secret=config.google_oauth_client_secret,
     )
@@ -254,7 +271,10 @@ def _render_preview(
 
 
 def _render_sync_section(
-    conn, project_id: str, source: Source, credential_service: CredentialService,
+    conn,
+    project_id: str,
+    source: Source,
+    credential_service: CredentialService,
     config: AppConfig,
 ) -> None:
     st.subheader("Sync Project")
@@ -265,7 +285,10 @@ def _render_sync_section(
         provider = extraction_service.build_default_provider()
         with st.spinner("Syncing…"):
             run = sync_service.sync_drive_project(
-                conn, project_id, source.id, credential_service=credential_service,
+                conn,
+                project_id,
+                source.id,
+                credential_service=credential_service,
                 google_client_id=config.google_oauth_client_id,
                 google_client_secret=config.google_oauth_client_secret,
                 evidence_dir=config.evidence_dir,
@@ -289,9 +312,12 @@ def _render_sync_result(run) -> None:
     status_renderer.get(run.status.value, st.info)(f"Sync {run.status.value}.")
     cols = st.columns(7)
     labels = [
-        ("Discovered", run.discovered_count), ("Unchanged", run.unchanged_count),
-        ("Downloaded", run.downloaded_count), ("Parsed", run.parsed_count),
-        ("Extracted", run.extracted_count), ("Failed", run.failed_count),
+        ("Discovered", run.discovered_count),
+        ("Unchanged", run.unchanged_count),
+        ("Downloaded", run.downloaded_count),
+        ("Parsed", run.parsed_count),
+        ("Extracted", run.extracted_count),
+        ("Failed", run.failed_count),
         ("Unassigned", run.needs_assignment_count),
     ]
     for column, (label, value) in zip(cols, labels, strict=False):
@@ -364,7 +390,10 @@ def _render_gmail_section(conn, project_id: str) -> None:
 
 
 def _render_gmail_connect_form(
-    conn, project_id: str, source: Source | None, credential_service: CredentialService,
+    conn,
+    project_id: str,
+    source: Source | None,
+    credential_service: CredentialService,
     config: AppConfig,
 ) -> None:
     st.write("Not connected.")
@@ -376,7 +405,10 @@ def _render_gmail_connect_form(
                 )
             with st.spinner("Waiting for authorization in your browser…"):
                 connect_gmail(
-                    conn, project_id, source.id, credential_service=credential_service,
+                    conn,
+                    project_id,
+                    source.id,
+                    credential_service=credential_service,
                     client_id=config.google_oauth_client_id,
                     client_secret=config.google_oauth_client_secret,
                     redirect_port=config.google_oauth_redirect_port,
@@ -389,7 +421,10 @@ def _render_gmail_connect_form(
 
 
 def _render_connected_gmail(
-    conn, project_id: str, source: Source, credential_service: CredentialService,
+    conn,
+    project_id: str,
+    source: Source,
+    credential_service: CredentialService,
     config: AppConfig,
 ) -> None:
     kind, label = _HEALTH_RENDER.get(source.health_status, ("info", source.health_status.value))
@@ -404,12 +439,14 @@ def _render_connected_gmail(
     boundary = json.loads(source.boundary_json) if source.boundary_json else {}
     with st.form("gmail-boundary-form"):
         gmail_label = st.text_input(
-            "Gmail label", value=boundary.get("label", ""),
+            "Gmail label",
+            value=boundary.get("label", ""),
             help="An existing Gmail label name, matched with the label: search operator.",
         )
         gmail_query = st.text_input(
-            "Gmail search query", value=boundary.get("query", ""),
-            help="Gmail search syntax, e.g. from:client@example.com subject:\"Project Alpha\". "
+            "Gmail search query",
+            value=boundary.get("query", ""),
+            help='Gmail search syntax, e.g. from:client@example.com subject:"Project Alpha". '
             "Combined with the label above if both are set.",
         )
         preview_col, save_col = st.columns(2)
@@ -428,7 +465,9 @@ def _render_connected_gmail(
             st.error("Enter a label, a query, or both.")
         else:
             sources_repository.update_boundary(
-                conn, project_id, source.id,
+                conn,
+                project_id,
+                source.id,
                 boundary_json=json.dumps({"label": gmail_label, "query": gmail_query}),
             )
             _set_flash("success", "Gmail boundary saved.")
@@ -457,14 +496,22 @@ def _render_connected_gmail(
 
 
 def _render_gmail_preview(
-    conn, project_id: str, source: Source, credential_service: CredentialService,
-    config: AppConfig, gmail_label: str, gmail_query: str,
+    conn,
+    project_id: str,
+    source: Source,
+    credential_service: CredentialService,
+    config: AppConfig,
+    gmail_label: str,
+    gmail_query: str,
 ) -> None:
     if not gmail_label and not gmail_query:
         st.error("Enter a label, a query, or both first.")
         return
     access_token = sync_service.mint_gmail_access_token(
-        conn, project_id, source.id, credential_service=credential_service,
+        conn,
+        project_id,
+        source.id,
+        credential_service=credential_service,
         google_client_id=config.google_oauth_client_id,
         google_client_secret=config.google_oauth_client_secret,
     )
@@ -475,7 +522,9 @@ def _render_gmail_preview(
     from project_context.connectors.http import RequestsHttpTransport
 
     connector = GmailConnector(
-        access_token=access_token, label=gmail_label or None, query=gmail_query or None,
+        access_token=access_token,
+        label=gmail_label or None,
+        query=gmail_query or None,
         http_transport=RequestsHttpTransport(),
     )
     try:
@@ -498,7 +547,10 @@ def _render_gmail_preview(
 
 
 def _render_gmail_sync_section(
-    conn, project_id: str, source: Source, credential_service: CredentialService,
+    conn,
+    project_id: str,
+    source: Source,
+    credential_service: CredentialService,
     config: AppConfig,
 ) -> None:
     st.subheader("Sync Project")
@@ -509,7 +561,10 @@ def _render_gmail_sync_section(
         provider = extraction_service.build_default_provider()
         with st.spinner("Syncing…"):
             run = sync_service.sync_gmail_project(
-                conn, project_id, source.id, credential_service=credential_service,
+                conn,
+                project_id,
+                source.id,
+                credential_service=credential_service,
                 google_client_id=config.google_oauth_client_id,
                 google_client_secret=config.google_oauth_client_secret,
                 evidence_dir=config.evidence_dir,
@@ -585,7 +640,10 @@ def _render_calendar_section(conn, project_id: str, project_name: str) -> None:
 
 
 def _render_calendar_connect_form(
-    conn, project_id: str, source: Source | None, credential_service: CredentialService,
+    conn,
+    project_id: str,
+    source: Source | None,
+    credential_service: CredentialService,
     config: AppConfig,
 ) -> None:
     st.write("Not connected.")
@@ -597,7 +655,10 @@ def _render_calendar_connect_form(
                 )
             with st.spinner("Waiting for authorization in your browser…"):
                 connect_calendar(
-                    conn, project_id, source.id, credential_service=credential_service,
+                    conn,
+                    project_id,
+                    source.id,
+                    credential_service=credential_service,
                     client_id=config.google_oauth_client_id,
                     client_secret=config.google_oauth_client_secret,
                     redirect_port=config.google_oauth_redirect_port,
@@ -610,8 +671,12 @@ def _render_calendar_connect_form(
 
 
 def _render_connected_calendar(
-    conn, project_id: str, source: Source, credential_service: CredentialService,
-    config: AppConfig, project_name: str,
+    conn,
+    project_id: str,
+    source: Source,
+    credential_service: CredentialService,
+    config: AppConfig,
+    project_name: str,
 ) -> None:
     kind, label = _HEALTH_RENDER.get(source.health_status, ("info", source.health_status.value))
     getattr(st, kind)(f"**{label}**  ·  secret: `{MASKED_SECRET_DISPLAY}`")
@@ -635,7 +700,8 @@ def _render_connected_calendar(
             help="Matches an event whose title or description contains one of these terms.",
         )
         client_domain = st.text_input(
-            "3a. Client email domain", value=boundary.get("client_domain") or "",
+            "3a. Client email domain",
+            value=boundary.get("client_domain") or "",
             help="Matches an event whose organizer/attendee email domain equals this.",
         )
         participant_emails = st.text_area(
@@ -647,25 +713,32 @@ def _render_connected_calendar(
             value=", ".join(boundary.get("include_terms", [])),
         )
         include_regex = st.text_input(
-            "4. Include regex (optional)", value=boundary.get("include_regex") or "",
+            "4. Include regex (optional)",
+            value=boundary.get("include_regex") or "",
         )
         st.markdown("**Exclude rules** — override every tier above when matched:")
         exclude_terms = st.text_area(
-            "Exclude terms (comma-separated)", value=", ".join(boundary.get("exclude_terms", [])),
+            "Exclude terms (comma-separated)",
+            value=", ".join(boundary.get("exclude_terms", [])),
         )
         exclude_regex = st.text_input(
-            "Exclude regex (optional)", value=boundary.get("exclude_regex") or "",
+            "Exclude regex (optional)",
+            value=boundary.get("exclude_regex") or "",
         )
         st.markdown("**Scan window**")
         window_col1, window_col2 = st.columns(2)
         with window_col1:
             scan_days_back = st.number_input(
-                "Days back", min_value=1, max_value=730,
+                "Days back",
+                min_value=1,
+                max_value=730,
                 value=boundary.get("scan_days_back", 180),
             )
         with window_col2:
             scan_days_forward = st.number_input(
-                "Days forward", min_value=1, max_value=365,
+                "Days forward",
+                min_value=1,
+                max_value=365,
                 value=boundary.get("scan_days_forward", 90),
             )
 
@@ -726,11 +799,18 @@ def _render_connected_calendar(
 
 
 def _render_calendar_preview(
-    conn, project_id: str, source: Source, credential_service: CredentialService,
-    config: AppConfig, boundary: dict,
+    conn,
+    project_id: str,
+    source: Source,
+    credential_service: CredentialService,
+    config: AppConfig,
+    boundary: dict,
 ) -> None:
     access_token = sync_service.mint_calendar_access_token(
-        conn, project_id, source.id, credential_service=credential_service,
+        conn,
+        project_id,
+        source.id,
+        credential_service=credential_service,
         google_client_id=config.google_oauth_client_id,
         google_client_secret=config.google_oauth_client_secret,
     )
@@ -747,8 +827,10 @@ def _render_calendar_preview(
         return
 
     connector = CalendarConnector(
-        access_token=access_token, rules=rules,
-        days_back=boundary["scan_days_back"], days_forward=boundary["scan_days_forward"],
+        access_token=access_token,
+        rules=rules,
+        days_back=boundary["scan_days_back"],
+        days_forward=boundary["scan_days_forward"],
         http_transport=RequestsHttpTransport(),
     )
     try:
@@ -773,7 +855,10 @@ def _render_calendar_preview(
 
 
 def _render_calendar_sync_section(
-    conn, project_id: str, source: Source, credential_service: CredentialService,
+    conn,
+    project_id: str,
+    source: Source,
+    credential_service: CredentialService,
     config: AppConfig,
 ) -> None:
     st.subheader("Sync Project")
@@ -784,7 +869,10 @@ def _render_calendar_sync_section(
         provider = extraction_service.build_default_provider()
         with st.spinner("Syncing…"):
             run = sync_service.sync_calendar_project(
-                conn, project_id, source.id, credential_service=credential_service,
+                conn,
+                project_id,
+                source.id,
+                credential_service=credential_service,
                 google_client_id=config.google_oauth_client_id,
                 google_client_secret=config.google_oauth_client_secret,
                 evidence_dir=config.evidence_dir,
@@ -907,7 +995,8 @@ def _render_connected_fathom(
             help="Any meeting recorded by one of these emails belongs to this project.",
         )
         client_domain = st.text_input(
-            "3. Client email domain", value=boundary.get("client_domain") or "",
+            "3. Client email domain",
+            value=boundary.get("client_domain") or "",
             help="Matches a meeting with a calendar invitee or transcript speaker at this domain.",
         )
         participant_emails = st.text_area(
@@ -981,7 +1070,11 @@ def _render_connected_fathom(
 
 
 def _render_fathom_preview(
-    conn, project_id: str, source: Source, credential_service: CredentialService, boundary: dict,
+    conn,
+    project_id: str,
+    source: Source,
+    credential_service: CredentialService,
+    boundary: dict,
 ) -> None:
     api_key = credential_service.get_secret(conn, project_id, source.id)
     if api_key is None:
@@ -1024,7 +1117,11 @@ def _render_fathom_preview(
 
 
 def _render_fathom_sync_section(
-    conn, project_id: str, source: Source, credential_service: CredentialService, config: AppConfig,
+    conn,
+    project_id: str,
+    source: Source,
+    credential_service: CredentialService,
+    config: AppConfig,
 ) -> None:
     st.subheader("Sync Project")
     if not source.enabled:
@@ -1035,7 +1132,10 @@ def _render_fathom_sync_section(
         provider = extraction_service.build_default_provider()
         with st.spinner("Syncing…"):
             run = sync_service.sync_fathom_project(
-                conn, project_id, source.id, credential_service=credential_service,
+                conn,
+                project_id,
+                source.id,
+                credential_service=credential_service,
                 evidence_dir=config.evidence_dir,
                 chunk_target_chars=config.chunk_target_chars,
                 chunk_overlap_ratio=config.chunk_overlap_ratio,

@@ -60,19 +60,40 @@ def make_content_and_chunk(conn, project_id, *, text):
     n = next(_counter)
     source = sources_repository.ensure_manual_source(conn, project_id)
     artifact = evidence_repository.insert_artifact(
-        conn, project_id, source.id, external_id=f"t:{project_id}:{n}",
-        artifact_type=ArtifactType.MANUAL_TEXT, title="Notes", author=None,
-        occurred_at=None, external_url="https://example.com/n", source_type=None,
+        conn,
+        project_id,
+        source.id,
+        external_id=f"t:{project_id}:{n}",
+        artifact_type=ArtifactType.MANUAL_TEXT,
+        title="Notes",
+        author=None,
+        occurred_at=None,
+        external_url="https://example.com/n",
+        source_type=None,
     )
     content = evidence_repository.insert_content(
-        conn, project_id, artifact.id, sha256=hashlib.sha256(f"{n}:{text}".encode()).hexdigest(),
-        raw_storage_path=None, mime_type="text/plain", byte_size=len(text), normalized_text=text,
-        parser_name="text", parser_version="1", parse_status=ParseStatus.PARSED,
-        location_map=None, original_filename=None,
+        conn,
+        project_id,
+        artifact.id,
+        sha256=hashlib.sha256(f"{n}:{text}".encode()).hexdigest(),
+        raw_storage_path=None,
+        mime_type="text/plain",
+        byte_size=len(text),
+        normalized_text=text,
+        parser_name="text",
+        parser_version="1",
+        parse_status=ParseStatus.PARSED,
+        location_map=None,
+        original_filename=None,
     )
     spec = ChunkSpec(
-        ordinal=0, text=text, char_start=0, char_end=len(text), section_path=None,
-        sha256=hashlib.sha256(f"{n}:{text}:c".encode()).hexdigest(), token_estimate=len(text) // 4,
+        ordinal=0,
+        text=text,
+        char_start=0,
+        char_end=len(text),
+        section_path=None,
+        sha256=hashlib.sha256(f"{n}:{text}:c".encode()).hexdigest(),
+        token_estimate=len(text) // 4,
     )
     (chunk,) = evidence_repository.insert_chunks(conn, project_id, content.id, [spec])
     return content, chunk
@@ -80,13 +101,24 @@ def make_content_and_chunk(conn, project_id, *, text):
 
 def make_evidenced_commitment(conn, project_id, *, title="Send the report", due_date="2026-09-01"):
     item, _v1 = create_ledger_item(
-        conn, project_id, kind=LedgerItemKind.COMMITMENT, canonical_title=title, due_date=due_date,
+        conn,
+        project_id,
+        kind=LedgerItemKind.COMMITMENT,
+        canonical_title=title,
+        due_date=due_date,
     )
     content, chunk = make_content_and_chunk(conn, project_id, text=f"{title} evidence.")
     evidence_link_repository.insert_link(
-        conn, project_id, target_type=EvidenceLinkTargetType.LEDGER_ITEM, target_id=item.id,
-        content_id=content.id, chunk_id=chunk.id, char_start=0, char_end=len(chunk.text),
-        quote=chunk.text, support_role=EvidenceLinkSupportRole.SUPPORTS,
+        conn,
+        project_id,
+        target_type=EvidenceLinkTargetType.LEDGER_ITEM,
+        target_id=item.id,
+        content_id=content.id,
+        chunk_id=chunk.id,
+        char_start=0,
+        char_end=len(chunk.text),
+        quote=chunk.text,
+        support_role=EvidenceLinkSupportRole.SUPPORTS,
     )
     return item
 
@@ -103,8 +135,13 @@ class ScriptedProvider:
         self.calls.append(input_text)
         composition = self.handler(input_text)
         return StructuredResult(
-            parsed=composition, provider="fake", model=config.model, request_id=None,
-            input_tokens=80, output_tokens=30, latency_ms=5,
+            parsed=composition,
+            provider="fake",
+            model=config.model,
+            request_id=None,
+            input_tokens=80,
+            output_tokens=30,
+            latency_ms=5,
             estimated_cost_usd=estimate_cost_usd(config.model, 80, 30),
         )
 
@@ -210,9 +247,7 @@ def test_fully_empty_project_never_calls_the_model(conn, project_id):
     assert "No accepted upcoming milestone." in result.brief.markdown
 
 
-def test_objective_and_current_stage_are_always_deterministic_never_sent_to_model(
-    conn, project_id
-):
+def test_objective_and_current_stage_are_always_deterministic_never_sent_to_model(conn, project_id):
     make_evidenced_commitment(conn, project_id)
     captured_inputs = []
 
@@ -273,9 +308,16 @@ def test_fact_id_from_a_different_section_is_rejected(conn, project_id):
         conn, project_id, kind=LedgerItemKind.RISK, canonical_title="Vendor delay risk"
     )
     evidence_link_repository.insert_link(
-        conn, project_id, target_type=EvidenceLinkTargetType.LEDGER_ITEM, target_id=item.id,
-        content_id=content.id, chunk_id=chunk.id, char_start=0, char_end=len(chunk.text),
-        quote=chunk.text, support_role=EvidenceLinkSupportRole.SUPPORTS,
+        conn,
+        project_id,
+        target_type=EvidenceLinkTargetType.LEDGER_ITEM,
+        target_id=item.id,
+        content_id=content.id,
+        chunk_id=chunk.id,
+        char_start=0,
+        char_end=len(chunk.text),
+        quote=chunk.text,
+        support_role=EvidenceLinkSupportRole.SUPPORTS,
     )
 
     def handler(input_text):

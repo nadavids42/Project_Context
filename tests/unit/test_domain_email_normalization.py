@@ -67,7 +67,8 @@ def test_extract_plain_text_body_excludes_attachments():
         "parts": [
             {"mimeType": "text/plain", "body": {"data": b64url("Body text.")}},
             {
-                "mimeType": "application/pdf", "filename": "report.pdf",
+                "mimeType": "application/pdf",
+                "filename": "report.pdf",
                 "body": {"attachmentId": "a1", "size": 999},
             },
         ],
@@ -112,7 +113,8 @@ def test_extract_plain_text_body_ignores_a_pure_attachment_message():
         "headers": [],
         "parts": [
             {
-                "mimeType": "application/pdf", "filename": "report.pdf",
+                "mimeType": "application/pdf",
+                "filename": "report.pdf",
                 "body": {"attachmentId": "a1", "size": 999},
             }
         ],
@@ -175,9 +177,14 @@ def test_parse_rfc2822_date_returns_none_for_missing_value():
 
 def test_build_normalized_email_text_includes_all_fields_and_body():
     full_text, body_start = build_normalized_email_text(
-        subject="Kickoff", from_header="a@example.com", to_header="b@example.com",
-        cc_header="c@example.com", date_header="Mon, 1 Jun 2026 12:00:00 +0000",
-        message_id="msg-1", thread_id="thread-1", body_text="Let's meet Friday.",
+        subject="Kickoff",
+        from_header="a@example.com",
+        to_header="b@example.com",
+        cc_header="c@example.com",
+        date_header="Mon, 1 Jun 2026 12:00:00 +0000",
+        message_id="msg-1",
+        thread_id="thread-1",
+        body_text="Let's meet Friday.",
     )
     assert "Subject: Kickoff" in full_text
     assert "From: a@example.com" in full_text
@@ -190,8 +197,14 @@ def test_build_normalized_email_text_includes_all_fields_and_body():
 
 def test_build_normalized_email_text_handles_missing_optional_fields():
     full_text, body_start = build_normalized_email_text(
-        subject=None, from_header=None, to_header=None, cc_header=None, date_header=None,
-        message_id="msg-1", thread_id="thread-1", body_text="Body.",
+        subject=None,
+        from_header=None,
+        to_header=None,
+        cc_header=None,
+        date_header=None,
+        message_id="msg-1",
+        thread_id="thread-1",
+        body_text="Body.",
     )
     assert "(no subject)" in full_text
     assert "(unknown sender)" in full_text

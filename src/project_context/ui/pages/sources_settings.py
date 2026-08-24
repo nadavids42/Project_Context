@@ -24,11 +24,13 @@ from project_context.credentials.service import MASKED_SECRET_DISPLAY, Credentia
 from project_context.credentials.store import CredentialStore
 from project_context.db import sources_repository, sync_repository
 from project_context.db.health import check_database_health
+from project_context.domain.calendar_matching import CalendarMatchRules, InvalidCalendarRuleError
 from project_context.domain.sources import Source, SourceHealthStatus, SourceKind
 from project_context.services import extraction as extraction_service
 from project_context.services import sync as sync_service
 from project_context.services.google_connect import (
     GoogleConnectError,
+    connect_calendar,
     connect_gmail,
     connect_google_drive,
 )
@@ -42,6 +44,7 @@ MIGRATIONS_DIR = _REPO_ROOT / "migrations"
 _FLASH_KEY = "sources_settings_flash"
 _LAST_SYNC_COUNTS_KEY = "sources_settings_last_sync_counts"
 _GMAIL_LAST_SYNC_COUNTS_KEY = "sources_settings_gmail_last_sync_counts"
+_CALENDAR_LAST_SYNC_COUNTS_KEY = "sources_settings_calendar_last_sync_counts"
 
 _HEALTH_RENDER = {
     SourceHealthStatus.UNCONFIGURED: ("info", "Not configured"),
@@ -75,6 +78,8 @@ def render() -> None:
             _render_drive_section(conn, project.id)
             st.divider()
             _render_gmail_section(conn, project.id)
+            st.divider()
+            _render_calendar_section(conn, project.id, project.name)
 
     st.divider()
     st.subheader("Application health")
@@ -291,12 +296,12 @@ def _render_sync_result(run) -> None:
 
 def _render_sync_history(conn, project_id: str, source_id: str) -> None:
     """`sync_runs` is project-scoped, not source-scoped (Section 9), so
-    with two connector kinds now implemented (Drive, Gmail), a project
-    with both connected sees each other's runs listed here too — a
-    known display limitation carried forward from Prompt 10, not fixed
-    in Prompt 11 either. Filtering to just this `source_id` would need
-    a join through `sync_items.source_id` instead of `sync_runs`
-    alone."""
+    with three connector kinds now implemented (Drive, Gmail, Calendar),
+    a project with more than one connected sees each other's runs
+    listed here too — a known display limitation carried forward from
+    Prompt 10, not fixed in Prompt 11 or 12 either. Filtering to just
+    this `source_id` would need a join through `sync_items.source_id`
+    instead of `sync_runs` alone."""
     with st.expander("Sync history"):
         runs = sync_repository.list_sync_runs_for_project(conn, project_id, limit=10)
         if not runs:
@@ -513,6 +518,281 @@ def _render_gmail_sync_section(
         st.rerun()
 
     last_run = st.session_state.get(_GMAIL_LAST_SYNC_COUNTS_KEY)
+    if last_run is not None:
+        _render_sync_result(last_run)
+
+    _render_sync_history(conn, project_id, source.id)
+
+
+# ---------------------------------------------------------------------------
+# Calendar (Prompt 12).
+# ---------------------------------------------------------------------------
+
+
+def _parse_list_field(text: str) -> list[str]:
+    """Split on newlines and commas, dropping blanks — the one parsing
+    convention every Calendar rule list field in this form uses."""
+    items: list[str] = []
+    for line in text.splitlines():
+        for part in line.split(","):
+            stripped = part.strip()
+            if stripped:
+                items.append(stripped)
+    return items
+
+
+def _render_calendar_section(conn, project_id: str, project_name: str) -> None:
+    st.subheader("Calendar")
+    config = load_config()
+
+    if not config.feature_calendar_enabled:
+        st.info(
+            "Calendar integration is disabled. Set "
+            "`PROJECT_CONTEXT_FEATURE_CALENDAR_ENABLED=true` to enable it (Google OAuth client "
+            "credentials are also required below).",
+            icon="🚧",
+        )
+        return
+    if not config.google_oauth_is_configured:
+        st.warning(
+            "Calendar is enabled but no Google OAuth client is configured. Set "
+            "`PROJECT_CONTEXT_GOOGLE_OAUTH_CLIENT_ID` and "
+            "`PROJECT_CONTEXT_GOOGLE_OAUTH_CLIENT_SECRET` from a Google Cloud **Desktop app** "
+            "OAuth client, then restart."
+        )
+        return
+
+    st.caption(
+        "Requests `calendar.events.readonly` only — read-only event access, never calendar "
+        "write access. Calendar metadata establishes that a meeting exists, its participants, "
+        "and its timing; it never creates a decision, commitment, or risk by itself. Only an "
+        "event's own description text is ever sent for extraction — everything else is shown "
+        "here for context only."
+    )
+
+    source = sources_repository.get_source_by_kind(conn, project_id, SourceKind.CALENDAR)
+    credential_service = _credential_service(config)
+
+    if source is None or source.credential_ref is None:
+        _render_calendar_connect_form(conn, project_id, source, credential_service, config)
+        return
+
+    _render_connected_calendar(conn, project_id, source, credential_service, config, project_name)
+
+
+def _render_calendar_connect_form(
+    conn, project_id: str, source: Source | None, credential_service: CredentialService,
+    config: AppConfig,
+) -> None:
+    st.write("Not connected.")
+    if st.button("Connect Calendar", key="connect-calendar"):
+        try:
+            if source is None:
+                source = sources_repository.insert_source(
+                    conn, project_id, kind=SourceKind.CALENDAR, display_name="Calendar rules"
+                )
+            with st.spinner("Waiting for authorization in your browser…"):
+                connect_calendar(
+                    conn, project_id, source.id, credential_service=credential_service,
+                    client_id=config.google_oauth_client_id,
+                    client_secret=config.google_oauth_client_secret,
+                    redirect_port=config.google_oauth_redirect_port,
+                )
+        except GoogleConnectError as exc:
+            st.error(str(exc))
+            return
+        _set_flash("success", "Connected to Calendar.")
+        st.rerun()
+
+
+def _render_connected_calendar(
+    conn, project_id: str, source: Source, credential_service: CredentialService,
+    config: AppConfig, project_name: str,
+) -> None:
+    kind, label = _HEALTH_RENDER.get(source.health_status, ("info", source.health_status.value))
+    getattr(st, kind)(f"**{label}**  ·  secret: `{MASKED_SECRET_DISPLAY}`")
+
+    freshness_col, error_col = st.columns(2)
+    with freshness_col:
+        st.metric("Last successful sync", source.last_success_at or "Never")
+    with error_col:
+        st.metric("Last safe error", source.last_error_code or "None")
+
+    boundary = json.loads(source.boundary_json) if source.boundary_json else {}
+    with st.form("calendar-rules-form"):
+        st.markdown("**Assignment rules**, evaluated in this priority order:")
+        included_event_ids = st.text_area(
+            "1. Explicitly included event IDs (highest priority, one per line)",
+            value="\n".join(boundary.get("included_event_ids", [])),
+        )
+        project_name_terms = st.text_input(
+            "2. Project name terms (comma-separated)",
+            value=", ".join(boundary.get("project_name_terms", [project_name])),
+            help="Matches an event whose title or description contains one of these terms.",
+        )
+        client_domain = st.text_input(
+            "3a. Client email domain", value=boundary.get("client_domain") or "",
+            help="Matches an event whose organizer/attendee email domain equals this.",
+        )
+        participant_emails = st.text_area(
+            "3b. Explicit participant emails (comma-separated)",
+            value=", ".join(boundary.get("participant_emails", [])),
+        )
+        include_terms = st.text_area(
+            "4. Include terms (comma-separated, lowest priority)",
+            value=", ".join(boundary.get("include_terms", [])),
+        )
+        include_regex = st.text_input(
+            "4. Include regex (optional)", value=boundary.get("include_regex") or "",
+        )
+        st.markdown("**Exclude rules** — override every tier above when matched:")
+        exclude_terms = st.text_area(
+            "Exclude terms (comma-separated)", value=", ".join(boundary.get("exclude_terms", [])),
+        )
+        exclude_regex = st.text_input(
+            "Exclude regex (optional)", value=boundary.get("exclude_regex") or "",
+        )
+        st.markdown("**Scan window**")
+        window_col1, window_col2 = st.columns(2)
+        with window_col1:
+            scan_days_back = st.number_input(
+                "Days back", min_value=1, max_value=730,
+                value=boundary.get("scan_days_back", 180),
+            )
+        with window_col2:
+            scan_days_forward = st.number_input(
+                "Days forward", min_value=1, max_value=365,
+                value=boundary.get("scan_days_forward", 90),
+            )
+
+        preview_col, save_col = st.columns(2)
+        preview_clicked = preview_col.form_submit_button("Preview")
+        save_clicked = save_col.form_submit_button("Save rules")
+
+    new_boundary = {
+        "included_event_ids": _parse_list_field(included_event_ids),
+        "project_name_terms": _parse_list_field(project_name_terms),
+        "client_domain": client_domain.strip() or None,
+        "participant_emails": _parse_list_field(participant_emails),
+        "include_terms": _parse_list_field(include_terms),
+        "include_regex": include_regex.strip() or None,
+        "exclude_terms": _parse_list_field(exclude_terms),
+        "exclude_regex": exclude_regex.strip() or None,
+        "scan_days_back": int(scan_days_back),
+        "scan_days_forward": int(scan_days_forward),
+    }
+
+    if preview_clicked:
+        _render_calendar_preview(conn, project_id, source, credential_service, config, new_boundary)
+    if save_clicked:
+        try:
+            configured = CalendarMatchRules.from_boundary(new_boundary).is_configured()
+        except InvalidCalendarRuleError as exc:
+            st.error(str(exc))
+            configured = None
+        if configured is False:
+            st.error("Configure at least one assignment rule before saving.")
+        elif configured:
+            sources_repository.update_boundary(
+                conn, project_id, source.id, boundary_json=json.dumps(new_boundary)
+            )
+            _set_flash("success", "Calendar rules saved.")
+            st.rerun()
+
+    enabled_col, disconnect_col = st.columns(2)
+    with enabled_col:
+        if source.enabled:
+            if st.button("Disable", key="disable-calendar"):
+                sources_repository.set_enabled(conn, project_id, source.id, enabled=False)
+                _set_flash("success", "Calendar source disabled.")
+                st.rerun()
+        else:
+            if st.button("Enable", key="enable-calendar"):
+                sources_repository.set_enabled(conn, project_id, source.id, enabled=True)
+                _set_flash("success", "Calendar source enabled.")
+                st.rerun()
+    with disconnect_col:
+        if st.button("Disconnect", key="disconnect-calendar"):
+            credential_service.disconnect(conn, project_id, source.id)
+            _set_flash("success", "Disconnected. Credential material was deleted.")
+            st.rerun()
+
+    st.divider()
+    _render_calendar_sync_section(conn, project_id, source, credential_service, config)
+
+
+def _render_calendar_preview(
+    conn, project_id: str, source: Source, credential_service: CredentialService,
+    config: AppConfig, boundary: dict,
+) -> None:
+    access_token = sync_service.mint_calendar_access_token(
+        conn, project_id, source.id, credential_service=credential_service,
+        google_client_id=config.google_oauth_client_id,
+        google_client_secret=config.google_oauth_client_secret,
+    )
+    if access_token is None:
+        st.error("Reauthorization required — disconnect and connect again.")
+        return
+    from project_context.connectors.calendar import CalendarConnector
+    from project_context.connectors.http import RequestsHttpTransport
+
+    try:
+        rules = CalendarMatchRules.from_boundary(boundary)
+    except InvalidCalendarRuleError as exc:
+        st.error(str(exc))
+        return
+
+    connector = CalendarConnector(
+        access_token=access_token, rules=rules,
+        days_back=boundary["scan_days_back"], days_forward=boundary["scan_days_forward"],
+        http_transport=RequestsHttpTransport(),
+    )
+    try:
+        preview = connector.preview_detailed(boundary, limit=20)
+    except ConnectorError as exc:
+        st.error(f"Preview failed: {exc.safe_message}")
+        return
+
+    st.markdown(f"**Matched — {len(preview.matched)} recent event(s)** (showing up to 20):")
+    if not preview.matched:
+        st.caption("No matching events found in the scan window.")
+    for item in preview.matched:
+        st.write(f"- **{item.title}** · {item.occurred_at or 'unknown time'}")
+        st.caption(f"  Why matched: {item.extra.get('match_reason')}")
+
+    with st.expander(f"Unmatched sample ({len(preview.unmatched_sample)} shown)"):
+        if not preview.unmatched_sample:
+            st.caption("No unmatched events sampled.")
+        for sample in preview.unmatched_sample:
+            reason = sample.reason or "no rule matched"
+            st.write(f"- {sample.title} — {reason}")
+
+
+def _render_calendar_sync_section(
+    conn, project_id: str, source: Source, credential_service: CredentialService,
+    config: AppConfig,
+) -> None:
+    st.subheader("Sync Project")
+    if not source.enabled:
+        st.caption("Enable this source to sync.")
+        return
+    if st.button("Sync Project", key="sync-calendar-project"):
+        provider = extraction_service.build_default_provider()
+        with st.spinner("Syncing…"):
+            run = sync_service.sync_calendar_project(
+                conn, project_id, source.id, credential_service=credential_service,
+                google_client_id=config.google_oauth_client_id,
+                google_client_secret=config.google_oauth_client_secret,
+                evidence_dir=config.evidence_dir,
+                chunk_target_chars=config.chunk_target_chars,
+                chunk_overlap_ratio=config.chunk_overlap_ratio,
+                extraction_provider=provider,
+                extraction_model=config.openai_model,
+            )
+        st.session_state[_CALENDAR_LAST_SYNC_COUNTS_KEY] = run
+        st.rerun()
+
+    last_run = st.session_state.get(_CALENDAR_LAST_SYNC_COUNTS_KEY)
     if last_run is not None:
         _render_sync_result(last_run)
 

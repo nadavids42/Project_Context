@@ -44,6 +44,8 @@ def _row_to_artifact(row: sqlite3.Row) -> SourceArtifact:
         assignment_method=AssignmentMethod(row["assignment_method"]),
         availability=ArtifactAvailability(row["availability"]),
         current_content_id=row["current_content_id"],
+        match_rule=row["match_rule"],
+        match_reason=row["match_reason"],
         created_at=row["created_at"],
         updated_at=row["updated_at"],
     )
@@ -122,6 +124,8 @@ def insert_artifact(
     external_url: str | None,
     source_type: EvidenceSourceType | None,
     assignment_method: AssignmentMethod = AssignmentMethod.MANUAL,
+    match_rule: str | None = None,
+    match_reason: str | None = None,
 ) -> SourceArtifact:
     artifact_id = new_id()
     now = utc_now_iso()
@@ -130,8 +134,8 @@ def insert_artifact(
         INSERT INTO source_artifacts
             (id, project_id, source_id, external_id, artifact_type, title, author,
              occurred_at, external_url, source_type, assignment_method, availability,
-             current_content_id, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'available', NULL, ?, ?)
+             current_content_id, match_rule, match_reason, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'available', NULL, ?, ?, ?, ?)
         """,
         (
             artifact_id,
@@ -145,6 +149,8 @@ def insert_artifact(
             external_url,
             source_type.value if source_type else None,
             assignment_method.value,
+            match_rule,
+            match_reason,
             now,
             now,
         ),

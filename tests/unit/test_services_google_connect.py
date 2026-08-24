@@ -15,6 +15,7 @@ from project_context.domain.projects import ProjectCreateInput
 from project_context.domain.sources import SourceHealthStatus, SourceKind
 from project_context.services.google_connect import (
     GoogleConnectError,
+    connect_calendar,
     connect_gmail,
     connect_google_drive,
 )
@@ -47,6 +48,13 @@ def source_id(conn, project_id):
 def gmail_source_id(conn, project_id):
     return sources_repository.insert_source(
         conn, project_id, kind=SourceKind.GMAIL, display_name="Gmail label/query"
+    ).id
+
+
+@pytest.fixture
+def calendar_source_id(conn, project_id):
+    return sources_repository.insert_source(
+        conn, project_id, kind=SourceKind.CALENDAR, display_name="Calendar rules"
     ).id
 
 
@@ -187,3 +195,78 @@ def test_connect_gmail_and_connect_drive_keep_independent_credentials(
 
     assert credential_service.get_secret(conn, project_id, source_id) == "drive-token"
     assert credential_service.get_secret(conn, project_id, gmail_source_id) == "gmail-token"
+
+
+def test_connect_calendar_stores_the_refresh_token(
+    conn, project_id, calendar_source_id, credential_service
+):
+    calls = {}
+
+    def fake_flow_runner(client_config, scopes, *, port=0):
+        calls["scopes"] = scopes
+        return _FakeCredentials(refresh_token="rt-calendar-123")
+
+    source = connect_calendar(
+        conn, project_id, calendar_source_id, credential_service=credential_service,
+        client_id="cid", client_secret="csecret", flow_runner=fake_flow_runner,
+    )
+
+    assert source.health_status is SourceHealthStatus.READY
+    assert credential_service.get_secret(conn, project_id, calendar_source_id) == "rt-calendar-123"
+    assert calls["scopes"] == ["https://www.googleapis.com/auth/calendar.events.readonly"]
+
+
+def test_connect_calendar_never_requests_a_write_scope(
+    conn, project_id, calendar_source_id, credential_service
+):
+    seen_scopes = []
+
+    def fake_flow_runner(client_config, scopes, *, port=0):
+        seen_scopes.extend(scopes)
+        return _FakeCredentials(refresh_token="rt")
+
+    connect_calendar(
+        conn, project_id, calendar_source_id, credential_service=credential_service,
+        client_id="cid", client_secret="csecret", flow_runner=fake_flow_runner,
+    )
+    for scope in seen_scopes:
+        assert "write" not in scope
+
+
+def test_connect_calendar_raises_when_no_refresh_token_is_returned(
+    conn, project_id, calendar_source_id, credential_service
+):
+    def fake_flow_runner(client_config, scopes, *, port=0):
+        return _FakeCredentials(refresh_token=None)
+
+    with pytest.raises(GoogleConnectError):
+        connect_calendar(
+            conn, project_id, calendar_source_id, credential_service=credential_service,
+            client_id="cid", client_secret="csecret", flow_runner=fake_flow_runner,
+        )
+
+
+def test_connect_calendar_keeps_independent_credentials_from_drive_and_gmail(
+    conn, project_id, source_id, gmail_source_id, calendar_source_id, credential_service
+):
+    def flow_for(token):
+        def runner(client_config, scopes, *, port=0):
+            return _FakeCredentials(refresh_token=token)
+        return runner
+
+    connect_google_drive(
+        conn, project_id, source_id, credential_service=credential_service,
+        client_id="cid", client_secret="csecret", flow_runner=flow_for("drive-token"),
+    )
+    connect_gmail(
+        conn, project_id, gmail_source_id, credential_service=credential_service,
+        client_id="cid", client_secret="csecret", flow_runner=flow_for("gmail-token"),
+    )
+    connect_calendar(
+        conn, project_id, calendar_source_id, credential_service=credential_service,
+        client_id="cid", client_secret="csecret", flow_runner=flow_for("calendar-token"),
+    )
+
+    assert credential_service.get_secret(conn, project_id, source_id) == "drive-token"
+    assert credential_service.get_secret(conn, project_id, gmail_source_id) == "gmail-token"
+    assert credential_service.get_secret(conn, project_id, calendar_source_id) == "calendar-token"

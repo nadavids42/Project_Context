@@ -22,3 +22,4 @@ Numbered SQL migrations, applied in order by
 | `0007_ledger_supersession_links.sql` | `ledger_items.superseded_by_item_id`, `ledger_items.supersedes_item_id` |
 | `0008_briefs.sql` | `generated_briefs`, `brief_claims` |
 | `0009_sync_run_counts.sql` | `sync_runs.downloaded_count`, `sync_runs.extracted_count` |
+| `0010_calendar_match_reason.sql` | `source_artifacts.match_rule`, `source_artifacts.match_reason` |

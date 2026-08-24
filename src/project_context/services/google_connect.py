@@ -1,6 +1,7 @@
-"""Google Drive/Gmail first-time connect: runs the OAuth desktop flow
-and stores the resulting refresh token through the credential service
-(Section 11.2, 11.3, 16; Prompt 10, Prompt 11).
+"""Google Drive/Gmail/Calendar first-time connect: runs the OAuth
+desktop flow and stores the resulting refresh token through the
+credential service (Section 11.2, 11.3, 11.4, 16; Prompt 10, Prompt 11,
+Prompt 12).
 
 `flow_runner` defaults to the real, browser-opening
 `google_oauth.run_local_server_flow` — tests always inject a fake here
@@ -94,6 +95,30 @@ def connect_gmail(
         conn, project_id, source_id, credential_service=credential_service,
         client_id=client_id, client_secret=client_secret, redirect_port=redirect_port,
         flow_runner=flow_runner, scope=google_oauth.GMAIL_READONLY_SCOPE,
+    )
+
+
+def connect_calendar(
+    conn: sqlite3.Connection,
+    project_id: str,
+    source_id: str,
+    *,
+    credential_service: CredentialService,
+    client_id: str,
+    client_secret: str,
+    redirect_port: int = 0,
+    flow_runner: FlowRunner = google_oauth.run_local_server_flow,
+) -> Source:
+    """Run the desktop OAuth flow requesting only
+    `CALENDAR_EVENTS_READONLY_SCOPE` (Prompt 12: "Request incremental
+    consent only when enabled"; "Do not request Calendar write
+    access"). Independent of whether this project has also connected
+    Drive/Gmail — same per-source credential model, same tradeoff, as
+    documented in this module's docstring."""
+    return _run_connect_flow(
+        conn, project_id, source_id, credential_service=credential_service,
+        client_id=client_id, client_secret=client_secret, redirect_port=redirect_port,
+        flow_runner=flow_runner, scope=google_oauth.CALENDAR_EVENTS_READONLY_SCOPE,
     )
 
 

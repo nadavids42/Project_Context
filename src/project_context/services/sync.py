@@ -27,8 +27,13 @@ from pathlib import Path
 
 from project_context.config import DEFAULT_OPENAI_MODEL
 from project_context.connectors import google_oauth
+from project_context.connectors.calendar import (
+    DEFAULT_DAYS_BACK,
+    DEFAULT_DAYS_FORWARD,
+    CalendarConnector,
+)
 from project_context.connectors.drive import DriveConnector
-from project_context.connectors.errors import ConnectorError
+from project_context.connectors.errors import ConnectorConfigError, ConnectorError
 from project_context.connectors.gmail import GmailConnector
 from project_context.connectors.google_oauth import exchange_refresh_token
 from project_context.connectors.http import RequestsHttpTransport
@@ -36,6 +41,7 @@ from project_context.connectors.protocol import ArtifactMetadata, Connector, Con
 from project_context.credentials.service import CredentialService
 from project_context.db import evidence_repository, sources_repository, sync_repository
 from project_context.db.connection import transaction
+from project_context.domain.calendar_matching import CalendarMatchRules, InvalidCalendarRuleError
 from project_context.domain.evidence import ArtifactAvailability, SourceArtifact
 from project_context.domain.sources import Source, SourceHealthStatus, SourceKind
 from project_context.domain.sync import (
@@ -47,7 +53,7 @@ from project_context.domain.sync import (
 )
 from project_context.llm.provider import LLMProvider, LLMProviderError
 from project_context.observability import get_logger
-from project_context.services import drive_ingestion, gmail_ingestion
+from project_context.services import calendar_ingestion, drive_ingestion, gmail_ingestion
 from project_context.services import observations as observations_service
 from project_context.services import reconciliation as reconciliation_service
 from project_context.services.extraction import ExtractionStatus, extract_content
@@ -288,6 +294,106 @@ def sync_gmail_project(
 
 
 # ---------------------------------------------------------------------------
+# Calendar-specific entry point (Section 11.4; Prompt 12).
+# ---------------------------------------------------------------------------
+
+
+def mint_calendar_access_token(
+    conn: sqlite3.Connection,
+    project_id: str,
+    source_id: str,
+    *,
+    credential_service: CredentialService,
+    google_client_id: str,
+    google_client_secret: str,
+) -> str | None:
+    """Same shape as `mint_drive_access_token`/`mint_gmail_access_token`,
+    requesting `CALENDAR_EVENTS_READONLY_SCOPE` instead."""
+    access_token_holder: dict[str, str] = {}
+
+    def _refresh_and_capture(current_refresh_token: str) -> str:
+        access_token_holder["access_token"] = exchange_refresh_token(
+            current_refresh_token, client_id=google_client_id, client_secret=google_client_secret,
+            scopes=[google_oauth.CALENDAR_EVENTS_READONLY_SCOPE],
+        )
+        return current_refresh_token
+
+    updated_source = credential_service.refresh(
+        conn, project_id, source_id, refresh_fn=_refresh_and_capture
+    )
+    if updated_source.health_status is SourceHealthStatus.REAUTH_REQUIRED:
+        return None
+    return access_token_holder.get("access_token")
+
+
+def sync_calendar_project(
+    conn: sqlite3.Connection,
+    project_id: str,
+    source_id: str,
+    *,
+    credential_service: CredentialService,
+    google_client_id: str,
+    google_client_secret: str,
+    evidence_dir: Path,
+    chunk_target_chars: int,
+    chunk_overlap_ratio: float,
+    extraction_provider: LLMProvider | None = None,
+    extraction_model: str = DEFAULT_OPENAI_MODEL,
+) -> SyncRun:
+    """Mint a fresh Calendar access token, build a `CalendarConnector`
+    bounded to the project's configured match rules and scan window,
+    and run the generic `sync_source` orchestration with the
+    Calendar-specific storage functions (Section 11.4; FR-029). A
+    Calendar failure moves this source to `reauth_required`/`degraded`
+    without affecting a project's Drive/Gmail sources (Section 8;
+    Prompt 12: same partial-sync isolation as Prompts 10/11)."""
+    source = sources_repository.get_source(conn, project_id, source_id)
+    if source is None:
+        raise SourceNotConfiguredError(f"source {source_id!r} not found in project {project_id!r}")
+
+    access_token = mint_calendar_access_token(
+        conn, project_id, source_id, credential_service=credential_service,
+        google_client_id=google_client_id, google_client_secret=google_client_secret,
+    )
+    if access_token is None:
+        run = sync_repository.insert_sync_run(conn, project_id)
+        return sync_repository.finalize_sync_run(
+            conn, project_id, run.id, status=SyncRunStatus.FAILED,
+            discovered_count=0, unchanged_count=0, parsed_count=0, failed_count=1,
+            proposed_count=0, needs_assignment_count=0,
+        )
+
+    boundary = _load_boundary(source) or {}
+    try:
+        rules = CalendarMatchRules.from_boundary(boundary)
+        connector = CalendarConnector(
+            access_token=access_token,
+            rules=rules,
+            days_back=boundary.get("scan_days_back", DEFAULT_DAYS_BACK),
+            days_forward=boundary.get("scan_days_forward", DEFAULT_DAYS_FORWARD),
+            http_transport=RequestsHttpTransport(),
+        )
+    except (InvalidCalendarRuleError, ConnectorConfigError):
+        sources_repository.update_health(
+            conn, project_id, source_id,
+            health_status=SourceHealthStatus.DEGRADED, last_error_code="schema",
+        )
+        run = sync_repository.insert_sync_run(conn, project_id)
+        return sync_repository.finalize_sync_run(
+            conn, project_id, run.id, status=SyncRunStatus.FAILED,
+            discovered_count=0, unchanged_count=0, parsed_count=0, failed_count=1,
+            proposed_count=0, needs_assignment_count=0,
+        )
+    return sync_source(
+        conn, project_id, source_id, connector=connector, evidence_dir=evidence_dir,
+        chunk_target_chars=chunk_target_chars, chunk_overlap_ratio=chunk_overlap_ratio,
+        extraction_provider=extraction_provider, extraction_model=extraction_model,
+        get_or_create_artifact_fn=calendar_ingestion.get_or_create_calendar_artifact,
+        store_artifact_fn=calendar_ingestion.store_calendar_artifact,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Generic orchestration.
 # ---------------------------------------------------------------------------
 
@@ -305,13 +411,26 @@ def _boundary_is_configured(kind: SourceKind, boundary: dict | None) -> bool:
     """Each connector kind has its own shape of "a boundary is actually
     set" — Drive needs a non-empty `folder_id`; Gmail needs a non-empty
     `label` and/or `query` (Prompt 11: "accepts one Gmail label, one
-    constrained query, or a documented combination")."""
+    constrained query, or a documented combination"); Calendar needs at
+    least one configured rule of any tier (Prompt 12) — an empty rule
+    set would otherwise match every event in the scan window, which is
+    never the intended default."""
     if not boundary:
         return False
     if kind is SourceKind.DRIVE:
         return bool(boundary.get("folder_id"))
     if kind is SourceKind.GMAIL:
         return bool(boundary.get("label")) or bool(boundary.get("query"))
+    if kind is SourceKind.CALENDAR:
+        try:
+            return CalendarMatchRules.from_boundary(boundary).is_configured()
+        except InvalidCalendarRuleError:
+            # An invalid regex is also "not properly configured" —
+            # `sync_calendar_project` gives a more specific FAILED sync
+            # run for this same case; `sync_source` called directly
+            # (as every test below does) instead surfaces it as the
+            # same `SourceNotConfiguredError` a missing boundary would.
+            return False
     return True
 
 
@@ -511,6 +630,29 @@ def _process_one_artifact(
         with transaction(conn):
             artifact = get_or_create_artifact_fn(conn, project_id, source_id, metadata)
         artifact_id = artifact.id
+
+        # `metadata.is_trashed` — true only for Calendar's cancelled
+        # events inside the current bounded scan (Section 11.4: "A
+        # canceled/deleted event updates artifact availability without
+        # erasing imported evidence"); Drive filters trashed files out
+        # of its own listing query, so this is unreachable for Drive
+        # (its `check_availability`-based absence detection handles
+        # that case instead — see `_detect_vanished_items`), and Gmail
+        # never sets it at all. Content already stored is never
+        # touched — only the availability marker changes.
+        if metadata.is_trashed:
+            if artifact.availability is ArtifactAvailability.AVAILABLE:
+                with transaction(conn):
+                    evidence_repository.update_availability(
+                        conn, project_id, artifact.id,
+                        availability=ArtifactAvailability.DELETED_EXTERNAL,
+                    )
+            counts.unchanged += 1
+            _record_item(
+                conn, project_id, run_id, source_id, artifact_id, metadata.external_id,
+                stage=SyncItemStage.SKIPPED, start=start,
+            )
+            return
 
         # `is_unchanged` compares the artifact's current content
         # version_key against this discovery's version_marker — it has

@@ -56,6 +56,25 @@ GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
 #: compose, send, settings, or full-mailbox write permissions").
 #: `GMAIL_READONLY_SCOPE` is the only Gmail scope this application is
 #: ever allowed to request.
+
+#: Section 11.4/16: "https://www.googleapis.com/auth/calendar.events.readonly
+#: (or calendar.readonly only if calendar metadata beyond events is
+#: required)." Event-read-only is the narrower of the two and this
+#: connector never reads anything beyond events (no calendar list
+#: management, no settings), so it is the one requested — Section 16:
+#: "Use event-read-only Calendar scope." Reading calendar events is a
+#: Google-classified *sensitive* (not restricted) scope — a materially
+#: lower commercialization bar than Drive/Gmail's restricted scopes,
+#: but still requires verification for a public launch (Section 16,
+#: "Google verification reality"). Requested only on incremental
+#: consent, only when the user explicitly enables Calendar for one
+#: project (Prompt 12: "Request incremental consent only when enabled").
+CALENDAR_EVENTS_READONLY_SCOPE = "https://www.googleapis.com/auth/calendar.events.readonly"
+
+#: Never add calendar write/events-owned-write/settings scopes here
+#: (Prompt 12: "Do not request Calendar write access"; FR-004).
+#: `CALENDAR_EVENTS_READONLY_SCOPE` is the only Calendar scope this
+#: application is ever allowed to request.
 GOOGLE_TOKEN_URI = "https://oauth2.googleapis.com/token"
 GOOGLE_AUTH_URI = "https://accounts.google.com/o/oauth2/auth"
 

@@ -33,8 +33,18 @@ quoted-history/signatures trimmed only from what gets sent to
 extraction (the complete message is always kept as evidence), feeding
 the same extraction/reconciliation/review path — see
 "[Gmail setup](#gmail-setup-optional)" below, including its restricted-
-scope caveat. Calendar and Fathom connectors, the Meeting Preparation
-Brief, and the evaluation harness are not implemented yet.
+scope caveat; and **read-only Calendar matching** (Prompt 12) — one
+configured set of deterministic assignment rules per project (explicit
+event ID > project-name term > client domain/participant > include/
+exclude term or regex), a bounded 180-day-back/90-day-forward scan
+window re-scanned on every manual sync, cancelled/no-longer-matching
+events marked unavailable without erasing imported evidence, and only
+an event's own description text ever entering extraction — metadata
+(title, attendees, timing) alone can never produce a decision,
+commitment, or risk — see
+"[Calendar setup](#calendar-setup-optional)" below, including its
+sensitive-scope caveat. Fathom, the Meeting Preparation Brief, and the
+evaluation harness are not implemented yet.
 
 ## ⚠️ Privacy and data policy
 
@@ -52,10 +62,13 @@ product.
   set `OPENAI_API_KEY` in your environment.
 - External connectors are strictly read-only (no code path ever writes
   to Drive/Gmail/Calendar/Fathom) and disabled by default. Google Drive
-  (Prompt 10) and Gmail (Prompt 11) are implemented but require you to
-  explicitly opt in — see "[Google Drive setup](#google-drive-setup-optional)"
-  and "[Gmail setup](#gmail-setup-optional)" below, both including a
-  restricted-scope caveat. Calendar and Fathom are not implemented yet.
+  (Prompt 10), Gmail (Prompt 11), and Calendar (Prompt 12) are
+  implemented but require you to explicitly opt in — see
+  "[Google Drive setup](#google-drive-setup-optional)",
+  "[Gmail setup](#gmail-setup-optional)", and
+  "[Calendar setup](#calendar-setup-optional)" below, each including
+  its own restricted/sensitive-scope caveat. Fathom is not implemented
+  yet.
 - Do not expose the Streamlit port beyond `127.0.0.1`.
 
 ## Requirements
@@ -251,6 +264,86 @@ delete evidence already imported.
 Gmail History API, push notifications/background sync, attachments,
 and anything that reads/writes Gmail labels.
 
+## Calendar setup (optional)
+
+Calendar matching is fully implemented but **disabled by default**,
+and is the **second connector to cut** if you are short on time —
+Drive is the priority. The manual-ingestion path remains the required
+fallback for every Calendar scenario.
+
+> **Scope caveat — read before enabling.** This integration requests
+> `https://www.googleapis.com/auth/calendar.events.readonly` — the
+> narrower of Google's two Calendar read scopes (Section 16: "Use
+> event-read-only Calendar scope"), and never Calendar write access.
+> Google classifies reading calendar events as a **sensitive** (not
+> restricted) scope — a materially lower commercialization bar than
+> Drive/Gmail's restricted scopes, but a public launch still needs
+> Google's sensitive-scope verification. See Sections 11.4 and 16 of
+> the product plan before promising Calendar access to anyone other
+> than yourself.
+
+1. Reuse the same Google Cloud project and OAuth consent screen as
+   Drive/Gmail (see the Drive setup section above), or set one up
+   following those steps if you have not already.
+2. **Enable the Google Calendar API** for that project (APIs & Services
+   → Library → "Google Calendar API" → Enable).
+3. **Set the feature flag** (in your real, gitignored `.env`):
+
+   ```bash
+   PROJECT_CONTEXT_FEATURE_CALENDAR_ENABLED=true
+   ```
+
+   The same OAuth client ID/secret used for Drive/Gmail apply here too
+   — Calendar requests its own scope through its own consent flow (a
+   separate "Connect Calendar" click and its own stored refresh token,
+   same independent-credential design as Gmail).
+4. **Restart the app**, open a project's Sources & Settings page, and
+   click **Connect Calendar**.
+5. **Configure at least one deterministic assignment rule**, evaluated
+   in this fixed priority order:
+   1. Explicitly included event IDs (highest priority).
+   2. Project name terms — matches an event whose title/description
+      contains one of these (prefilled with the project's own name).
+   3. Client domain and/or explicit participant emails — matches an
+      event whose organizer/attendee email domain or address matches.
+   4. Include terms/regex (lowest priority).
+
+   Exclude terms/regex override every tier above, deterministically —
+   an event matching both an include tier and an exclude rule is
+   always excluded, never guessed at or sent to an LLM for a tiebreak.
+   Click **Preview** to dry-run recent matched *and* a sample of
+   unmatched events with their exact match/exclusion reasons, then
+   **Save rules**. A scan window (default 180 days back, 90 days
+   forward; configurable within validated bounds) is also set here.
+6. Click **Sync Project**. This re-scans the full bounded window on
+   every sync (no incremental sync token in this version — Section
+   11.4 allows deferring that until a bounded rescan proves
+   inadequate), deduplicates by event ID/`updated` timestamp, and
+   feeds matched events through the same parser/extraction/
+   reconciliation/review pipeline manual uploads and Drive/Gmail use.
+
+**Calendar metadata alone never becomes a decision, commitment, or
+risk.** Title, organizer, attendees, timing, and match reason are
+always stored as evidence (so a Meeting Preparation Brief can later
+select the right meeting and show its context), but only an event's
+own `description` text — verbatim, never a synthesized sentence about
+who attended or when — is ever handed to extraction. A matched event
+with no description produces zero extraction chunks: nothing is
+invented from the mere fact that a meeting exists.
+
+Cancelled events, and events that stop matching a project's rules on a
+later sync (an edited title, a changed rule set), are marked
+unavailable — never silently deleted from the ledger; their previously
+imported evidence stays queryable.
+
+To disconnect at any time, click **Disconnect** — this deletes the
+stored refresh token immediately and disables the source; it does not
+delete evidence already imported.
+
+**Not implemented, deliberately excluded from this version:** event
+creation/modification, attendee invites, free/busy scheduling,
+webhooks, background sync, and incremental sync tokens (`nextSyncToken`).
+
 ## Test
 
 ```bash
@@ -303,9 +396,9 @@ project-context/
 │   ├── chunking.py             # deterministic paragraph/page/turn-boundary chunking
 │   ├── credentials/            # OS-keyring-first, encrypted-file-fallback secret storage + connect/refresh/mask/disconnect service
 │   ├── db/                    # connection, migrations, health, and one repository per table/domain (projects, audit, sources, evidence, people, observations, ledger, evidence links, proposed mutations, reviews, corrections, briefs, sync), FTS5
-│   ├── domain/                # projects, audit, sources, evidence, people, observations, ledger, review, briefs, sync, email_normalization (enums, models)
-│   ├── services/               # projects, evidence, extraction, observations, ledger, reconciliation, review, briefs, sync orchestration, drive_ingestion, gmail_ingestion, google_connect
-│   ├── connectors/             # protocol/errors/http (shared), drive, gmail (both implemented), google_oauth; calendar/fathom not yet implemented
+│   ├── domain/                # projects, audit, sources, evidence, people, observations, ledger, review, briefs, sync, email_normalization, calendar_matching (enums, models)
+│   ├── services/               # projects, evidence, extraction, observations, ledger, reconciliation, review, briefs, sync orchestration, drive_ingestion, gmail_ingestion, calendar_ingestion, google_connect
+│   ├── connectors/             # protocol/errors/http (shared), drive, gmail, calendar (all implemented), google_oauth; fathom not yet implemented
 │   ├── parsers/                # txt, md, docx, pdf, vtt + content-first kind detection
 │   ├── llm/                    # LLMProvider protocol, OpenAI adapter, retry, structured-extraction + brief-composition schemas, prompt loading
 │   ├── retrieval/               # deterministic Current Project Brief fact builder

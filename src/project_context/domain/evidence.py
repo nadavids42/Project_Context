@@ -180,6 +180,11 @@ class SourceArtifact(BaseModel):
     assignment_method: AssignmentMethod
     availability: ArtifactAvailability
     current_content_id: str | None
+    #: Which deterministic Calendar rule tier matched, and why (Section
+    #: 11.4; Prompt 12) — `None`/`None` for every non-Calendar artifact,
+    #: which has no equivalent concept (see migrations/0010).
+    match_rule: str | None = None
+    match_reason: str | None = None
     created_at: str
     updated_at: str
 

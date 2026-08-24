@@ -27,6 +27,14 @@ def test_gmail_readonly_scope_is_exactly_the_restricted_readonly_scope():
         assert forbidden not in google_oauth.GMAIL_READONLY_SCOPE
 
 
+def test_calendar_events_readonly_scope_is_exactly_the_event_readonly_scope():
+    assert (
+        google_oauth.CALENDAR_EVENTS_READONLY_SCOPE
+        == "https://www.googleapis.com/auth/calendar.events.readonly"
+    )
+    assert "write" not in google_oauth.CALENDAR_EVENTS_READONLY_SCOPE
+
+
 def test_build_client_config_has_the_installed_app_shape():
     config = google_oauth.build_client_config(client_id="cid-123", client_secret="csecret-456")
     installed = config["installed"]

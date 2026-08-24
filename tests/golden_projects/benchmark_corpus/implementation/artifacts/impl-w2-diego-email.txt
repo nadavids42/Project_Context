@@ -1,0 +1,3 @@
+The schema migration script deadline moved to August 21st. This was noted for the project record.
+
+Also, heads up that the shared drive was reorganized yesterday. This was noted for the project record.

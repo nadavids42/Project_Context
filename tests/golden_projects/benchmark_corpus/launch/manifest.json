@@ -1,0 +1,495 @@
+{
+  "schema_version": "benchmark_ground_truth_v1",
+  "key": "launch",
+  "name": "Comet Launch",
+  "objective": "Launch the Comet product on the web before mobile.",
+  "stage": "Pre-launch",
+  "chunk_target_chars": 137,
+  "artifacts": [
+    {
+      "artifact_id": "launch-w1-kickoff-vtt",
+      "kind": "meeting_transcript",
+      "title": "Comet Launch \u2014 Kickoff",
+      "occurred_at": "2026-10-05T09:00:00Z",
+      "author": "Casey",
+      "filename": "launch-w1-kickoff-vtt.vtt",
+      "project_key": "launch",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "launch-w1-marketing-brief-doc",
+      "kind": "document",
+      "title": "Comet Launch \u2014 Marketing Brief",
+      "occurred_at": "2026-10-05T13:00:00Z",
+      "author": "Taylor",
+      "filename": "launch-w1-marketing-brief-doc.md",
+      "project_key": "launch",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "launch-w1-checklist-email",
+      "kind": "email",
+      "title": "Launch checklist owner",
+      "occurred_at": "2026-10-06T09:30:00Z",
+      "author": "Casey",
+      "filename": "launch-w1-checklist-email.txt",
+      "project_key": "launch",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "launch-w1-cal-standup",
+      "kind": "calendar_event",
+      "title": "Comet Launch \u2014 Weekly Standup",
+      "occurred_at": "2026-10-08T09:00:00Z",
+      "author": null,
+      "filename": "launch-w1-cal-standup.txt",
+      "project_key": "launch",
+      "ambiguous_assignment": false,
+      "material": false
+    },
+    {
+      "artifact_id": "launch-w2-standup-vtt",
+      "kind": "meeting_transcript",
+      "title": "Comet Launch \u2014 Week 2 Standup",
+      "occurred_at": "2026-10-12T09:00:00Z",
+      "author": "Casey",
+      "filename": "launch-w2-standup-vtt.vtt",
+      "project_key": "launch",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "launch-w2-doc",
+      "kind": "document",
+      "title": "Comet Launch \u2014 Beta Feedback Summary",
+      "occurred_at": "2026-10-14T10:00:00Z",
+      "author": "Taylor",
+      "filename": "launch-w2-doc.md",
+      "project_key": "launch",
+      "ambiguous_assignment": false,
+      "material": false
+    },
+    {
+      "artifact_id": "launch-w2-cal-review",
+      "kind": "calendar_event",
+      "title": "Comet Launch \u2014 Readiness Review",
+      "occurred_at": "2026-10-15T09:00:00Z",
+      "author": null,
+      "filename": "launch-w2-cal-review.txt",
+      "project_key": "launch",
+      "ambiguous_assignment": false,
+      "material": false
+    },
+    {
+      "artifact_id": "launch-w3-standup-vtt",
+      "kind": "meeting_transcript",
+      "title": "Comet Launch \u2014 Week 3 Standup",
+      "occurred_at": "2026-10-19T09:00:00Z",
+      "author": "Casey",
+      "filename": "launch-w3-standup-vtt.vtt",
+      "project_key": "launch",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "launch-w3-ambiguous-email",
+      "kind": "email",
+      "title": "Quick flag re: Comet ticket",
+      "occurred_at": "2026-10-21T16:00:00Z",
+      "author": "Jamie",
+      "filename": "launch-w3-ambiguous-email.txt",
+      "project_key": "launch",
+      "ambiguous_assignment": true,
+      "material": false
+    },
+    {
+      "artifact_id": "launch-w4-standup-vtt",
+      "kind": "meeting_transcript",
+      "title": "Comet Launch \u2014 Week 4 Standup",
+      "occurred_at": "2026-10-26T09:00:00Z",
+      "author": "Casey",
+      "filename": "launch-w4-standup-vtt.vtt",
+      "project_key": "launch",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "launch-w4-cal-signoff-prep",
+      "kind": "calendar_event",
+      "title": "Comet Launch \u2014 Sign-off Prep",
+      "occurred_at": "2026-10-28T09:00:00Z",
+      "author": null,
+      "filename": "launch-w4-cal-signoff-prep.txt",
+      "project_key": "launch",
+      "ambiguous_assignment": false,
+      "material": false
+    },
+    {
+      "artifact_id": "launch-w5-runbook-email",
+      "kind": "email",
+      "title": "Support runbook + refund policy updates",
+      "occurred_at": "2026-11-02T10:00:00Z",
+      "author": "Jamie",
+      "filename": "launch-w5-runbook-email.txt",
+      "project_key": "launch",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "launch-w5-training-email",
+      "kind": "email",
+      "title": "Support training + FAQ \u2014 complete",
+      "occurred_at": "2026-11-04T13:00:00Z",
+      "author": "Taylor",
+      "filename": "launch-w5-training-email.txt",
+      "project_key": "launch",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "launch-w5-cal-final",
+      "kind": "calendar_event",
+      "title": "Comet Launch \u2014 Final Go/No-Go",
+      "occurred_at": "2026-11-05T09:00:00Z",
+      "author": null,
+      "filename": "launch-w5-cal-final.txt",
+      "project_key": "launch",
+      "ambiguous_assignment": false,
+      "material": false
+    },
+    {
+      "artifact_id": "launch-w6-wrapup-email",
+      "kind": "email",
+      "title": "Launch week wrap-up",
+      "occurred_at": "2026-11-06T09:00:00Z",
+      "author": "Casey",
+      "filename": "launch-w6-wrapup-email.txt",
+      "project_key": "launch",
+      "ambiguous_assignment": false,
+      "material": false
+    },
+    {
+      "artifact_id": "launch-w6-final-doc",
+      "kind": "document",
+      "title": "Comet Launch \u2014 Launch Complete",
+      "occurred_at": "2026-11-09T17:00:00Z",
+      "author": "Casey",
+      "filename": "launch-w6-final-doc.md",
+      "project_key": "launch",
+      "ambiguous_assignment": false,
+      "material": true
+    }
+  ],
+  "checkpoints": [
+    {
+      "checkpoint_id": "launch-cp-before-w2",
+      "cutoff_at": "2026-10-12T09:00:00Z",
+      "brief_type": "meeting_preparation",
+      "meeting_title": "Comet Launch \u2014 Week 2 Standup",
+      "meeting_purpose": null,
+      "meeting_scheduled_at": "2026-10-12T09:00:00Z",
+      "participant_lines": [
+        "Casey",
+        "Morgan",
+        "Taylor"
+      ],
+      "required_phrases": [],
+      "forbidden_phrases": []
+    },
+    {
+      "checkpoint_id": "launch-cp-before-w3",
+      "cutoff_at": "2026-10-19T09:00:00Z",
+      "brief_type": "meeting_preparation",
+      "meeting_title": "Comet Launch \u2014 Week 3 Standup",
+      "meeting_purpose": null,
+      "meeting_scheduled_at": "2026-10-19T09:00:00Z",
+      "participant_lines": [
+        "Casey",
+        "Morgan",
+        "Taylor",
+        "Jamie"
+      ],
+      "required_phrases": [],
+      "forbidden_phrases": []
+    },
+    {
+      "checkpoint_id": "launch-cp-before-w4",
+      "cutoff_at": "2026-10-26T09:00:00Z",
+      "brief_type": "meeting_preparation",
+      "meeting_title": "Comet Launch \u2014 Week 4 Standup",
+      "meeting_purpose": null,
+      "meeting_scheduled_at": "2026-10-26T09:00:00Z",
+      "participant_lines": [
+        "Casey",
+        "Morgan",
+        "Taylor",
+        "Avery"
+      ],
+      "required_phrases": [],
+      "forbidden_phrases": []
+    },
+    {
+      "checkpoint_id": "launch-cp-final",
+      "cutoff_at": "2026-11-10T00:00:00Z",
+      "brief_type": "current_project",
+      "meeting_title": null,
+      "meeting_purpose": null,
+      "meeting_scheduled_at": null,
+      "participant_lines": [],
+      "required_phrases": [],
+      "forbidden_phrases": []
+    }
+  ],
+  "fact_plan": {
+    "launch-w1-kickoff-vtt": [
+      {
+        "item_id": "decision-launch-channel",
+        "transition_id": "channel-create"
+      },
+      {
+        "item_id": "commitment-press-release",
+        "transition_id": "press-release-create"
+      },
+      {
+        "item_id": "commitment-appstore-submission",
+        "transition_id": "appstore-submission-create"
+      },
+      {
+        "item_id": "milestone-beta-rollout",
+        "transition_id": "beta-rollout-create"
+      },
+      {
+        "item_id": "risk-appstore-review",
+        "transition_id": "appstore-risk-create"
+      },
+      {
+        "item_id": "open-question-refund-policy",
+        "transition_id": "refund-policy-create"
+      },
+      null
+    ],
+    "launch-w1-marketing-brief-doc": [
+      {
+        "item_id": "milestone-public-launch",
+        "transition_id": "public-launch-create"
+      },
+      {
+        "item_id": "milestone-marketing-campaign-launch",
+        "transition_id": "marketing-campaign-create"
+      },
+      {
+        "item_id": "stakeholder-avery",
+        "transition_id": "avery-create"
+      },
+      {
+        "item_id": "stakeholder-jamie",
+        "transition_id": "jamie-create"
+      },
+      null
+    ],
+    "launch-w1-checklist-email": [
+      {
+        "item_id": "commitment-launch-checklist",
+        "transition_id": "launch-checklist-create"
+      },
+      null
+    ],
+    "launch-w1-cal-standup": [
+      null
+    ],
+    "launch-w2-standup-vtt": [
+      {
+        "item_id": "commitment-appstore-submission",
+        "transition_id": "appstore-submission-complete"
+      },
+      {
+        "item_id": "milestone-beta-rollout",
+        "transition_id": "beta-rollout-complete"
+      },
+      {
+        "item_id": "commitment-support-runbook",
+        "transition_id": "support-runbook-create"
+      },
+      {
+        "item_id": "risk-third-party-api",
+        "transition_id": "third-party-api-risk-create"
+      },
+      null
+    ],
+    "launch-w2-doc": [
+      null
+    ],
+    "launch-w2-cal-review": [
+      null
+    ],
+    "launch-w3-standup-vtt": [
+      {
+        "item_id": "commitment-press-release",
+        "transition_id": "press-release-complete"
+      },
+      {
+        "item_id": "milestone-marketing-campaign-launch",
+        "transition_id": "marketing-campaign-cancel"
+      },
+      {
+        "item_id": "blocker-appstore-review",
+        "transition_id": "appstore-blocker-supersede"
+      },
+      {
+        "item_id": "commitment-support-training",
+        "transition_id": "support-training-create"
+      },
+      {
+        "item_id": "commitment-faq-doc",
+        "transition_id": "faq-doc-create"
+      },
+      null
+    ],
+    "launch-w3-ambiguous-email": [
+      null
+    ],
+    "launch-w4-standup-vtt": [
+      {
+        "item_id": "milestone-public-launch",
+        "transition_id": "public-launch-date"
+      },
+      {
+        "item_id": "decision-pricing-tier",
+        "transition_id": "pricing-tier-create"
+      },
+      null
+    ],
+    "launch-w4-cal-signoff-prep": [
+      null
+    ],
+    "launch-w5-runbook-email": [
+      {
+        "item_id": "commitment-support-runbook",
+        "transition_id": "support-runbook-cancel"
+      },
+      {
+        "item_id": "open-question-refund-policy",
+        "transition_id": "refund-policy-resolve"
+      },
+      null
+    ],
+    "launch-w5-training-email": [
+      {
+        "item_id": "commitment-support-training",
+        "transition_id": "support-training-complete"
+      },
+      {
+        "item_id": "commitment-faq-doc",
+        "transition_id": "faq-doc-complete"
+      },
+      null
+    ],
+    "launch-w5-cal-final": [
+      null
+    ],
+    "launch-w6-wrapup-email": [
+      null
+    ],
+    "launch-w6-final-doc": [
+      {
+        "item_id": "milestone-public-launch",
+        "transition_id": "public-launch-complete"
+      },
+      null
+    ]
+  },
+  "baseline_fake_claims": {
+    "launch-cp-before-w2": [
+      {
+        "section": "open_commitments",
+        "text": "Casey owns the press release draft, due October 19.",
+        "claim_type": "fact",
+        "item_kind": "commitment",
+        "item_title": "Press release draft",
+        "status": "open",
+        "owner": "Casey",
+        "due_date": "2026-10-19",
+        "evidence": [
+          [
+            "launch-w1-kickoff-vtt",
+            "Casey will finish the press release draft by October 19th."
+          ]
+        ]
+      }
+    ],
+    "launch-cp-before-w3": [
+      {
+        "section": "risks_and_blockers",
+        "text": "App store review is an open risk.",
+        "claim_type": "fact",
+        "item_kind": "risk",
+        "item_title": "App store review risk",
+        "status": "open",
+        "owner": "Morgan",
+        "due_date": null,
+        "evidence": [
+          [
+            "launch-w1-kickoff-vtt",
+            "Morgan flagged a risk: app store review could delay the project."
+          ]
+        ]
+      }
+    ],
+    "launch-cp-before-w4": [
+      {
+        "section": "next_milestone",
+        "text": "The marketing campaign launch milestone is targeted for October 29.",
+        "claim_type": "fact",
+        "item_kind": "milestone",
+        "item_title": "Marketing campaign launch",
+        "status": "open",
+        "owner": null,
+        "due_date": "2026-10-29",
+        "evidence": [
+          [
+            "launch-w1-marketing-brief-doc",
+            "The marketing campaign launch milestone is targeted for October 29th."
+          ]
+        ]
+      }
+    ],
+    "launch-cp-final": [
+      {
+        "section": "next_milestone",
+        "text": "The public launch milestone is targeted for November 5.",
+        "claim_type": "fact",
+        "item_kind": "milestone",
+        "item_title": "Public launch",
+        "status": "open",
+        "owner": null,
+        "due_date": "2026-11-05",
+        "evidence": [
+          [
+            "launch-w1-marketing-brief-doc",
+            "The public launch milestone is targeted for November 5th."
+          ]
+        ]
+      },
+      {
+        "section": "risks_and_blockers",
+        "text": "App store review is an open risk.",
+        "claim_type": "fact",
+        "item_kind": "risk",
+        "item_title": "App store review risk",
+        "status": "open",
+        "owner": "Morgan",
+        "due_date": null,
+        "evidence": [
+          [
+            "launch-w1-kickoff-vtt",
+            "Morgan flagged a risk: app store review could delay the project."
+          ]
+        ]
+      }
+    ]
+  },
+  "ambiguous_aliases": []
+}

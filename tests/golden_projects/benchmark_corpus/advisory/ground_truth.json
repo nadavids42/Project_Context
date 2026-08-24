@@ -1,0 +1,600 @@
+{
+  "schema_version": "benchmark_ground_truth_v1",
+  "project_key": "advisory",
+  "items": [
+    {
+      "item_id": "decision-scope",
+      "kind": "decision",
+      "canonical_title": "Engagement scope",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "scope-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "adv-w1-kickoff-vtt",
+              "statement": "We decided to scope the advisory engagement to the finance workstream only.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "active",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "commitment-recommendations-memo",
+      "kind": "commitment",
+      "canonical_title": "Recommendations memo",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "memo-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "adv-w1-kickoff-vtt",
+              "statement": "Naomi will finish the recommendations memo by September 19th.",
+              "observed_owner": "Naomi"
+            }
+          ],
+          "owner": "Naomi",
+          "due_date": "2026-09-19",
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "memo-owner",
+          "type": "update_owner",
+          "mentions": [
+            {
+              "artifact_id": "adv-w2-standup-vtt",
+              "statement": "Recommendations memo: ownership moves to Victor.",
+              "observed_owner": "Victor"
+            }
+          ],
+          "owner": "Victor",
+          "due_date": null,
+          "status": null,
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "memo-complete",
+          "type": "update_status",
+          "mentions": [
+            {
+              "artifact_id": "adv-w3-doc",
+              "statement": "The recommendations memo was sent to the client for review.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "completed",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "commitment-interview-summary",
+      "kind": "commitment",
+      "canonical_title": "Interview summary",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "interview-summary-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "adv-w1-kickoff-vtt",
+              "statement": "Victor will finish the interview summary by September 18th.",
+              "observed_owner": "Victor"
+            }
+          ],
+          "owner": "Victor",
+          "due_date": "2026-09-18",
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "interview-summary-complete",
+          "type": "update_status",
+          "mentions": [
+            {
+              "artifact_id": "adv-w2-email",
+              "statement": "The interview summary was approved by the client.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "completed",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "commitment-discovery-scheduling",
+      "kind": "commitment",
+      "canonical_title": "Discovery interview scheduling",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "discovery-scheduling-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "adv-w1-kickoff-vtt",
+              "statement": "Jordan will schedule the discovery interviews by September 22nd.",
+              "observed_owner": "Jordan"
+            }
+          ],
+          "owner": null,
+          "due_date": "2026-09-22",
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "milestone-phase-one-readout",
+      "kind": "milestone",
+      "canonical_title": "Phase one readout",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "phase-one-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "adv-w1-kickoff-vtt",
+              "statement": "The phase one readout milestone is targeted for October 1st.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": "2026-10-01",
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "phase-one-date",
+          "type": "update_date",
+          "mentions": [
+            {
+              "artifact_id": "adv-w3-standup-vtt",
+              "statement": "The phase one readout milestone new target is October 8th.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": "2026-10-08",
+          "status": null,
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "open-question-fee-timeline",
+      "kind": "open_question",
+      "canonical_title": "Fee payment timeline",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "fee-timeline-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "adv-w1-kickoff-vtt",
+              "statement": "It is still unclear what the fee payment timeline should be for phase two.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "stakeholder-victor",
+      "kind": "stakeholder",
+      "canonical_title": "Victor",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "victor-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "adv-w1-kickoff-vtt",
+              "statement": "Victor is the lead associate on the Meridian Advisory engagement.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "active",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "decision-rollout-v1",
+      "kind": "decision",
+      "canonical_title": "Rollout recommendation",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "rollout-v1-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "adv-w1-charter-doc",
+              "statement": "We recommend a phased rollout starting with accounts receivable.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "active",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "stakeholder-grace",
+      "kind": "stakeholder",
+      "canonical_title": "Grace",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "grace-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "adv-w1-charter-doc",
+              "statement": "Grace is the client's primary contact for the Meridian Advisory engagement.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "active",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "risk-client-data-access",
+      "kind": "risk",
+      "canonical_title": "Client data access risk",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "data-access-risk-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "adv-w1-charter-doc",
+              "statement": "Naomi flagged a risk: client data access could delay the project.",
+              "observed_owner": "Naomi"
+            }
+          ],
+          "owner": "Naomi",
+          "due_date": null,
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "commitment-client-signoff-scope",
+      "kind": "commitment",
+      "canonical_title": "Scope sign-off",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "signoff-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "adv-w1-scope-email",
+              "statement": "Grace will finish the scope sign-off by September 25th.",
+              "observed_owner": "Grace"
+            }
+          ],
+          "owner": "Grace",
+          "due_date": "2026-09-25",
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "signoff-complete",
+          "type": "update_status",
+          "mentions": [
+            {
+              "artifact_id": "adv-w4-standup-vtt",
+              "statement": "The scope sign-off was approved by the client.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "completed",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "commitment-workshop-followup",
+      "kind": "commitment",
+      "canonical_title": "Workshop follow-up notes",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "workshop-followup-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "adv-w2-standup-vtt",
+              "statement": "Grace will finish the workshop follow-up notes by October 2nd.",
+              "observed_owner": "Grace"
+            }
+          ],
+          "owner": "Grace",
+          "due_date": "2026-10-02",
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "milestone-phase-two-kickoff",
+      "kind": "milestone",
+      "canonical_title": "Phase two kickoff",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "phase-two-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "adv-w2-standup-vtt",
+              "statement": "The phase two kickoff milestone is targeted for October 20th.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": "2026-10-20",
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "open-question-vendor-access",
+      "kind": "open_question",
+      "canonical_title": "Vendor system access approval",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "vendor-access-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "adv-w2-standup-vtt",
+              "statement": "It is still unclear what the vendor system access approval should be.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "vendor-access-resolve",
+          "type": "update_status",
+          "mentions": [
+            {
+              "artifact_id": "adv-w5-vendor-email",
+              "statement": "The vendor system access approval question was answered: IT granted read-only access as of October 10th.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "resolved",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "open-question-followup-cadence",
+      "kind": "open_question",
+      "canonical_title": "Follow-up meeting cadence",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "cadence-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "adv-w3-standup-vtt",
+              "statement": "It is still unclear what the follow-up meeting cadence should be.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "cadence-resolve",
+          "type": "update_status",
+          "mentions": [
+            {
+              "artifact_id": "adv-w5-cadence-email",
+              "statement": "The follow-up meeting cadence question was answered: biweekly syncs starting in November.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "resolved",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "decision-rollout-v2",
+      "kind": "decision",
+      "canonical_title": "Rollout recommendation (revised)",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "rollout-v2-supersede",
+          "type": "supersede",
+          "mentions": [
+            {
+              "artifact_id": "adv-w3-doc",
+              "statement": "Instead of a phased rollout, we now recommend a full parallel rollout across both accounts receivable and accounts payable.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "active",
+          "supersedes_item_id": "decision-rollout-v1",
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "decision-fee-structure",
+      "kind": "decision",
+      "canonical_title": "Engagement fee structure",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "fee-structure-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "adv-w4-standup-vtt",
+              "statement": "We decided to use a fixed-fee model for the phase two engagement.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "active",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "decision-tooling",
+      "kind": "decision",
+      "canonical_title": "Analytics tooling choice",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "tooling-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "adv-w4-standup-vtt",
+              "statement": "We decided to use the existing BI platform for the analytics tooling.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "active",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "milestone-final-readout",
+      "kind": "milestone",
+      "canonical_title": "Final engagement readout",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "final-readout-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "adv-w4-standup-vtt",
+              "statement": "The final engagement readout milestone is targeted for November 1st.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": "2026-11-01",
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    }
+  ]
+}

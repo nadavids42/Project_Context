@@ -1,0 +1,1 @@
+Quick note: saw an Atlas ticket about dashboard capacity, not sure if that's our migration or the unrelated internal Atlas analytics tool.

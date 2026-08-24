@@ -1,0 +1,601 @@
+{
+  "schema_version": "benchmark_ground_truth_v1",
+  "project_key": "launch",
+  "items": [
+    {
+      "item_id": "decision-launch-channel",
+      "kind": "decision",
+      "canonical_title": "Launch channel",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "channel-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "launch-w1-kickoff-vtt",
+              "statement": "We decided to launch on the web app first, not mobile.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "active",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "commitment-press-release",
+      "kind": "commitment",
+      "canonical_title": "Press release draft",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "press-release-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "launch-w1-kickoff-vtt",
+              "statement": "Casey will finish the press release draft by October 19th.",
+              "observed_owner": "Casey"
+            }
+          ],
+          "owner": "Casey",
+          "due_date": "2026-10-19",
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "press-release-complete",
+          "type": "update_status",
+          "mentions": [
+            {
+              "artifact_id": "launch-w3-standup-vtt",
+              "statement": "The press release draft was sent to the press list.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "completed",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "commitment-appstore-submission",
+      "kind": "commitment",
+      "canonical_title": "App store submission",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "appstore-submission-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "launch-w1-kickoff-vtt",
+              "statement": "Morgan will finish the app store submission by October 15th.",
+              "observed_owner": "Morgan"
+            }
+          ],
+          "owner": "Morgan",
+          "due_date": "2026-10-15",
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "appstore-submission-complete",
+          "type": "update_status",
+          "mentions": [
+            {
+              "artifact_id": "launch-w2-standup-vtt",
+              "statement": "The app store submission was submitted and approved by Apple.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "completed",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "milestone-beta-rollout",
+      "kind": "milestone",
+      "canonical_title": "Beta rollout",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "beta-rollout-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "launch-w1-kickoff-vtt",
+              "statement": "The beta rollout milestone is targeted for October 12th.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": "2026-10-12",
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "beta-rollout-complete",
+          "type": "update_status",
+          "mentions": [
+            {
+              "artifact_id": "launch-w2-standup-vtt",
+              "statement": "The beta rollout milestone was deployed successfully.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "completed",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "risk-appstore-review",
+      "kind": "risk",
+      "canonical_title": "App store review risk",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "appstore-risk-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "launch-w1-kickoff-vtt",
+              "statement": "Morgan flagged a risk: app store review could delay the project.",
+              "observed_owner": "Morgan"
+            }
+          ],
+          "owner": "Morgan",
+          "due_date": null,
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "open-question-refund-policy",
+      "kind": "open_question",
+      "canonical_title": "Refund policy wording",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "refund-policy-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "launch-w1-kickoff-vtt",
+              "statement": "It is still unclear what the refund policy wording should be at launch.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "refund-policy-resolve",
+          "type": "update_status",
+          "mentions": [
+            {
+              "artifact_id": "launch-w5-runbook-email",
+              "statement": "The refund policy wording question was answered: full refunds within 14 days of purchase.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "resolved",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "milestone-public-launch",
+      "kind": "milestone",
+      "canonical_title": "Public launch",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "public-launch-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "launch-w1-marketing-brief-doc",
+              "statement": "The public launch milestone is targeted for November 5th.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": "2026-11-05",
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "public-launch-date",
+          "type": "update_date",
+          "mentions": [
+            {
+              "artifact_id": "launch-w4-standup-vtt",
+              "statement": "The public launch milestone new target is November 12th.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": "2026-11-12",
+          "status": null,
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "public-launch-complete",
+          "type": "update_status",
+          "mentions": [
+            {
+              "artifact_id": "launch-w6-final-doc",
+              "statement": "The public launch milestone is complete.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "completed",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "milestone-marketing-campaign-launch",
+      "kind": "milestone",
+      "canonical_title": "Marketing campaign launch",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "marketing-campaign-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "launch-w1-marketing-brief-doc",
+              "statement": "The marketing campaign launch milestone is targeted for October 29th.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": "2026-10-29",
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "marketing-campaign-cancel",
+          "type": "update_status",
+          "mentions": [
+            {
+              "artifact_id": "launch-w3-standup-vtt",
+              "statement": "The marketing campaign launch milestone is no longer needed since we are folding it into the public launch announcement.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "canceled",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "stakeholder-avery",
+      "kind": "stakeholder",
+      "canonical_title": "Avery",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "avery-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "launch-w1-marketing-brief-doc",
+              "statement": "Avery is the executive sponsor for the Comet Launch project.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "active",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "stakeholder-jamie",
+      "kind": "stakeholder",
+      "canonical_title": "Jamie",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "jamie-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "launch-w1-marketing-brief-doc",
+              "statement": "Jamie is the support lead for the Comet Launch project.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "active",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "commitment-launch-checklist",
+      "kind": "commitment",
+      "canonical_title": "Launch checklist",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "launch-checklist-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "launch-w1-checklist-email",
+              "statement": "Casey will finish the launch checklist by October 26th.",
+              "observed_owner": "Casey"
+            }
+          ],
+          "owner": "Casey",
+          "due_date": "2026-10-26",
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "commitment-support-runbook",
+      "kind": "commitment",
+      "canonical_title": "Support runbook",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "support-runbook-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "launch-w2-standup-vtt",
+              "statement": "Jamie will finish the support runbook by November 2nd.",
+              "observed_owner": "Jamie"
+            }
+          ],
+          "owner": "Jamie",
+          "due_date": "2026-11-02",
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "support-runbook-cancel",
+          "type": "update_status",
+          "mentions": [
+            {
+              "artifact_id": "launch-w5-runbook-email",
+              "statement": "The support runbook is no longer needed since the vendor now provides one.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "canceled",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "risk-third-party-api",
+      "kind": "risk",
+      "canonical_title": "Third-party payment API risk",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "third-party-api-risk-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "launch-w2-standup-vtt",
+              "statement": "Taylor flagged a risk: the third-party payment API could delay the project.",
+              "observed_owner": "Taylor"
+            }
+          ],
+          "owner": "Taylor",
+          "due_date": null,
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "blocker-appstore-review",
+      "kind": "blocker",
+      "canonical_title": "App store review risk",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "appstore-blocker-supersede",
+          "type": "supersede",
+          "mentions": [
+            {
+              "artifact_id": "launch-w3-standup-vtt",
+              "statement": "Morgan confirmed the app store review risk is now blocking work; we cannot proceed.",
+              "observed_owner": "Morgan"
+            }
+          ],
+          "owner": "Morgan",
+          "due_date": null,
+          "status": "open",
+          "supersedes_item_id": "risk-appstore-review",
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "commitment-support-training",
+      "kind": "commitment",
+      "canonical_title": "Support team training",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "support-training-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "launch-w3-standup-vtt",
+              "statement": "Jamie will finish the support team training by October 29th.",
+              "observed_owner": "Jamie"
+            }
+          ],
+          "owner": "Jamie",
+          "due_date": "2026-10-29",
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "support-training-complete",
+          "type": "update_status",
+          "mentions": [
+            {
+              "artifact_id": "launch-w5-training-email",
+              "statement": "The support team training is complete.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "completed",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "commitment-faq-doc",
+      "kind": "commitment",
+      "canonical_title": "Launch FAQ document",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "faq-doc-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "launch-w3-standup-vtt",
+              "statement": "Taylor will finish the launch FAQ document by October 30th.",
+              "observed_owner": "Taylor"
+            }
+          ],
+          "owner": "Taylor",
+          "due_date": "2026-10-30",
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "faq-doc-complete",
+          "type": "update_status",
+          "mentions": [
+            {
+              "artifact_id": "launch-w5-training-email",
+              "statement": "The launch FAQ document was sent to the client for review.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "completed",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "decision-pricing-tier",
+      "kind": "decision",
+      "canonical_title": "Pricing tier",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "pricing-tier-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "launch-w4-standup-vtt",
+              "statement": "We decided to offer a single paid pricing tier at launch, no free tier.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "active",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,640 @@
+{
+  "schema_version": "benchmark_ground_truth_v1",
+  "project_key": "implementation",
+  "items": [
+    {
+      "item_id": "decision-datastore",
+      "kind": "decision",
+      "canonical_title": "Datastore choice",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "decision-datastore-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "impl-w1-kickoff-vtt",
+              "statement": "We decided to use PostgreSQL as the new billing datastore.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "active",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "commitment-schema-migration",
+      "kind": "commitment",
+      "canonical_title": "Schema migration script",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "schema-migration-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "impl-w1-kickoff-vtt",
+              "statement": "Bob will finish the schema migration script by August 14th.",
+              "observed_owner": "Bob"
+            }
+          ],
+          "owner": "Bob",
+          "due_date": "2026-08-14",
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "schema-migration-owner",
+          "type": "update_owner",
+          "mentions": [
+            {
+              "artifact_id": "impl-w2-standup-vtt",
+              "statement": "Schema migration script: ownership moves to Diego.",
+              "observed_owner": "Diego"
+            }
+          ],
+          "owner": "Diego",
+          "due_date": null,
+          "status": null,
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "schema-migration-date1",
+          "type": "update_date",
+          "mentions": [
+            {
+              "artifact_id": "impl-w2-diego-email",
+              "statement": "The schema migration script deadline moved to August 21st.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": "2026-08-21",
+          "status": null,
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "schema-migration-date2",
+          "type": "update_date",
+          "mentions": [
+            {
+              "artifact_id": "impl-w4-standup-vtt",
+              "statement": "The schema migration script deadline moved to August 28th.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": "2026-08-28",
+          "status": null,
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "schema-migration-complete",
+          "type": "update_status",
+          "mentions": [
+            {
+              "artifact_id": "impl-w5-schema-signoff-email",
+              "statement": "The schema migration script was sent to the client for review and signed off.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "completed",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "commitment-deployment-checklist",
+      "kind": "commitment",
+      "canonical_title": "Deployment checklist",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "deployment-checklist-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "impl-w1-kickoff-vtt",
+              "statement": "Priya will finish the deployment checklist by August 14th.",
+              "observed_owner": "Priya"
+            },
+            {
+              "artifact_id": "impl-w1-priya-email",
+              "statement": "Priya will finish the deployment checklist by August 14th.",
+              "observed_owner": "Priya"
+            }
+          ],
+          "owner": "Priya",
+          "due_date": "2026-08-14",
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "deployment-checklist-complete",
+          "type": "update_status",
+          "mentions": [
+            {
+              "artifact_id": "impl-w2-standup-vtt",
+              "statement": "The deployment checklist was approved by the client.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "completed",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "commitment-load-testing-report",
+      "kind": "commitment",
+      "canonical_title": "Load testing report",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "load-testing-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "impl-w1-kickoff-vtt",
+              "statement": "Diego will finish the load testing report by August 28th.",
+              "observed_owner": "Diego"
+            }
+          ],
+          "owner": "Diego",
+          "due_date": "2026-08-28",
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "milestone-migration-cutover",
+      "kind": "milestone",
+      "canonical_title": "Migration cutover",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "cutover-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "impl-w1-kickoff-vtt",
+              "statement": "The migration cutover milestone is targeted for September 15th.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": "2026-09-15",
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "cutover-date",
+          "type": "update_date",
+          "mentions": [
+            {
+              "artifact_id": "impl-w4-standup-vtt",
+              "statement": "The migration cutover milestone new target is September 8th.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": "2026-09-08",
+          "status": null,
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "cutover-complete",
+          "type": "update_status",
+          "mentions": [
+            {
+              "artifact_id": "impl-w6-cutover-complete-doc",
+              "statement": "The migration cutover milestone is complete.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "completed",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "open-question-rollback-strategy",
+      "kind": "open_question",
+      "canonical_title": "Rollback strategy",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "rollback-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "impl-w1-kickoff-vtt",
+              "statement": "It is still unclear what the rollback strategy should be if the migration fails.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "rollback-resolve",
+          "type": "update_status",
+          "mentions": [
+            {
+              "artifact_id": "impl-w5-priya-email",
+              "statement": "The rollback strategy question was answered: revert to the read replica and replay the write-ahead log.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "resolved",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "milestone-staging-rollout",
+      "kind": "milestone",
+      "canonical_title": "Staging rollout",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "staging-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "impl-w1-charter-doc",
+              "statement": "The staging rollout milestone is targeted for August 21st.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": "2026-08-21",
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "staging-complete",
+          "type": "update_status",
+          "mentions": [
+            {
+              "artifact_id": "impl-w3-staging-doc",
+              "statement": "The staging rollout milestone was deployed successfully.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "completed",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "stakeholder-elena",
+      "kind": "stakeholder",
+      "canonical_title": "Elena",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "elena-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "impl-w1-charter-doc",
+              "statement": "Elena is the client executive sponsor for the Atlas Migration project.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "active",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "risk-legacy-exporter",
+      "kind": "risk",
+      "canonical_title": "Legacy exporter compatibility risk",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "legacy-exporter-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "impl-w1-charter-doc",
+              "statement": "Priya flagged a risk: legacy exporter compatibility could delay the project.",
+              "observed_owner": "Priya"
+            }
+          ],
+          "owner": "Priya",
+          "due_date": null,
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "legacy-exporter-resolve",
+          "type": "update_status",
+          "mentions": [
+            {
+              "artifact_id": "impl-w4-standup-vtt",
+              "statement": "Priya confirmed the legacy exporter compatibility risk is now resolved after the vendor patch shipped.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "resolved",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "commitment-runbook-documentation",
+      "kind": "commitment",
+      "canonical_title": "Runbook documentation",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "runbook-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "impl-w2-standup-vtt",
+              "statement": "Priya will finish the runbook documentation by September 4th.",
+              "observed_owner": "Priya"
+            }
+          ],
+          "owner": "Priya",
+          "due_date": "2026-09-04",
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "runbook-cancel",
+          "type": "update_status",
+          "mentions": [
+            {
+              "artifact_id": "impl-w5-priya-email",
+              "statement": "The runbook documentation is no longer needed since the vendor now provides one.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "canceled",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "risk-vendor-rate-limits",
+      "kind": "risk",
+      "canonical_title": "Vendor API rate limits",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "vendor-risk-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "impl-w2-standup-vtt",
+              "statement": "Diego flagged a risk: vendor API rate limits could delay the project.",
+              "observed_owner": "Diego"
+            }
+          ],
+          "owner": "Diego",
+          "due_date": null,
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "stakeholder-sam",
+      "kind": "stakeholder",
+      "canonical_title": "Sam",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "sam-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "impl-w2-standup-vtt",
+              "statement": "Sam is now the QA lead for the Atlas Migration project.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "active",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "milestone-production-signoff",
+      "kind": "milestone",
+      "canonical_title": "Production sign-off",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "production-signoff-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "impl-w3-standup-vtt",
+              "statement": "The production sign-off milestone is targeted for September 10th.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": "2026-09-10",
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "commitment-data-validation-script",
+      "kind": "commitment",
+      "canonical_title": "Data validation script",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "data-validation-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "impl-w3-standup-vtt",
+              "statement": "Bob will finish the data validation script by September 1st.",
+              "observed_owner": "Bob"
+            }
+          ],
+          "owner": "Bob",
+          "due_date": "2026-09-01",
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        },
+        {
+          "transition_id": "data-validation-complete",
+          "type": "update_status",
+          "mentions": [
+            {
+              "artifact_id": "impl-w6-data-validation-email",
+              "statement": "The data validation script was deployed to staging.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "completed",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "open-question-oncall-rotation",
+      "kind": "open_question",
+      "canonical_title": "On-call rotation ownership",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "oncall-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "impl-w3-standup-vtt",
+              "statement": "Diego is now responsible for deciding the on-call rotation ownership question.",
+              "observed_owner": "Diego"
+            }
+          ],
+          "owner": "Diego",
+          "due_date": null,
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "commitment-api-contract-signoff",
+      "kind": "commitment",
+      "canonical_title": "API contract sign-off",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "api-signoff-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "impl-w3-standup-vtt",
+              "statement": "Elena will finish the API contract sign-off by August 25th.",
+              "observed_owner": "Elena"
+            }
+          ],
+          "owner": "Elena",
+          "due_date": "2026-08-25",
+          "status": "open",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    },
+    {
+      "item_id": "decision-cutover-window",
+      "kind": "decision",
+      "canonical_title": "Cutover maintenance window",
+      "aliases": [],
+      "transitions": [
+        {
+          "transition_id": "cutover-window-create",
+          "type": "create",
+          "mentions": [
+            {
+              "artifact_id": "impl-w4-standup-vtt",
+              "statement": "We decided to run the production cutover during the Saturday night maintenance window.",
+              "observed_owner": null
+            }
+          ],
+          "owner": null,
+          "due_date": null,
+          "status": "active",
+          "supersedes_item_id": null,
+          "materiality": "material",
+          "notes": null
+        }
+      ]
+    }
+  ]
+}

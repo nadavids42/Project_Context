@@ -1,0 +1,3 @@
+The data validation script was deployed to staging. This was noted for the project record.
+
+No issues found in the first overnight run. This was noted for the project record.

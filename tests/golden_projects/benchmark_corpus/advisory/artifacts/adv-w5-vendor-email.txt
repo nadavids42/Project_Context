@@ -1,0 +1,3 @@
+The vendor system access approval question was answered: IT granted read-only access as of October 10th. This was noted for the project record.
+
+This unblocks the data pull for phase two. This was noted for the project record.

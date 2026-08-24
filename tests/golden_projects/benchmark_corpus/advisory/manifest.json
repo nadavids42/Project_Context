@@ -1,0 +1,545 @@
+{
+  "schema_version": "benchmark_ground_truth_v1",
+  "key": "advisory",
+  "name": "Meridian Advisory Engagement",
+  "objective": "Deliver finance-workstream recommendations to the client.",
+  "stage": "Discovery",
+  "chunk_target_chars": 144,
+  "artifacts": [
+    {
+      "artifact_id": "adv-w1-kickoff-vtt",
+      "kind": "meeting_transcript",
+      "title": "Meridian Advisory \u2014 Kickoff",
+      "occurred_at": "2026-09-14T09:00:00Z",
+      "author": "Naomi",
+      "filename": "adv-w1-kickoff-vtt.vtt",
+      "project_key": "advisory",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "adv-w1-charter-doc",
+      "kind": "document",
+      "title": "Meridian Advisory \u2014 Engagement Charter",
+      "occurred_at": "2026-09-15T10:00:00Z",
+      "author": "Naomi",
+      "filename": "adv-w1-charter-doc.md",
+      "project_key": "advisory",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "adv-w1-scope-email",
+      "kind": "email",
+      "title": "Scope sign-off",
+      "occurred_at": "2026-09-16T09:30:00Z",
+      "author": "Grace",
+      "filename": "adv-w1-scope-email.txt",
+      "project_key": "advisory",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "adv-w1-cal-standup",
+      "kind": "calendar_event",
+      "title": "Meridian Advisory \u2014 Weekly Sync",
+      "occurred_at": "2026-09-18T09:00:00Z",
+      "author": null,
+      "filename": "adv-w1-cal-standup.txt",
+      "project_key": "advisory",
+      "ambiguous_assignment": false,
+      "material": false
+    },
+    {
+      "artifact_id": "adv-w2-standup-vtt",
+      "kind": "meeting_transcript",
+      "title": "Meridian Advisory \u2014 Week 2 Sync",
+      "occurred_at": "2026-09-21T09:00:00Z",
+      "author": "Naomi",
+      "filename": "adv-w2-standup-vtt.vtt",
+      "project_key": "advisory",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "adv-w2-email",
+      "kind": "email",
+      "title": "Interview summary \u2014 approved",
+      "occurred_at": "2026-09-23T14:00:00Z",
+      "author": "Victor",
+      "filename": "adv-w2-email.txt",
+      "project_key": "advisory",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "adv-w2-cal-review",
+      "kind": "calendar_event",
+      "title": "Meridian Advisory \u2014 Progress Review",
+      "occurred_at": "2026-09-24T09:00:00Z",
+      "author": null,
+      "filename": "adv-w2-cal-review.txt",
+      "project_key": "advisory",
+      "ambiguous_assignment": false,
+      "material": false
+    },
+    {
+      "artifact_id": "adv-w3-standup-vtt",
+      "kind": "meeting_transcript",
+      "title": "Meridian Advisory \u2014 Week 3 Sync",
+      "occurred_at": "2026-09-28T09:00:00Z",
+      "author": "Naomi",
+      "filename": "adv-w3-standup-vtt.vtt",
+      "project_key": "advisory",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "adv-w3-doc",
+      "kind": "document",
+      "title": "Meridian Advisory \u2014 Revised Rollout Recommendation",
+      "occurred_at": "2026-09-30T11:00:00Z",
+      "author": "Naomi",
+      "filename": "adv-w3-doc.md",
+      "project_key": "advisory",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "adv-w3-ambiguous-email",
+      "kind": "email",
+      "title": "Quick flag re: Meridian",
+      "occurred_at": "2026-10-01T16:00:00Z",
+      "author": "Grace",
+      "filename": "adv-w3-ambiguous-email.txt",
+      "project_key": "advisory",
+      "ambiguous_assignment": true,
+      "material": false
+    },
+    {
+      "artifact_id": "adv-w4-standup-vtt",
+      "kind": "meeting_transcript",
+      "title": "Meridian Advisory \u2014 Week 4 Sync",
+      "occurred_at": "2026-10-05T09:00:00Z",
+      "author": "Naomi",
+      "filename": "adv-w4-standup-vtt.vtt",
+      "project_key": "advisory",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "adv-w4-cal-readout-prep",
+      "kind": "calendar_event",
+      "title": "Meridian Advisory \u2014 Readout Prep",
+      "occurred_at": "2026-10-07T09:00:00Z",
+      "author": null,
+      "filename": "adv-w4-cal-readout-prep.txt",
+      "project_key": "advisory",
+      "ambiguous_assignment": false,
+      "material": false
+    },
+    {
+      "artifact_id": "adv-w5-vendor-email",
+      "kind": "email",
+      "title": "Vendor access \u2014 resolved",
+      "occurred_at": "2026-10-12T10:00:00Z",
+      "author": "Naomi",
+      "filename": "adv-w5-vendor-email.txt",
+      "project_key": "advisory",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "adv-w5-cadence-email",
+      "kind": "email",
+      "title": "Follow-up cadence \u2014 resolved",
+      "occurred_at": "2026-10-14T10:00:00Z",
+      "author": "Victor",
+      "filename": "adv-w5-cadence-email.txt",
+      "project_key": "advisory",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "adv-w5-cal-final",
+      "kind": "calendar_event",
+      "title": "Meridian Advisory \u2014 Phase One Readout",
+      "occurred_at": "2026-10-15T09:00:00Z",
+      "author": null,
+      "filename": "adv-w5-cal-final.txt",
+      "project_key": "advisory",
+      "ambiguous_assignment": false,
+      "material": false
+    },
+    {
+      "artifact_id": "adv-w6-wrapup-email",
+      "kind": "email",
+      "title": "Phase one wrap-up",
+      "occurred_at": "2026-10-19T09:00:00Z",
+      "author": "Naomi",
+      "filename": "adv-w6-wrapup-email.txt",
+      "project_key": "advisory",
+      "ambiguous_assignment": false,
+      "material": false
+    },
+    {
+      "artifact_id": "adv-w6-final-doc",
+      "kind": "document",
+      "title": "Meridian Advisory \u2014 Phase One Summary",
+      "occurred_at": "2026-10-23T17:00:00Z",
+      "author": "Naomi",
+      "filename": "adv-w6-final-doc.md",
+      "project_key": "advisory",
+      "ambiguous_assignment": false,
+      "material": false
+    }
+  ],
+  "checkpoints": [
+    {
+      "checkpoint_id": "adv-cp-before-w2",
+      "cutoff_at": "2026-09-21T09:00:00Z",
+      "brief_type": "meeting_preparation",
+      "meeting_title": "Meridian Advisory \u2014 Week 2 Sync",
+      "meeting_purpose": null,
+      "meeting_scheduled_at": "2026-09-21T09:00:00Z",
+      "participant_lines": [
+        "Naomi",
+        "Victor",
+        "Grace"
+      ],
+      "required_phrases": [],
+      "forbidden_phrases": []
+    },
+    {
+      "checkpoint_id": "adv-cp-before-w3",
+      "cutoff_at": "2026-09-28T09:00:00Z",
+      "brief_type": "meeting_preparation",
+      "meeting_title": "Meridian Advisory \u2014 Week 3 Sync",
+      "meeting_purpose": null,
+      "meeting_scheduled_at": "2026-09-28T09:00:00Z",
+      "participant_lines": [
+        "Naomi",
+        "Victor",
+        "Grace"
+      ],
+      "required_phrases": [],
+      "forbidden_phrases": []
+    },
+    {
+      "checkpoint_id": "adv-cp-before-w4",
+      "cutoff_at": "2026-10-05T09:00:00Z",
+      "brief_type": "meeting_preparation",
+      "meeting_title": "Meridian Advisory \u2014 Week 4 Sync",
+      "meeting_purpose": null,
+      "meeting_scheduled_at": "2026-10-05T09:00:00Z",
+      "participant_lines": [
+        "Naomi",
+        "Victor",
+        "Grace"
+      ],
+      "required_phrases": [],
+      "forbidden_phrases": []
+    },
+    {
+      "checkpoint_id": "adv-cp-final",
+      "cutoff_at": "2026-10-24T00:00:00Z",
+      "brief_type": "current_project",
+      "meeting_title": null,
+      "meeting_purpose": null,
+      "meeting_scheduled_at": null,
+      "participant_lines": [],
+      "required_phrases": [],
+      "forbidden_phrases": []
+    }
+  ],
+  "fact_plan": {
+    "adv-w1-kickoff-vtt": [
+      {
+        "item_id": "decision-scope",
+        "transition_id": "scope-create"
+      },
+      null,
+      {
+        "item_id": "commitment-recommendations-memo",
+        "transition_id": "memo-create"
+      },
+      {
+        "item_id": "commitment-interview-summary",
+        "transition_id": "interview-summary-create"
+      },
+      {
+        "item_id": "commitment-discovery-scheduling",
+        "transition_id": "discovery-scheduling-create"
+      },
+      {
+        "item_id": "milestone-phase-one-readout",
+        "transition_id": "phase-one-create"
+      },
+      {
+        "item_id": "open-question-fee-timeline",
+        "transition_id": "fee-timeline-create"
+      },
+      {
+        "item_id": "stakeholder-victor",
+        "transition_id": "victor-create"
+      },
+      null
+    ],
+    "adv-w1-charter-doc": [
+      {
+        "item_id": "decision-rollout-v1",
+        "transition_id": "rollout-v1-create"
+      },
+      {
+        "item_id": "stakeholder-grace",
+        "transition_id": "grace-create"
+      },
+      {
+        "item_id": "risk-client-data-access",
+        "transition_id": "data-access-risk-create"
+      },
+      null
+    ],
+    "adv-w1-scope-email": [
+      {
+        "item_id": "commitment-client-signoff-scope",
+        "transition_id": "signoff-create"
+      },
+      null
+    ],
+    "adv-w1-cal-standup": [
+      null
+    ],
+    "adv-w2-standup-vtt": [
+      {
+        "item_id": "commitment-recommendations-memo",
+        "transition_id": "memo-owner"
+      },
+      {
+        "item_id": "commitment-workshop-followup",
+        "transition_id": "workshop-followup-create"
+      },
+      {
+        "item_id": "milestone-phase-two-kickoff",
+        "transition_id": "phase-two-create"
+      },
+      {
+        "item_id": "open-question-vendor-access",
+        "transition_id": "vendor-access-create"
+      },
+      null
+    ],
+    "adv-w2-email": [
+      {
+        "item_id": "commitment-interview-summary",
+        "transition_id": "interview-summary-complete"
+      },
+      null
+    ],
+    "adv-w2-cal-review": [
+      null
+    ],
+    "adv-w3-standup-vtt": [
+      {
+        "item_id": "milestone-phase-one-readout",
+        "transition_id": "phase-one-date"
+      },
+      {
+        "item_id": "open-question-followup-cadence",
+        "transition_id": "cadence-create"
+      },
+      null
+    ],
+    "adv-w3-doc": [
+      {
+        "item_id": "decision-rollout-v2",
+        "transition_id": "rollout-v2-supersede"
+      },
+      {
+        "item_id": "commitment-recommendations-memo",
+        "transition_id": "memo-complete"
+      },
+      null
+    ],
+    "adv-w3-ambiguous-email": [
+      null
+    ],
+    "adv-w4-standup-vtt": [
+      {
+        "item_id": "decision-fee-structure",
+        "transition_id": "fee-structure-create"
+      },
+      {
+        "item_id": "decision-tooling",
+        "transition_id": "tooling-create"
+      },
+      {
+        "item_id": "commitment-client-signoff-scope",
+        "transition_id": "signoff-complete"
+      },
+      {
+        "item_id": "milestone-final-readout",
+        "transition_id": "final-readout-create"
+      },
+      null
+    ],
+    "adv-w4-cal-readout-prep": [
+      null
+    ],
+    "adv-w5-vendor-email": [
+      {
+        "item_id": "open-question-vendor-access",
+        "transition_id": "vendor-access-resolve"
+      },
+      null
+    ],
+    "adv-w5-cadence-email": [
+      {
+        "item_id": "open-question-followup-cadence",
+        "transition_id": "cadence-resolve"
+      },
+      null
+    ],
+    "adv-w5-cal-final": [
+      null
+    ],
+    "adv-w6-wrapup-email": [
+      null
+    ],
+    "adv-w6-final-doc": [
+      null,
+      null
+    ]
+  },
+  "baseline_fake_claims": {
+    "adv-cp-before-w2": [
+      {
+        "section": "decisions",
+        "text": "The team decided to use a fixed-fee model for the phase two engagement.",
+        "claim_type": "fact",
+        "item_kind": "decision",
+        "item_title": "Engagement fee structure",
+        "status": "active",
+        "owner": null,
+        "due_date": null,
+        "evidence": [
+          [
+            "adv-w1-kickoff-vtt",
+            "We're leaning toward a fixed-fee model for the phase two engagement, but nothing is decided yet."
+          ]
+        ]
+      },
+      {
+        "section": "decisions",
+        "text": "The engagement is scoped to the finance workstream only.",
+        "claim_type": "fact",
+        "item_kind": "decision",
+        "item_title": "Engagement scope",
+        "status": "active",
+        "owner": null,
+        "due_date": null,
+        "evidence": [
+          [
+            "adv-w1-kickoff-vtt",
+            "We decided to scope the advisory engagement to the finance workstream only."
+          ]
+        ]
+      }
+    ],
+    "adv-cp-before-w3": [
+      {
+        "section": "open_commitments",
+        "text": "Naomi owns the recommendations memo.",
+        "claim_type": "fact",
+        "item_kind": "commitment",
+        "item_title": "Recommendations memo",
+        "status": "open",
+        "owner": "Naomi",
+        "due_date": null,
+        "evidence": [
+          [
+            "adv-w1-kickoff-vtt",
+            "Naomi will finish the recommendations memo by September 19th."
+          ]
+        ]
+      },
+      {
+        "section": "open_commitments",
+        "text": "Jordan Ruiz will schedule the discovery interviews.",
+        "claim_type": "fact",
+        "item_kind": "commitment",
+        "item_title": "Discovery interview scheduling",
+        "status": "open",
+        "owner": "Jordan Ruiz",
+        "due_date": null,
+        "evidence": [
+          [
+            "adv-w1-kickoff-vtt",
+            "Jordan will schedule the discovery interviews by September 22nd."
+          ]
+        ]
+      }
+    ],
+    "adv-cp-before-w4": [
+      {
+        "section": "decisions",
+        "text": "The current recommendation is a phased rollout starting with AR.",
+        "claim_type": "fact",
+        "item_kind": "decision",
+        "item_title": "Rollout recommendation",
+        "status": "active",
+        "owner": null,
+        "due_date": null,
+        "evidence": [
+          [
+            "adv-w1-charter-doc",
+            "We recommend a phased rollout starting with accounts receivable."
+          ]
+        ]
+      }
+    ],
+    "adv-cp-final": [
+      {
+        "section": "decisions",
+        "text": "The current recommendation is a phased rollout starting with AR.",
+        "claim_type": "fact",
+        "item_kind": "decision",
+        "item_title": "Rollout recommendation",
+        "status": "active",
+        "owner": null,
+        "due_date": null,
+        "evidence": [
+          [
+            "adv-w1-charter-doc",
+            "We recommend a phased rollout starting with accounts receivable."
+          ]
+        ]
+      },
+      {
+        "section": "open_commitments",
+        "text": "Naomi owns the recommendations memo.",
+        "claim_type": "fact",
+        "item_kind": "commitment",
+        "item_title": "Recommendations memo",
+        "status": "open",
+        "owner": "Naomi",
+        "due_date": null,
+        "evidence": [
+          [
+            "adv-w1-kickoff-vtt",
+            "Naomi will finish the recommendations memo by September 19th."
+          ]
+        ]
+      }
+    ]
+  },
+  "ambiguous_aliases": [
+    {
+      "shared_alias": "Jordan",
+      "full_names": [
+        "Jordan Lee",
+        "Jordan Ruiz"
+      ]
+    }
+  ]
+}

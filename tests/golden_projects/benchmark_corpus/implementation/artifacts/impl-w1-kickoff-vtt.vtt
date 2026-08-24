@@ -1,0 +1,22 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:02.000
+<v Priya>We decided to use PostgreSQL as the new billing datastore. This was noted for the project record.</v>
+
+00:00:03.000 --> 00:00:05.000
+<v Bob>Bob will finish the schema migration script by August 14th. This was noted for the project record.</v>
+
+00:00:06.000 --> 00:00:08.000
+<v Priya>Priya will finish the deployment checklist by August 14th. This was noted for the project record.</v>
+
+00:00:09.000 --> 00:00:11.000
+<v Diego>Diego will finish the load testing report by August 28th. This was noted for the project record.</v>
+
+00:00:12.000 --> 00:00:14.000
+<v Priya>The migration cutover milestone is targeted for September 15th. This was noted for the project record.</v>
+
+00:00:15.000 --> 00:00:17.000
+<v Bob>It is still unclear what the rollback strategy should be if the migration fails. This was noted for the project record.</v>
+
+00:00:18.000 --> 00:00:20.000
+<v Diego>By the way, the office coffee machine is broken again. This was noted for the project record.</v>

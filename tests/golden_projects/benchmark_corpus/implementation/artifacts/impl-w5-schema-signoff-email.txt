@@ -1,0 +1,3 @@
+The schema migration script was sent to the client for review and signed off. This was noted for the project record.
+
+Nice milestone to close out the week. This was noted for the project record.

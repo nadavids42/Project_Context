@@ -1,0 +1,16 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:02.000
+<v Priya>We decided to run the production cutover during the Saturday night maintenance window. This was noted for the project record.</v>
+
+00:00:03.000 --> 00:00:05.000
+<v Diego>The schema migration script deadline moved to August 28th. This was noted for the project record.</v>
+
+00:00:06.000 --> 00:00:08.000
+<v Priya>The migration cutover milestone new target is September 8th. This was noted for the project record.</v>
+
+00:00:09.000 --> 00:00:11.000
+<v Diego>Priya confirmed the legacy exporter compatibility risk is now resolved after the vendor patch shipped. This was noted for the project record.</v>
+
+00:00:12.000 --> 00:00:14.000
+<v Bob>By the way, the parking garage badge readers are down again. This was noted for the project record.</v>

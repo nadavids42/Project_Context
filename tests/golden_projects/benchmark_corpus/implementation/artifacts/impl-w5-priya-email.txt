@@ -1,0 +1,5 @@
+The runbook documentation is no longer needed since the vendor now provides one. This was noted for the project record.
+
+The rollback strategy question was answered: revert to the read replica and replay the write-ahead log. This was noted for the project record.
+
+Thanks everyone for the hard work this sprint. This was noted for the project record.

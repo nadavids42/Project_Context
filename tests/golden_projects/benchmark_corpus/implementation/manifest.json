@@ -1,0 +1,553 @@
+{
+  "schema_version": "benchmark_ground_truth_v1",
+  "key": "implementation",
+  "name": "Atlas Migration",
+  "objective": "Migrate the billing datastore to PostgreSQL without downtime.",
+  "stage": "Build",
+  "chunk_target_chars": 149,
+  "artifacts": [
+    {
+      "artifact_id": "impl-w1-kickoff-vtt",
+      "kind": "meeting_transcript",
+      "title": "Atlas Migration \u2014 Kickoff",
+      "occurred_at": "2026-08-03T09:00:00Z",
+      "author": "Priya",
+      "filename": "impl-w1-kickoff-vtt.vtt",
+      "project_key": "implementation",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "impl-w1-charter-doc",
+      "kind": "document",
+      "title": "Atlas Migration \u2014 Project Charter",
+      "occurred_at": "2026-08-04T10:00:00Z",
+      "author": "Priya",
+      "filename": "impl-w1-charter-doc.md",
+      "project_key": "implementation",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "impl-w1-priya-email",
+      "kind": "email",
+      "title": "Re: deployment checklist",
+      "occurred_at": "2026-08-05T09:30:00Z",
+      "author": "Priya",
+      "filename": "impl-w1-priya-email.txt",
+      "project_key": "implementation",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "impl-w1-cal-standup",
+      "kind": "calendar_event",
+      "title": "Atlas Migration \u2014 Weekly Standup",
+      "occurred_at": "2026-08-07T09:00:00Z",
+      "author": null,
+      "filename": "impl-w1-cal-standup.txt",
+      "project_key": "implementation",
+      "ambiguous_assignment": false,
+      "material": false
+    },
+    {
+      "artifact_id": "impl-w2-standup-vtt",
+      "kind": "meeting_transcript",
+      "title": "Atlas Migration \u2014 Week 2 Standup",
+      "occurred_at": "2026-08-10T09:00:00Z",
+      "author": "Priya",
+      "filename": "impl-w2-standup-vtt.vtt",
+      "project_key": "implementation",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "impl-w2-diego-email",
+      "kind": "email",
+      "title": "Schema migration \u2014 new target date",
+      "occurred_at": "2026-08-12T15:00:00Z",
+      "author": "Diego",
+      "filename": "impl-w2-diego-email.txt",
+      "project_key": "implementation",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "impl-w2-cal-review",
+      "kind": "calendar_event",
+      "title": "Atlas Migration \u2014 Mid-sprint Review",
+      "occurred_at": "2026-08-13T09:00:00Z",
+      "author": null,
+      "filename": "impl-w2-cal-review.txt",
+      "project_key": "implementation",
+      "ambiguous_assignment": false,
+      "material": false
+    },
+    {
+      "artifact_id": "impl-w3-standup-vtt",
+      "kind": "meeting_transcript",
+      "title": "Atlas Migration \u2014 Week 3 Standup",
+      "occurred_at": "2026-08-17T09:00:00Z",
+      "author": "Priya",
+      "filename": "impl-w3-standup-vtt.vtt",
+      "project_key": "implementation",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "impl-w3-staging-doc",
+      "kind": "document",
+      "title": "Atlas Migration \u2014 Staging Rollout Notes",
+      "occurred_at": "2026-08-19T11:00:00Z",
+      "author": "Diego",
+      "filename": "impl-w3-staging-doc.md",
+      "project_key": "implementation",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "impl-w3-ambiguous-email",
+      "kind": "email",
+      "title": "Quick flag re: Atlas ticket",
+      "occurred_at": "2026-08-20T16:00:00Z",
+      "author": "Sam",
+      "filename": "impl-w3-ambiguous-email.txt",
+      "project_key": "implementation",
+      "ambiguous_assignment": true,
+      "material": false
+    },
+    {
+      "artifact_id": "impl-w4-standup-vtt",
+      "kind": "meeting_transcript",
+      "title": "Atlas Migration \u2014 Week 4 Standup",
+      "occurred_at": "2026-08-24T09:00:00Z",
+      "author": "Priya",
+      "filename": "impl-w4-standup-vtt.vtt",
+      "project_key": "implementation",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "impl-w4-cal-cutover-prep",
+      "kind": "calendar_event",
+      "title": "Atlas Migration \u2014 Cutover Prep Session",
+      "occurred_at": "2026-08-26T09:00:00Z",
+      "author": null,
+      "filename": "impl-w4-cal-cutover-prep.txt",
+      "project_key": "implementation",
+      "ambiguous_assignment": false,
+      "material": false
+    },
+    {
+      "artifact_id": "impl-w5-priya-email",
+      "kind": "email",
+      "title": "Runbook + rollback strategy updates",
+      "occurred_at": "2026-08-31T10:00:00Z",
+      "author": "Priya",
+      "filename": "impl-w5-priya-email.txt",
+      "project_key": "implementation",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "impl-w5-schema-signoff-email",
+      "kind": "email",
+      "title": "Schema migration script \u2014 signed off",
+      "occurred_at": "2026-09-02T13:00:00Z",
+      "author": "Diego",
+      "filename": "impl-w5-schema-signoff-email.txt",
+      "project_key": "implementation",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "impl-w5-cal-final-review",
+      "kind": "calendar_event",
+      "title": "Atlas Migration \u2014 Final Review",
+      "occurred_at": "2026-09-04T09:00:00Z",
+      "author": null,
+      "filename": "impl-w5-cal-final-review.txt",
+      "project_key": "implementation",
+      "ambiguous_assignment": false,
+      "material": false
+    },
+    {
+      "artifact_id": "impl-w6-data-validation-email",
+      "kind": "email",
+      "title": "Data validation script \u2014 deployed",
+      "occurred_at": "2026-09-08T09:00:00Z",
+      "author": "Bob",
+      "filename": "impl-w6-data-validation-email.txt",
+      "project_key": "implementation",
+      "ambiguous_assignment": false,
+      "material": true
+    },
+    {
+      "artifact_id": "impl-w6-cutover-complete-doc",
+      "kind": "document",
+      "title": "Atlas Migration \u2014 Cutover Complete",
+      "occurred_at": "2026-09-14T17:00:00Z",
+      "author": "Priya",
+      "filename": "impl-w6-cutover-complete-doc.md",
+      "project_key": "implementation",
+      "ambiguous_assignment": false,
+      "material": true
+    }
+  ],
+  "checkpoints": [
+    {
+      "checkpoint_id": "impl-cp-before-w2",
+      "cutoff_at": "2026-08-10T09:00:00Z",
+      "brief_type": "meeting_preparation",
+      "meeting_title": "Atlas Migration \u2014 Week 2 Standup",
+      "meeting_purpose": null,
+      "meeting_scheduled_at": "2026-08-10T09:00:00Z",
+      "participant_lines": [
+        "Bob",
+        "Priya",
+        "Diego"
+      ],
+      "required_phrases": [],
+      "forbidden_phrases": []
+    },
+    {
+      "checkpoint_id": "impl-cp-before-w3",
+      "cutoff_at": "2026-08-17T09:00:00Z",
+      "brief_type": "meeting_preparation",
+      "meeting_title": "Atlas Migration \u2014 Week 3 Standup",
+      "meeting_purpose": null,
+      "meeting_scheduled_at": "2026-08-17T09:00:00Z",
+      "participant_lines": [
+        "Bob",
+        "Priya",
+        "Diego",
+        "Sam"
+      ],
+      "required_phrases": [],
+      "forbidden_phrases": []
+    },
+    {
+      "checkpoint_id": "impl-cp-before-w4",
+      "cutoff_at": "2026-08-24T09:00:00Z",
+      "brief_type": "meeting_preparation",
+      "meeting_title": "Atlas Migration \u2014 Week 4 Standup",
+      "meeting_purpose": null,
+      "meeting_scheduled_at": "2026-08-24T09:00:00Z",
+      "participant_lines": [
+        "Bob",
+        "Priya",
+        "Diego",
+        "Elena"
+      ],
+      "required_phrases": [],
+      "forbidden_phrases": []
+    },
+    {
+      "checkpoint_id": "impl-cp-final",
+      "cutoff_at": "2026-09-15T00:00:00Z",
+      "brief_type": "current_project",
+      "meeting_title": null,
+      "meeting_purpose": null,
+      "meeting_scheduled_at": null,
+      "participant_lines": [],
+      "required_phrases": [],
+      "forbidden_phrases": []
+    }
+  ],
+  "fact_plan": {
+    "impl-w1-kickoff-vtt": [
+      {
+        "item_id": "decision-datastore",
+        "transition_id": "decision-datastore-create"
+      },
+      {
+        "item_id": "commitment-schema-migration",
+        "transition_id": "schema-migration-create"
+      },
+      {
+        "item_id": "commitment-deployment-checklist",
+        "transition_id": "deployment-checklist-create"
+      },
+      {
+        "item_id": "commitment-load-testing-report",
+        "transition_id": "load-testing-create"
+      },
+      {
+        "item_id": "milestone-migration-cutover",
+        "transition_id": "cutover-create"
+      },
+      {
+        "item_id": "open-question-rollback-strategy",
+        "transition_id": "rollback-create"
+      },
+      null
+    ],
+    "impl-w1-charter-doc": [
+      {
+        "item_id": "milestone-staging-rollout",
+        "transition_id": "staging-create"
+      },
+      {
+        "item_id": "stakeholder-elena",
+        "transition_id": "elena-create"
+      },
+      {
+        "item_id": "risk-legacy-exporter",
+        "transition_id": "legacy-exporter-create"
+      },
+      null
+    ],
+    "impl-w1-priya-email": [
+      {
+        "item_id": "commitment-deployment-checklist",
+        "transition_id": "deployment-checklist-create"
+      },
+      null
+    ],
+    "impl-w1-cal-standup": [
+      null
+    ],
+    "impl-w2-standup-vtt": [
+      {
+        "item_id": "commitment-schema-migration",
+        "transition_id": "schema-migration-owner"
+      },
+      {
+        "item_id": "commitment-runbook-documentation",
+        "transition_id": "runbook-create"
+      },
+      {
+        "item_id": "risk-vendor-rate-limits",
+        "transition_id": "vendor-risk-create"
+      },
+      {
+        "item_id": "stakeholder-sam",
+        "transition_id": "sam-create"
+      },
+      {
+        "item_id": "commitment-deployment-checklist",
+        "transition_id": "deployment-checklist-complete"
+      },
+      null
+    ],
+    "impl-w2-diego-email": [
+      {
+        "item_id": "commitment-schema-migration",
+        "transition_id": "schema-migration-date1"
+      },
+      null
+    ],
+    "impl-w2-cal-review": [
+      null
+    ],
+    "impl-w3-standup-vtt": [
+      {
+        "item_id": "milestone-production-signoff",
+        "transition_id": "production-signoff-create"
+      },
+      {
+        "item_id": "commitment-data-validation-script",
+        "transition_id": "data-validation-create"
+      },
+      {
+        "item_id": "open-question-oncall-rotation",
+        "transition_id": "oncall-create"
+      },
+      {
+        "item_id": "commitment-api-contract-signoff",
+        "transition_id": "api-signoff-create"
+      },
+      null
+    ],
+    "impl-w3-staging-doc": [
+      {
+        "item_id": "milestone-staging-rollout",
+        "transition_id": "staging-complete"
+      },
+      null
+    ],
+    "impl-w3-ambiguous-email": [
+      null
+    ],
+    "impl-w4-standup-vtt": [
+      {
+        "item_id": "decision-cutover-window",
+        "transition_id": "cutover-window-create"
+      },
+      {
+        "item_id": "commitment-schema-migration",
+        "transition_id": "schema-migration-date2"
+      },
+      {
+        "item_id": "milestone-migration-cutover",
+        "transition_id": "cutover-date"
+      },
+      {
+        "item_id": "risk-legacy-exporter",
+        "transition_id": "legacy-exporter-resolve"
+      },
+      null
+    ],
+    "impl-w4-cal-cutover-prep": [
+      null
+    ],
+    "impl-w5-priya-email": [
+      {
+        "item_id": "commitment-runbook-documentation",
+        "transition_id": "runbook-cancel"
+      },
+      {
+        "item_id": "open-question-rollback-strategy",
+        "transition_id": "rollback-resolve"
+      },
+      null
+    ],
+    "impl-w5-schema-signoff-email": [
+      {
+        "item_id": "commitment-schema-migration",
+        "transition_id": "schema-migration-complete"
+      },
+      null
+    ],
+    "impl-w5-cal-final-review": [
+      null
+    ],
+    "impl-w6-data-validation-email": [
+      {
+        "item_id": "commitment-data-validation-script",
+        "transition_id": "data-validation-complete"
+      },
+      null
+    ],
+    "impl-w6-cutover-complete-doc": [
+      {
+        "item_id": "milestone-migration-cutover",
+        "transition_id": "cutover-complete"
+      },
+      null
+    ]
+  },
+  "baseline_fake_claims": {
+    "impl-cp-before-w2": [
+      {
+        "section": "open_commitments",
+        "text": "Bob owns the schema migration script, due August 14.",
+        "claim_type": "fact",
+        "item_kind": "commitment",
+        "item_title": "Schema migration script",
+        "status": "open",
+        "owner": "Bob",
+        "due_date": "2026-08-14",
+        "evidence": [
+          [
+            "impl-w1-kickoff-vtt",
+            "Bob will finish the schema migration script by August 14th."
+          ]
+        ]
+      },
+      {
+        "section": "open_commitments",
+        "text": "Priya owns the deployment checklist, due August 14.",
+        "claim_type": "fact",
+        "item_kind": "commitment",
+        "item_title": "Deployment checklist",
+        "status": "open",
+        "owner": "Priya",
+        "due_date": "2026-08-14",
+        "evidence": [
+          [
+            "impl-w1-kickoff-vtt",
+            "Priya will finish the deployment checklist by August 14th."
+          ]
+        ]
+      }
+    ],
+    "impl-cp-before-w3": [
+      {
+        "section": "open_commitments",
+        "text": "Bob owns the schema migration script, due August 14.",
+        "claim_type": "fact",
+        "item_kind": "commitment",
+        "item_title": "Schema migration script",
+        "status": "open",
+        "owner": "Bob",
+        "due_date": "2026-08-14",
+        "evidence": [
+          [
+            "impl-w1-kickoff-vtt",
+            "Bob will finish the schema migration script by August 14th."
+          ]
+        ]
+      },
+      {
+        "section": "recent_changes",
+        "text": "The deployment checklist was approved by the client.",
+        "claim_type": "fact",
+        "item_kind": "commitment",
+        "item_title": "Deployment checklist",
+        "status": "completed",
+        "owner": null,
+        "due_date": null,
+        "evidence": [
+          [
+            "impl-w2-standup-vtt",
+            "The deployment checklist was approved by the client."
+          ]
+        ]
+      }
+    ],
+    "impl-cp-before-w4": [
+      {
+        "section": "open_commitments",
+        "text": "Diego owns the schema migration script, due August 21.",
+        "claim_type": "fact",
+        "item_kind": "commitment",
+        "item_title": "Schema migration script",
+        "status": "open",
+        "owner": "Diego",
+        "due_date": "2026-08-21",
+        "evidence": [
+          [
+            "impl-w2-diego-email",
+            "The schema migration script deadline moved to August 21st."
+          ]
+        ]
+      }
+    ],
+    "impl-cp-final": [
+      {
+        "section": "open_commitments",
+        "text": "Diego owns the schema migration script, due August 21.",
+        "claim_type": "fact",
+        "item_kind": "commitment",
+        "item_title": "Schema migration script",
+        "status": "open",
+        "owner": "Diego",
+        "due_date": "2026-08-21",
+        "evidence": [
+          [
+            "impl-w2-diego-email",
+            "The schema migration script deadline moved to August 21st."
+          ]
+        ]
+      },
+      {
+        "section": "recent_changes",
+        "text": "The migration cutover milestone is complete.",
+        "claim_type": "fact",
+        "item_kind": "milestone",
+        "item_title": "Migration cutover",
+        "status": "completed",
+        "owner": null,
+        "due_date": null,
+        "evidence": [
+          [
+            "impl-w6-cutover-complete-doc",
+            "The migration cutover milestone is complete."
+          ]
+        ]
+      }
+    ]
+  },
+  "ambiguous_aliases": []
+}

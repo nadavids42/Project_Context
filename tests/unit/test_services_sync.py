@@ -278,6 +278,39 @@ def test_sync_with_provider_extracts_and_reconciles(conn, project_id, evidence_d
     assert len(proposals) == 1
 
 
+def test_ordinary_sync_makes_zero_llm_calls_even_with_api_key_set(
+    conn, project_id, evidence_dir, monkeypatch
+):
+    """The privacy/sync correction: Sync Project must never construct an
+    LLM provider or call an LLM, regardless of `OPENAI_API_KEY`. This
+    generic-orchestration test proves it at the `sync_source` level
+    (`extraction_provider` left at its `None` default, exactly as every
+    UI Sync Project button now calls it) — no LLM provider class is ever
+    instantiated."""
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-fake-not-a-real-key")
+
+    def _fail_if_constructed(self, *args, **kwargs):
+        raise AssertionError("sync_source must never construct an LLM provider")
+
+    from project_context.llm.openai_provider import OpenAIProvider
+
+    monkeypatch.setattr(OpenAIProvider, "__init__", _fail_if_constructed)
+
+    source = _make_drive_source(conn, project_id)
+    api = _api()
+    text = "Priya will send the report by Friday."
+    api.add_folder(
+        _ROOT, [api.add_file("f1", name="notes.txt", mime_type="text/plain", content=text.encode())]
+    )
+
+    # extraction_provider defaults to None
+    run = _sync(conn, project_id, source.id, api, evidence_dir)
+
+    assert run.status is SyncRunStatus.COMPLETED
+    assert run.extracted_count == 0
+    assert observation_repository.list_observations_for_project(conn, project_id) == []
+
+
 # --- idempotency: unchanged reruns, changed content --------------------
 
 

@@ -27,7 +27,6 @@ from project_context.db.health import check_database_health
 from project_context.domain.calendar_matching import CalendarMatchRules, InvalidCalendarRuleError
 from project_context.domain.fathom_matching import FathomMatchRules, InvalidFathomRuleError
 from project_context.domain.sources import Source, SourceHealthStatus, SourceKind
-from project_context.services import extraction as extraction_service
 from project_context.services import sync as sync_service
 from project_context.services.google_connect import (
     GoogleConnectError,
@@ -281,8 +280,12 @@ def _render_sync_section(
     if not source.enabled:
         st.caption("Enable this source to sync.")
         return
+    st.caption(
+        "Sync only discovers, downloads, parses, and stores evidence — it never sends "
+        "anything to an LLM, even when an API key is configured. Run **Extract observations** "
+        "on the Evidence page afterward to extract newly imported evidence."
+    )
     if st.button("Sync Project", key="sync-drive-project"):
-        provider = extraction_service.build_default_provider()
         with st.spinner("Syncing…"):
             run = sync_service.sync_drive_project(
                 conn,
@@ -294,8 +297,6 @@ def _render_sync_section(
                 evidence_dir=config.evidence_dir,
                 chunk_target_chars=config.chunk_target_chars,
                 chunk_overlap_ratio=config.chunk_overlap_ratio,
-                extraction_provider=provider,
-                extraction_model=config.openai_model,
             )
         st.session_state[_LAST_SYNC_COUNTS_KEY] = run
         st.rerun()
@@ -322,6 +323,10 @@ def _render_sync_result(run) -> None:
     ]
     for column, (label, value) in zip(cols, labels, strict=False):
         column.metric(label, value)
+    st.caption(
+        "Extracted always reads 0 here — Sync Project never extracts. Run **Extract "
+        "observations** on the Evidence page to extract newly imported evidence."
+    )
 
 
 def _render_sync_history(conn, project_id: str, source_id: str) -> None:
@@ -557,8 +562,12 @@ def _render_gmail_sync_section(
     if not source.enabled:
         st.caption("Enable this source to sync.")
         return
+    st.caption(
+        "Sync only discovers, downloads, parses, and stores evidence — it never sends "
+        "anything to an LLM, even when an API key is configured. Run **Extract observations** "
+        "on the Evidence page afterward to extract newly imported evidence."
+    )
     if st.button("Sync Project", key="sync-gmail-project"):
-        provider = extraction_service.build_default_provider()
         with st.spinner("Syncing…"):
             run = sync_service.sync_gmail_project(
                 conn,
@@ -570,8 +579,6 @@ def _render_gmail_sync_section(
                 evidence_dir=config.evidence_dir,
                 chunk_target_chars=config.chunk_target_chars,
                 chunk_overlap_ratio=config.chunk_overlap_ratio,
-                extraction_provider=provider,
-                extraction_model=config.openai_model,
             )
         st.session_state[_GMAIL_LAST_SYNC_COUNTS_KEY] = run
         st.rerun()
@@ -865,8 +872,12 @@ def _render_calendar_sync_section(
     if not source.enabled:
         st.caption("Enable this source to sync.")
         return
+    st.caption(
+        "Sync only discovers, downloads, parses, and stores evidence — it never sends "
+        "anything to an LLM, even when an API key is configured. Run **Extract observations** "
+        "on the Evidence page afterward to extract newly imported evidence."
+    )
     if st.button("Sync Project", key="sync-calendar-project"):
-        provider = extraction_service.build_default_provider()
         with st.spinner("Syncing…"):
             run = sync_service.sync_calendar_project(
                 conn,
@@ -878,8 +889,6 @@ def _render_calendar_sync_section(
                 evidence_dir=config.evidence_dir,
                 chunk_target_chars=config.chunk_target_chars,
                 chunk_overlap_ratio=config.chunk_overlap_ratio,
-                extraction_provider=provider,
-                extraction_model=config.openai_model,
             )
         st.session_state[_CALENDAR_LAST_SYNC_COUNTS_KEY] = run
         st.rerun()
@@ -1128,8 +1137,12 @@ def _render_fathom_sync_section(
         st.caption("Enable this source to sync.")
         return
     st.caption("User-triggered only — Fathom is polled here, never in the background.")
+    st.caption(
+        "Sync only discovers, downloads, parses, and stores evidence — it never sends "
+        "anything to an LLM, even when an API key is configured. Run **Extract observations** "
+        "on the Evidence page afterward to extract newly imported evidence."
+    )
     if st.button("Sync Project", key="sync-fathom-project"):
-        provider = extraction_service.build_default_provider()
         with st.spinner("Syncing…"):
             run = sync_service.sync_fathom_project(
                 conn,
@@ -1139,8 +1152,6 @@ def _render_fathom_sync_section(
                 evidence_dir=config.evidence_dir,
                 chunk_target_chars=config.chunk_target_chars,
                 chunk_overlap_ratio=config.chunk_overlap_ratio,
-                extraction_provider=provider,
-                extraction_model=config.openai_model,
             )
         st.session_state[_FATHOM_LAST_SYNC_COUNTS_KEY] = run
         st.rerun()

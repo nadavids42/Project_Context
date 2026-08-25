@@ -210,6 +210,33 @@ def test_extraction_without_configured_provider_shows_actionable_error(
     assert any("OPENAI_API_KEY" in e.value for e in at.error)
 
 
+def test_leaving_evidence_unextracted_invokes_no_provider(isolated_config, project_id, monkeypatch):
+    """Requirement: extraction must require a separate, explicit user
+    action — viewing evidence (including newly synced evidence) without
+    clicking 'Extract observations' must never call the LLM provider."""
+    at = _at_for_project(project_id)
+    text = "Priya will send the report by Friday."
+    _add_text_and_open_viewer(at, title="Kickoff notes", text=text)
+
+    def _fail_if_called(**_):
+        raise AssertionError("must not be called unless 'Extract observations' is clicked")
+
+    monkeypatch.setattr(extraction_service, "build_default_provider", _fail_if_called)
+
+    # No button click here — this is the "leave the page without
+    # extracting" path. A further no-op rerun exercises the page again
+    # (as a real "come back later" visit would) without ever clicking.
+    at.run()
+
+    assert not at.exception
+    conn = connect(isolated_config.sqlite_path)
+    try:
+        observation_count = conn.execute("SELECT COUNT(*) AS n FROM observations").fetchone()["n"]
+    finally:
+        conn.close()
+    assert observation_count == 0
+
+
 def test_extraction_persists_observations_but_never_mutates_ledger_state(
     isolated_config, project_id, monkeypatch
 ):

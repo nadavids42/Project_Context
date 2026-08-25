@@ -22,8 +22,9 @@ UI tests. Also implemented: **read-only Google Drive sync** (Prompt
 10) — a local OAuth desktop flow, OS-keyring-backed (with an encrypted-
 file fallback) credential storage, one configured Drive folder per
 project, recursive folder enumeration with change detection, Google
-Docs export, and manual "Sync Project" orchestration feeding the same
-extraction/reconciliation/review path as manual uploads — see
+Docs export, and manual "Sync Project" orchestration — ingestion-only,
+feeding the same storage path as manual uploads and never constructing
+an LLM provider — see
 "[Google Drive setup](#google-drive-setup-optional)" below; and
 **read-only Gmail sync** (Prompt 11) — one configured Gmail label
 and/or search query per project, list-then-get message sync with a
@@ -31,7 +32,7 @@ and/or search query per project, list-then-get message sync with a
 plain-text/HTML-fallback body extraction with attachments excluded and
 quoted-history/signatures trimmed only from what gets sent to
 extraction (the complete message is always kept as evidence), feeding
-the same extraction/reconciliation/review path — see
+the same ingestion-only storage path — see
 "[Gmail setup](#gmail-setup-optional)" below, including its restricted-
 scope caveat; and **read-only Calendar matching** (Prompt 12) — one
 configured set of deterministic assignment rules per project (explicit
@@ -95,12 +96,16 @@ product.
 - **Use only synthetic, personal, public, or explicitly authorized data.**
   Never use employer or customer data unless its owner has explicitly
   permitted it in writing.
-- Source content is stored on this device. Extraction is opt-in and
-  manually triggered per evidence item: only when you click "Extract
-  observations" is that one chunk's text sent to the configured LLM
-  provider (OpenAI, stateless, `store: false`); nothing is sent
-  automatically or in the background. Extraction is disabled until you
-  set `OPENAI_API_KEY` in your environment.
+- Source content is stored on this device. **Sync Project**
+  (Drive/Gmail/Calendar/Fathom) is ingestion-only: it discovers,
+  downloads, parses, and stores evidence and never constructs an LLM
+  provider or sends anything to an LLM — even when `OPENAI_API_KEY` is
+  set. Extraction is a separate, opt-in action manually triggered per
+  evidence item: only when you click "Extract observations" is that
+  one chunk's text sent to the configured LLM provider (OpenAI,
+  stateless, `store: false`); nothing is sent automatically or in the
+  background. Extraction is disabled until you set `OPENAI_API_KEY` in
+  your environment.
 - External connectors are strictly read-only (no code path ever writes
   to Drive/Gmail/Calendar/Fathom, and this application never calls a
   Zoom API at all) and disabled by default. Google Drive (Prompt 10),
@@ -231,9 +236,12 @@ for every Drive scenario.
    matched, then **Save folder**.
 9. Click **Sync Project**. This recursively enumerates the folder,
    downloads new/changed supported files, exports Google Docs to plain
-   text, and feeds everything through the same parser/extraction/
-   reconciliation pipeline manual uploads use — nothing here invents a
-   different, Drive-specific fact-extraction path. Files trashed or
+   text, and feeds everything through the same parser/storage pipeline
+   manual uploads use — nothing here invents a different, Drive-specific
+   ingestion path. **Sync is ingestion-only: it never sends anything to
+   an LLM.** Extraction is a separate, explicit step you run afterward
+   from the Evidence page's "Extract observations" button, per piece of
+   evidence — see "Privacy and data policy" above. Files trashed or
    removed from the folder are marked unavailable on the next full
    sync, never silently deleted from your ledger.
 
@@ -305,8 +313,11 @@ fallback for every Gmail scenario.
    (`users.messages.get`), and normalizes headers, participants,
    sent/received time, subject, thread/message IDs, and a plain-text
    body (falling back to a safe HTML-to-text conversion only when no
-   plain-text part exists) into the same parser/extraction/
-   reconciliation/review pipeline manual uploads and Drive use.
+   plain-text part exists) into the same parser/storage pipeline manual
+   uploads and Drive use. **Sync is ingestion-only: it never sends
+   anything to an LLM.** Extraction (and the reconciliation/review that
+   follows it) is a separate, explicit step you run afterward from the
+   Evidence page's "Extract observations" button, per message.
    Attachments are excluded entirely in this version.
 
 **Incremental sync, evidence, and quoted history.** Each sync uses a
@@ -385,17 +396,19 @@ fallback for every Calendar scenario.
    every sync (no incremental sync token in this version — Section
    11.4 allows deferring that until a bounded rescan proves
    inadequate), deduplicates by event ID/`updated` timestamp, and
-   feeds matched events through the same parser/extraction/
-   reconciliation/review pipeline manual uploads and Drive/Gmail use.
+   feeds matched events through the same parser/storage pipeline manual
+   uploads and Drive/Gmail use. **Sync is ingestion-only: it never
+   sends anything to an LLM.**
 
 **Calendar metadata alone never becomes a decision, commitment, or
 risk.** Title, organizer, attendees, timing, and match reason are
 always stored as evidence (so a Meeting Preparation Brief can later
 select the right meeting and show its context), but only an event's
 own `description` text — verbatim, never a synthesized sentence about
-who attended or when — is ever handed to extraction. A matched event
-with no description produces zero extraction chunks: nothing is
-invented from the mere fact that a meeting exists.
+who attended or when — is ever handed to extraction, and only once you
+separately run "Extract observations" from the Evidence page. A
+matched event with no description produces zero extraction chunks:
+nothing is invented from the mere fact that a meeting exists.
 
 Cancelled events, and events that stop matching a project's rules on a
 later sync (an edited title, a changed rule set), are marked
@@ -462,19 +475,22 @@ required fallback if you skip this.
    background poll: it lists meetings created since your last
    successful sync minus a 48-hour overlap, deduplicates by Fathom's
    own stable `recording_id`, and feeds matched meetings through the
-   same parser/extraction/reconciliation/review pipeline every other
-   source uses.
+   same parser/storage pipeline every other source uses. **Sync is
+   ingestion-only: it never sends anything to an LLM**, even when
+   `OPENAI_API_KEY` is set.
 
-**Meeting transcripts are the primary evidence sent to extraction.**
-Fathom's own generated summary and action items are stored and fully
-visible/citable in the evidence viewer, but are never themselves sent
-to extraction — so a Fathom-produced action item can never become an
-automatically accepted ledger commitment on its own; a person has to
-read it and create/confirm the ledger item themselves. A meeting whose
-transcript has not finished Fathom's own post-processing yet still
-imports its metadata as evidence immediately; the next sync's overlap
-rescan picks up the transcript once it becomes available (there is no
-webhook, so this application never assumes it will be told).
+**Meeting transcripts are the primary evidence eligible for
+extraction** once you separately run "Extract observations" from the
+Evidence page. Fathom's own generated summary and action items are
+stored and fully visible/citable in the evidence viewer, but are never
+themselves sent to extraction — so a Fathom-produced action item can
+never become an automatically accepted ledger commitment on its own; a
+person has to read it and create/confirm the ledger item themselves. A
+meeting whose transcript has not finished Fathom's own post-processing
+yet still imports its metadata as evidence immediately; the next
+sync's overlap rescan picks up the transcript once it becomes
+available (there is no webhook, so this application never assumes it
+will be told).
 
 To disconnect at any time, click **Disconnect** — this deletes the
 stored API key immediately and disables the source; it does not delete
@@ -708,8 +724,10 @@ see the setup section above for why. The one remaining documented
 exception is the OpenAI API key: the credential-store subsystem covers
 Drive but extraction still reads the standard `OPENAI_API_KEY`
 environment variable directly (see [`.env.example`](.env.example));
-without it, "Extract observations" and Drive sync's extraction step
-both show an actionable error instead of failing silently.
+without it, "Extract observations" (Evidence page) shows an actionable
+error instead of failing silently. Sync Project never reads or needs
+this variable at all — it is ingestion-only and never constructs an
+LLM provider.
 
 ## Repository structure
 

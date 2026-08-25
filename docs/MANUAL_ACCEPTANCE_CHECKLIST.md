@@ -58,16 +58,24 @@ For **each** project, upload one of each: `.txt`, `.md`, `.docx`,
       OAuth test-mode client and content you are personally authorized
       to use — **never** employer/customer data.
 - [ ] Click **Sync Project**; confirm discovered/unchanged/downloaded/
-      parsed/extracted/failed/unassigned counts render and look
-      correct for what you actually put in the folder.
+      parsed/failed/unassigned counts render and look correct for what
+      you actually put in the folder, and that **Extracted always
+      reads 0** — Sync Project is ingestion-only and never calls an
+      LLM, even with `OPENAI_API_KEY` set.
 - [ ] Run the sync a second time with no changes upstream; confirm it
       reports unchanged, not duplicated evidence.
+- [ ] Open the newly synced evidence on the Evidence page and click
+      **Extract observations** yourself; confirm this is the only
+      action that produces observations from this evidence, and that
+      the privacy banner's disclosure matches (the LLM call happens
+      exactly here, not during the sync above).
 
 ## 5. Review every action type
 
-Using either the connector sync above or manual uploads worded to
-trigger each case, exercise every review action at least once from the
-Activity & Review queue:
+Using either the extraction you ran on the connector-synced evidence
+above (extraction is always a separate, explicit step — never part of
+sync itself) or manual uploads worded to trigger each case, exercise
+every review action at least once from the Activity & Review queue:
 
 - [ ] Accept (create)
 - [ ] Edit + accept (a corrected field — confirm it appears as a

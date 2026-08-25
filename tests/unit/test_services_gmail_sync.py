@@ -317,6 +317,34 @@ def test_sync_with_provider_extracts_and_reconciles(conn, project_id, evidence_d
     assert len(proposals) == 1
 
 
+def test_ordinary_sync_makes_zero_llm_calls_even_with_api_key_set(
+    conn, project_id, evidence_dir, monkeypatch
+):
+    """The privacy/sync correction: Sync Project must never construct an
+    LLM provider or call an LLM, regardless of `OPENAI_API_KEY` — see
+    the equivalent Drive test in `test_services_sync.py` for the full
+    rationale."""
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-fake-not-a-real-key")
+
+    def _fail_if_constructed(self, *args, **kwargs):
+        raise AssertionError("sync_source must never construct an LLM provider")
+
+    from project_context.llm.openai_provider import OpenAIProvider
+
+    monkeypatch.setattr(OpenAIProvider, "__init__", _fail_if_constructed)
+
+    source = _make_gmail_source(conn, project_id)
+    api = FakeGmailApi()
+    api.add_message("m1", plain_text="Priya will send the report by Friday.")
+
+    # extraction_provider defaults to None
+    run = _sync(conn, project_id, source.id, api, evidence_dir)
+
+    assert run.status is SyncRunStatus.COMPLETED
+    assert run.extracted_count == 0
+    assert observation_repository.list_observations_for_project(conn, project_id) == []
+
+
 def test_quoted_history_is_not_sent_to_extraction(conn, project_id, evidence_dir):
     """Prompt 11: "Avoid re-extracting an entire historical thread for
     each new reply." The old quoted commitment must not appear in any

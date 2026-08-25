@@ -193,7 +193,10 @@ def test_sync_button_runs_sync_and_displays_counts(isolated_config, monkeypatch)
     import project_context.ui.pages.sources_settings as page
     from project_context.domain.sync import SyncRunStatus
 
+    captured_kwargs: dict = {}
+
     def fake_sync_drive_project(conn, project_id, source_id, **kwargs):
+        captured_kwargs.update(kwargs)
         conn2 = connect(isolated_config.sqlite_path)
         try:
             from project_context.db import sync_repository
@@ -219,7 +222,6 @@ def test_sync_button_runs_sync_and_displays_counts(isolated_config, monkeypatch)
             conn2.close()
 
     monkeypatch.setattr(page.sync_service, "sync_drive_project", fake_sync_drive_project)
-    monkeypatch.setattr(page.extraction_service, "build_default_provider", lambda **_: None)
 
     at = _at_for(isolated_config, project.id)
     at.run()
@@ -238,3 +240,84 @@ def test_sync_button_runs_sync_and_displays_counts(isolated_config, monkeypatch)
         "Unassigned",
     }
     assert expected <= metric_labels
+    # Prompt-16-follow-up regression: the Sync Project button must never
+    # pass a constructed LLM provider through — ingestion only.
+    assert captured_kwargs.get("extraction_provider") is None
+
+
+def test_sync_button_never_constructs_an_llm_provider_even_with_api_key_set(
+    isolated_config, monkeypatch
+):
+    """The exact bug this correction fixes: the Sync Project button used
+    to call `extraction_service.build_default_provider()` (reading
+    `OPENAI_API_KEY`) and pass the result straight into
+    `sync_drive_project`. Sync must never do that, regardless of whether
+    a key is configured."""
+    monkeypatch.setenv("PROJECT_CONTEXT_FEATURE_DRIVE_ENABLED", "true")
+    monkeypatch.setenv("PROJECT_CONTEXT_GOOGLE_OAUTH_CLIENT_ID", "cid")
+    monkeypatch.setenv("PROJECT_CONTEXT_GOOGLE_OAUTH_CLIENT_SECRET", "csecret")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-fake-not-a-real-key")
+    project = _seed_project(isolated_config)
+
+    conn = connect(isolated_config.sqlite_path)
+    try:
+        from project_context.credentials.service import CredentialService
+        from project_context.credentials.store import CredentialStore
+        from project_context.db import sources_repository
+
+        source = sources_repository.insert_source(
+            conn, project.id, kind=SourceKind.DRIVE, display_name="Drive folder"
+        )
+        store = CredentialStore(
+            credentials_dir=isolated_config.credentials_dir, prefer_keyring=False
+        )
+        CredentialService(store).connect(conn, project.id, source.id, secret="refresh-token")
+        conn.commit()
+    finally:
+        conn.close()
+
+    import project_context.services.extraction as extraction_service
+    import project_context.ui.pages.sources_settings as page
+    from project_context.domain.sync import SyncRunStatus
+
+    captured_kwargs: dict = {}
+
+    def fake_sync_drive_project(conn, project_id, source_id, **kwargs):
+        captured_kwargs.update(kwargs)
+        conn2 = connect(isolated_config.sqlite_path)
+        try:
+            from project_context.db import sync_repository
+
+            run = sync_repository.insert_sync_run(conn2, project_id)
+            finalized = sync_repository.finalize_sync_run(
+                conn2,
+                project_id,
+                run.id,
+                status=SyncRunStatus.COMPLETED,
+                discovered_count=1,
+                unchanged_count=0,
+                downloaded_count=1,
+                parsed_count=1,
+                extracted_count=0,
+                failed_count=0,
+                proposed_count=0,
+                needs_assignment_count=0,
+            )
+            conn2.commit()
+            return finalized
+        finally:
+            conn2.close()
+
+    def _fail_if_called(**_kwargs):
+        raise AssertionError("Sync Project must never construct an LLM provider")
+
+    monkeypatch.setattr(page.sync_service, "sync_drive_project", fake_sync_drive_project)
+    monkeypatch.setattr(extraction_service, "build_default_provider", _fail_if_called)
+
+    at = _at_for(isolated_config, project.id)
+    at.run()
+    at.button(key="sync-drive-project").click().run()
+
+    assert not at.exception
+    assert any("sync completed" in s.value.lower() for s in at.success)
+    assert captured_kwargs.get("extraction_provider") is None

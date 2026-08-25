@@ -662,6 +662,20 @@ def sync_source(
     get_or_create_artifact_fn: GetOrCreateArtifactFn = drive_ingestion.get_or_create_drive_artifact,
     store_artifact_fn: StoreArtifactFn = drive_ingestion.store_raw_artifact,
 ) -> SyncRun:
+    """Privacy contract: `extraction_provider` defaults to `None`, and
+    every Sync Project button in the UI now calls this (via
+    `sync_drive_project`/`sync_gmail_project`/`sync_calendar_project`/
+    `sync_fathom_project`) without overriding that default — Sync
+    Project discovers, downloads, parses, and stores evidence only, and
+    never constructs or calls an LLM provider, regardless of whether
+    `OPENAI_API_KEY` is set. Extraction over newly imported evidence is
+    a separate, explicit action a person takes afterward from the
+    Evidence page's "Extract observations" button (see
+    `project_context.services.extraction.extract_content`, which this
+    still reuses when a caller *does* pass a provider — e.g. tests and
+    the evaluation harness). Only pass a non-`None` `extraction_provider`
+    here from a path that has its own explicit, disclosed user opt-in —
+    never wire one in unconditionally from a Sync button again."""
     source = sources_repository.get_source(conn, project_id, source_id)
     if source is None:
         raise SourceNotConfiguredError(f"source {source_id!r} not found in project {project_id!r}")

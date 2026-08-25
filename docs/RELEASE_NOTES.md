@@ -14,6 +14,58 @@ ready (this remains a local, single-user prototype per ADR-009).
 
 ---
 
+## Post-checkpoint correction (same day): Sync Project is now ingestion-only
+
+**Problem found:** the privacy banner and README stated that source
+text is only sent to the LLM when a person explicitly clicks "Extract
+observations" or generates a brief. That was false for the four
+connectors: each **Sync Project** button (`ui/pages/sources_settings.py`)
+constructed a real `OpenAIProvider` via `extraction_service.
+build_default_provider()` and passed it into `sync_drive_project`/
+`sync_gmail_project`/`sync_calendar_project`/`sync_fathom_project`
+whenever `OPENAI_API_KEY` was set — silently extracting every newly
+imported artifact during sync, with no separate disclosure or opt-in
+for that behavior.
+
+**Fix:** all four Sync Project button handlers now call their
+`sync_service.sync_*_project` function with no `extraction_provider`
+argument at all, so it falls through to that function's own `None`
+default at every layer (`sync_*_project` -> `sync_source` ->
+`_process_one_artifact`) — Sync Project discovers, downloads, parses,
+and stores evidence only, and never constructs or calls an LLM
+provider, regardless of whether `OPENAI_API_KEY` is set. No second
+extraction implementation was added: extracting newly imported
+evidence is done by reusing the existing, already-implemented Evidence
+page "Extract observations" action, one content version at a time —
+judged adequate for this first version rather than adding a combined
+"extract after sync" option. The privacy banner
+(`ui/chrome.py:render_privacy_banner`), README privacy section and
+per-connector setup instructions, and the Sources & Settings page's
+own sync captions and sync-result panel were all updated to state this
+exact behavior. `sync_source`'s generic `extraction_provider` parameter
+(and the four connector-specific entry points') is unchanged and still
+used directly by tests and the evaluation harness — only the UI's
+default wiring changed.
+
+**Tests added** (`tests/unit/test_ui_sources_settings_page.py`,
+`_gmail.py`, `_calendar.py`, `_fathom.py`, plus one generic-orchestration
+test per connector in `test_services_sync.py`/`test_services_gmail_sync.py`/
+`test_services_calendar_sync.py`/`test_services_fathom_sync.py`, and
+`test_ui_chrome.py`/`test_ui_extraction.py`): ordinary sync makes zero
+LLM-provider calls for all four connectors even with `OPENAI_API_KEY`
+set; explicit "Extract observations" still invokes the configured
+provider; leaving the Evidence page without clicking "Extract
+observations" invokes no provider; and the privacy banner's disclosure
+text matches the actual trigger. Full suite, Ruff lint, and Ruff format
+all re-verified green after the change — see updated counts below.
+
+Not verified: no browser or live-network check was performed (per this
+repository's established testing approach — Section 15: "Tests must
+use a fake/mock provider and never call the network"); everything
+above was verified through the automated test suite only.
+
+---
+
 ## Enabled by default
 
 - Project lifecycle: create/edit/archive/restore, and now **delete**
@@ -106,22 +158,28 @@ or started this checkpoint, per this prompt's explicit instruction.
   maintenance, Security scanning, parser-limits/no-OCR/no-transcription
   callouts).
 
-## Test counts (this checkpoint's final run)
+## Test counts (after the Sync/extraction correction above)
 
 ```
-1279 passed, 0 failed, 0 skipped   (pytest, full suite)
-  tests/unit/          1200
+1289 passed, 0 failed, 0 skipped   (pytest, full suite)
+  tests/unit/          1210
   tests/security/          9   (new this checkpoint)
   tests/evaluation/        64
   tests/golden_projects/    6
 ```
 
 Baseline at the start of this checkpoint (before any stabilization
-changes): **1235 passed**. Net +44 tests, all net-new coverage for
-this checkpoint's hardening work (deletion, backup/restore, DB
-busy/locked handling, filesystem permissions, cross-project sentinel
-suite, log scan) plus two small symmetry fixes (a missing
-"Drive disabled by default" UI test, a `not_built.py` removal).
+changes): **1235 passed**. The checkpoint itself added +44 tests
+(deletion, backup/restore, DB busy/locked handling, filesystem
+permissions, cross-project sentinel suite, log scan, plus two small
+symmetry fixes). The post-checkpoint Sync/extraction correction above
+added a further **+10 tests** (1279 -> 1289): one "Sync Project never
+constructs an LLM provider, even with `OPENAI_API_KEY` set" test per
+connector at the UI layer and one at the generic `sync_source` layer
+(8 total), one "leaving the Evidence page without extracting invokes
+no provider" test, and one privacy-banner disclosure-text test.
+`ruff check .` and `ruff format --check .` were both re-verified green
+after the change.
 
 `ruff check .`: **all checks passed** (0 errors), before and after this
 checkpoint. `ruff format --check .`: **now passes** (276/276 files
